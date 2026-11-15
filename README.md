@@ -1,19 +1,34 @@
-# Requins 🦈 — le jeu du fric entre potes
+# Scarface 🌴 — le jeu du fric entre potes
 
-Jeu de société sur mobile : chacun part avec la même somme et tente de devenir le plus riche
-(casino, bourse, crypto, immobilier, entreprises, startups… et quelques activités moins légales).
+Jeu de société sur mobile dans une ambiance néon années 80 : chacun part avec la même somme et tente
+de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, startups… et beaucoup d'activités moins légales).
 
 ## Modes de jeu
 - **En ligne** : un joueur crée un salon, les autres le rejoignent avec le code à 4 caractères
   (ou le lien partagé). Chacun joue sur son téléphone.
 - **Sur un seul téléphone** : on se passe le téléphone à tour de rôle.
 
-## Mise en ligne sur GitHub Pages
-1. Crée un dépôt sur GitHub (par exemple `requins`).
-2. Envoie-y les fichiers `index.html` et `mqtt.min.js` (bouton « Add file › Upload files »).
-3. Dans le dépôt : **Settings › Pages › Build and deployment** : Source « Deploy from a branch »,
-   branche `main`, dossier `/ (root)`, puis **Save**.
-4. Après une minute, le jeu est disponible sur `https://<ton-pseudo>.github.io/requins/`.
+## Les règles en bref
+- **3 points d'action (PA) par tour.** Casino, trading, immobilier, startup, boulot ou coup bas : 1 PA.
+  Créer une entreprise ou monter un réseau de trafic : 2 PA. Un braquage : 3 PA (tout le tour).
+- **3 opportunités par tour**, tirées au hasard : yacht saisi, tuyau d'initié, commissaire corrompu, usurier…
+- **Gratuit** : Bourse, banque, blanchiment, vente de ses biens.
+- **Braquages** : chances de réussite basses, préparation payée d'avance, réputation requise pour les grosses
+  cibles, sécurité renforcée sur une cible déjà braquée. Un repérage (1 PA) donne +15 % au tour suivant.
+- **Argent sale** (braquages, trafic) : compté à 50 % dans le patrimoine, il attire la police et il est saisi en
+  cas d'arrestation. On le blanchit via ses commerces (10 % de frais) ou chez le blanchisseur (30 %).
+- Le plus gros **patrimoine net** à la fin gagne.
+
+## Mise en ligne
+Le jeu est publié sur GitHub Pages depuis la branche `main`. Pour publier une modification :
+
+```
+git add -A
+git commit -m "ce que j'ai changé"
+git push
+```
+
+Le site se met à jour en une à deux minutes.
 
 ## Comment marche le multijoueur
 Il n'y a pas de serveur à installer : les téléphones communiquent via un relais MQTT public
