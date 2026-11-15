@@ -502,7 +502,7 @@ const OPPS=[
  {k:'yacht',e:'🛥️',t:'Yacht saisi aux enchères',d:'Les douanes bradent un yacht. Revente dans 2 tours : perte, x1,5 ou x2,5.',c:u=>u*1.5,
    go:(p,o)=>{p.deals.push({name:'Yacht saisi',pitch:'Revente aux enchères',e:'🛥️',amt:o.cost,mature:G.round+2,out:[[.25,.6,'se revend mal…'],[.5,1.5,'trouve preneur : x1,5'],[.25,2.5,'part chez une star du disco : x2,5 !']]});return 'Revente prévue au tour '+(G.round+2)}},
  {k:'tip',e:'📞',t:'Tuyau d’initié',roll:()=>({sym:pick(ASSETS).sym}),d:o=>`Un trader bavard jure que ${ASSETS.find(a=>a.sym===o.sym).name} va s’envoler au prochain tour. Achète en Bourse ensuite ! 🚨 +8`,c:u=>u*.25,
-   go:(p,o)=>{G.bias=G.bias||{};G.bias[o.sym]=(G.bias[o.sym]||0)+(Math.random()<.75?R(.2,.45):-.15);p.heat=clamp(p.heat+8,0,100);return 'Info notée. À toi de jouer en Bourse.'}},
+   go:(p,o)=>{G.bias=G.bias||{};G.bias[o.sym]=(G.bias[o.sym]||0)+(Math.random()<.7?R(.08,.25):-.12);p.heat=clamp(p.heat+8,0,100);return 'Info notée. À toi de jouer en Bourse.'}},
  {k:'cop',e:'👮',t:'Commissaire corrompu',need:p=>p.heat>=15,d:'Une enveloppe et ton dossier s’allège de 35. Sauf si c’est un piège (15 %).',c:u=>u*.6,
    go:p=>{if(Math.random()<.85){p.heat=clamp(p.heat-35,0,100);return '😇 Recherche −35'}p.heat=clamp(p.heat+20,0,100);return '🚨 C’était un piège ! Recherche +20'}},
  {k:'truck',e:'📼',t:'Cargaison tombée du camion',d:'Des magnétoscopes « sans facture ». Tu paies en propre, tu revends en liquide sale (x1,5 à x2,4). 🚨 +10',c:u=>u*.8,
@@ -559,11 +559,11 @@ function stockVal(p){let v=0;for(const s in p.stocks)v+=p.stocks[s]*asset(s).pri
 function myProps(p){return G.props.filter(x=>x.owner===p.id)}
 function propsVal(p){return myProps(p).reduce((a,x)=>a+propVal(x),0)}
 function bizTotal(p){return p.biz.reduce((a,b)=>a+bizVal(b),0)}
-function dealsVal(p){return p.deals.reduce((a,d)=>a+d.amt,0)}
-function grossAssets(p){return Math.max(0,p.cash)+stockVal(p)+propsVal(p)+bizTotal(p)+dealsVal(p)}
+function dealsVal(p){return p.deals.reduce((a,d)=>a+(d.kind==="vc"?d.value:d.amt),0)}
+function grossAssets(p){return Math.max(0,p.cash)+posTotal(p)+stockVal(p)+propsVal(p)+bizTotal(p)+dealsVal(p)}
 /* L'argent sale ne compte que pour moitié tant qu'il n'est pas blanchi. */
 const DIRTY_VALUE=.5;
-function netWorth(p){return p.cash+(p.dirty||0)*DIRTY_VALUE+stockVal(p)+propsVal(p)+bizTotal(p)+dealsVal(p)-p.debt}
+function netWorth(p){return p.cash+(p.dirty||0)*DIRTY_VALUE+posTotal(p)+stockVal(p)+propsVal(p)+bizTotal(p)+dealsVal(p)-p.debt}
 function gain(p,n){p.cash+=n;return fmt(n,true)}
 function heatFx(p,n){p.heat=clamp(p.heat+n,0,100);return (n>0?'🚨 Recherche +':'😇 Recherche −')+Math.abs(n)}
 function robin(p){const others=G.players.filter(o=>o!==p);if(!others.length)return '';const rich=others.reduce((a,b)=>b.cash>a.cash?b:a);
@@ -611,6 +611,8 @@ const RULES=`<details class="rules"><summary>📜 Les règles en 1 minute</summa
     <p>Chacun part avec la même somme. À ton tour, tu as <b>3 points d’action (PA)</b>. Chaque action en coûte : casino, trading, immobilier, startup, boulot ou coup bas = 1 PA ; créer une entreprise ou monter un réseau = 2 PA ; un braquage = <b>3 PA, tout ton tour</b>.</p>
     <p>À chaque tour, <b>3 opportunités</b> tombent : yacht saisi, tuyau d’initié, commissaire corrompu… À toi de choisir ce qui vaut tes PA.</p>
     <p>La Bourse, la banque, le blanchiment et la vente de tes biens sont <b>gratuits</b>.</p>
+    <p><b>Trading</b> : tes positions (hausse ou baisse, levier jusqu’à x10, stop-loss, objectif) restent ouvertes d’un tour à l’autre. Lis les signaux (tendance, valorisation, analystes, résultats trimestriels) : ils donnent un avantage, pas une certitude.</p>
+    <p><b>Startups</b> : équipe, traction et hype font le prix et les chances. Un audit révèle la vraie qualité. Suis les levées des bonnes, revends les autres.</p>
     <p>Les braquages et le trafic rapportent de l’<b>argent sale 💵</b> : il ne compte que pour moitié dans ton patrimoine, il attire la police et il est saisi si tu te fais arrêter. Blanchis-le via tes commerces (10 % de frais) ou chez le blanchisseur (30 %).</p>
     <p>Les grosses cibles demandent de la <b>réputation</b> (braquages réussis) et une préparation payée d’avance. Un repérage (1 PA) augmente tes chances au tour suivant.</p>
     <p>La <b>jauge de recherche 🚨</b> monte avec le crime : plus elle est haute, plus tu risques l’arrestation au début de ton tour.</p>
@@ -619,15 +621,16 @@ const RULES=`<details class="rules"><summary>📜 Les règles en 1 minute</summa
 function cycleAv(i){const used=setup.players.map(p=>p.av);let k=AVATARS.indexOf(setup.players[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));setup.players[i].av=AVATARS[k];sfx.tick();renderSetup()}
 function addPlayer(){const used=setup.players.map(p=>p.av);setup.players.push({name:'',av:AVATARS.find(a=>!used.includes(a))});renderSetup();setTimeout(()=>{const el=$('#pn'+(setup.players.length-1));el&&el.focus()},50)}
 function rmPlayer(i){setup.players.splice(i,1);renderSetup()}
-function resume(){G=loadSave();if(!G)return;if(G.screen==='turn')G.screen='pass',G.resumeTurn=true;render()}
+function migrate(g){if(!g)return g;g.assets.forEach(a=>{if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;if(a.rating==null)a.rating=0});(g.offers||[]).forEach(o=>{if(!o.aud)o.aud=[];if(o.team==null){o.team=o.trac=o.tracVis=3;o.q=.5;o.sec=0}});g.players.forEach(p=>{p.pos=p.pos||[]});return g}
+function resume(){G=migrate(loadSave());if(!G)return;if(G.screen==='turn')G.screen='pass',G.resumeTurn=true;render()}
 
 function buildGame(list,cash,rounds){
   return {screen:'pass',round:1,maxRounds:rounds,cur:0,turnCount:0,reIndex:1,acted:false,ap:AP_MAX,inCasino:false,casinoLeft:3,lawyer:false,feed:[],feedId:0,seq:0,
-    assets:ASSETS.map(a=>({sym:a.sym,price:a.price,hist:[a.price],chg:0})),
+    assets:(()=>{const as=initAssets(),pool=as.filter(a=>!adef(a.sym).crypto);for(let i=0;i<2;i++)pool.splice(Math.floor(Math.random()*pool.length),1)[0].earn=true;return as})(),
     props:PROPS.map((x,i)=>({...x,id:i,owner:null})),
     offers:genOffers(),recap:null,opps:[],sec:HEISTS.map(()=>0),bias:{},laundBoost:1,
     players:list.map((s,i)=>({id:i,uid:s.uid||null,name:(s.name||'').trim()||'Joueur '+(i+1),avatar:s.av,color:COLORS[i],cash,dirty:0,debt:0,stocks:{},cost:{},biz:[],deals:[],heat:0,jail:0,net:0,inbox:[],
-      rep:0,recon:null,shield:0,laund:0,
+      rep:0,recon:null,shield:0,laund:0,pos:[],
       stats:{casino:0,trading:0,crime:0,jailTurns:0,biz:0,rent:0,scam:0,vc:0,laund:0,heists:0},hist:[cash]}))};
 }
 function newGame(){G=buildGame(setup.players,setup.cash,setup.rounds);save();sfx.coin();render()}
@@ -929,7 +932,7 @@ function closeOv(){$('#ovWrap').innerHTML='';ovQueue=[]}
 /* ================= TURN SCREEN ================= */
 const MAIN=[
  {k:'casino',e:'🎰',n:'Casino',s:'3 parties',ap:1,fn:'openCasino()'},
- {k:'trade',e:'⚡',n:'Trading',s:'Effet de levier',ap:1,fn:'openTrading()'},
+ {k:'trade',e:'⚡',n:'Trading',s:'Long, short, levier',ap:1,fn:'openTrading()'},
  {k:'immo',e:'🌴',n:'Immobilier',s:'Acheter, louer',ap:1,fn:'openImmo()'},
  {k:'biz',e:'🏢',n:'Entreprise',s:'Créer 2 · Dév. 1',ap:1,fn:'openBiz()'},
  {k:'vc',e:'🦄',n:'Startups',s:'Non cotées',ap:1,fn:'openVC()'},
@@ -1110,50 +1113,106 @@ function scratchOpen(){if(!scratch||scratch.open)return;scratch.open=true;const 
   for(let i=0;i<6;i++)setTimeout(sfx.tick,i*90);
   setTimeout(()=>{if(won>0){casinoResult(won,1);addFeed(`${net>0?'gagne '+fmt(net):'récupère sa mise'} au grattage 🎟️`)}else{addFeed(`perd ${fmt(scratch.price)} au grattage 🎟️`);sfx.lose();save();render()}refreshSheet()},900);$('.ticket .cover').classList.add('gone')}
 
-/* ================= TRADING ================= */
-let tr={sym:'NEO',dir:1,lev:5},trRes='';
-function openTrading(){trRes='';openSheet('⚡ Trading à effet de levier',tradeHTML(),()=>{$('#shBody').innerHTML=tradeHTML()})}
-function tradeHTML(){const p=cur(),a=asset(tr.sym),d=ASSETS.find(x=>x.sym===tr.sym);
-  return `<div class="note">Tu prends une position express sur un actif. Ton gain ou ta perte est multiplié par le levier. Si le cours part trop contre toi, tu es <b>liquidé</b> et tu perds ta mise.</div>
-  <h3 class="sec">Actif</h3><div class="tabs">${ASSETS.map(x=>`<button class="${tr.sym===x.sym?'on':''}" onclick="if(!busy){tr.sym='${x.sym}';refreshSheet()}">${x.e} ${x.name}</button>`).join('')}</div>
-  <div class="small muted">${fmtP(a.price)} · volatilité ${d.vol>.3?'🔥 extrême':d.vol>.15?'élevée':'modérée'}</div>
-  <h3 class="sec">Sens</h3><div class="seg"><button class="${tr.dir===1?'on':''}" onclick="tr.dir=1;refreshSheet()">📈 Hausse (long)</button><button class="${tr.dir===-1?'on':''}" onclick="tr.dir=-1;refreshSheet()">📉 Baisse (short)</button></div>
-  <h3 class="sec">Levier</h3><div class="seg">${[2,5,10,25,50].map(l=>`<button class="${tr.lev===l?'on':''}" onclick="tr.lev=${l};refreshSheet()">x${l}</button>`).join('')}</div>
-  <div class="small muted" style="margin-top:6px">Liquidation si le cours bouge de ${(100/tr.lev).toFixed(0)} % contre toi.</div>
-  <h3 class="sec">Mise</h3>${amt('trAmt',p.cash,Math.min(2000,p.cash))}
-  <canvas id="trc" style="margin-top:14px"></canvas><div class="pnl num" id="pnl">${trRes||'—'}</div>
-  <button class="btn" id="trGo" onclick="runTrade()" ${G.ap<1?'disabled':''}>${G.ap<1?'Plus de points d’action':'Prendre la position · 1 PA'}</button>`}
-async function runTrade(){const p=cur(),a=asset(tr.sym),d=ASSETS.find(x=>x.sym===tr.sym),stake=getAmt('trAmt');
-  if(busy||!canPay(p,stake)||!useAP(1))return;busy=true;render();$('#trGo').disabled=true;
-  const N=90,final=gauss()*d.vol*.85+d.drift*.4;const w=[0];for(let i=1;i<=N;i++)w.push(w[i-1]+gauss());
-  const path=w.map((x,i)=>(x-w[N]*i/N)*d.vol*.06+final*i/N);
-  const liq=-1/tr.lev*tr.dir;let lo=Math.min(0,...path),hi=Math.max(0,...path);const span=hi-lo||.01;
-  if(liq>lo-span&&liq<hi+span){lo=Math.min(lo,liq);hi=Math.max(hi,liq)}const pad=(hi-lo)*.12;lo-=pad;hi+=pad;
-  const c=$('#trc'),x=c.getContext('2d'),dpr=window.devicePixelRatio||1,W=c.clientWidth,H=c.clientHeight;c.width=W*dpr;c.height=H*dpr;x.scale(dpr,dpr);
-  const Y=v=>H-(v-lo)/(hi-lo)*H,X=i=>i/N*W;let liqAt=-1,i=0;
-  for(i=1;i<=N;i++){
-    const pnl=stake*tr.lev*tr.dir*path[i];if(pnl<=-stake){liqAt=i}
-    x.clearRect(0,0,W,H);
-    x.strokeStyle='rgba(253,240,255,.15)';x.setLineDash([3,4]);x.beginPath();x.moveTo(0,Y(0));x.lineTo(W,Y(0));x.stroke();
-    x.strokeStyle='rgba(255,59,92,.75)';x.beginPath();x.moveTo(0,Y(liq));x.lineTo(W,Y(liq));x.stroke();x.setLineDash([]);
-    x.fillStyle='rgba(255,59,92,.9)';x.font='600 11px Figtree,sans-serif';x.fillText('liquidation',6,Y(liq)+(tr.dir>0?14:-5));
-    const col=pnl>=0?'#39ff9c':'#ff3b5c';
-    const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,col+'55');g.addColorStop(1,col+'00');
-    x.beginPath();x.moveTo(X(0),Y(path[0]));for(let k=1;k<=i;k++)x.lineTo(X(k),Y(path[k]));
-    x.strokeStyle=col;x.lineWidth=2.5;x.stroke();x.lineTo(X(i),H);x.lineTo(0,H);x.fillStyle=g;x.fill();
-    x.beginPath();x.arc(X(i),Y(path[i]),5,0,7);x.fillStyle=col;x.fill();
-    const pe=$('#pnl');if(pe){pe.textContent=fmt(Math.max(pnl,-stake),true);pe.style.color=col}
-    if(i%3===0)sfx.tick();
-    if(liqAt>0)break;
-    await sleep(45);
-  }
-  let pnl=liqAt>0?-stake:stake*tr.lev*tr.dir*path[N];
-  p.cash+=pnl;p.stats.trading+=pnl;
-  addFeed(liqAt>0?`se fait liquider sur ${d.name} x${tr.lev} 💀 (${fmt(stake)})`:`${pnl>=0?'gagne':'perd'} ${fmt(Math.abs(pnl))} en tradant ${d.name} x${tr.lev} ⚡`);
-  trRes=liqAt>0?'💀 LIQUIDÉ '+fmt(-stake):fmt(pnl,true);
-  const pe=$('#pnl');if(pe){pe.textContent=trRes;pe.style.color=pnl>=0?'#39ff9c':'#ff3b5c'}
-  if(pnl>0){pnl>50000?(sfx.big(),confetti()):sfx.win();popMoney(pnl)}else{sfx.lose();shake();buzz(200)}
-  busy=false;save();render();const b=$('#trGo');if(b){if(G.ap>=1){b.disabled=false;b.textContent='Nouvelle position · 1 PA'}else b.textContent='Plus de points d’action'}}
+/* ================= MARCHÉ : modèle ================= */
+/* Chaque actif a une phase cachée (haussière / neutre / baissière) qui dure en moyenne ~3 tours, une « juste valeur » vers laquelle
+   le cours revient, et parfois des résultats trimestriels annoncés un tour à l'avance. Les signaux visibles sont bruités :
+   bien lire le marché donne un avantage, jamais une certitude. */
+const REG_K=.35, REG_STAY=.7, MR_K=.18, ANALYST_OK=.62;
+const adef=s=>ASSETS.find(x=>x.sym===s);
+function stepAsset(a,shock){const d=adef(a.sym);
+  if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;
+  let mu=d.drift+REG_K*d.vol*a.reg+MR_K*Math.log(a.fair/a.price),sd=d.vol*.6;
+  if(a.earn){sd*=1.6;const s=a.reg||pick([-1,1]);mu+=(Math.random()<.6?s:-s)*d.vol*.6}
+  const L=Math.max(mu+sd*gauss()+(shock||0),Math.log(.15));
+  const N=12,w=[0];for(let i=1;i<=N;i++)w.push(w[i-1]+gauss());
+  const st=d.vol*.35/Math.sqrt(N),path=w.map((x,i)=>Math.exp((x-w[N]*i/N)*st+L*i/N));
+  const p0=a.price,np=Math.max(d.crypto?.0001:1,p0*Math.exp(L));
+  a.chg=np/p0-1;a.price=np;a.hist.push(np);if(a.hist.length>25)a.hist.shift();
+  a.fair*=Math.exp(d.drift+gauss()*d.vol*.25);
+  if(Math.random()>REG_STAY)a.reg=pick([-1,0,1].filter(x=>x!==a.reg));
+  a.earn=false;
+  a.rating=Math.random()<ANALYST_OK?a.reg:pick([-1,0,1]);
+  a.fairEst=a.fair*Math.exp(gauss()*.06);
+  return {p0,path};
+}
+function setEarnings(){const pool=G.assets.filter(a=>!adef(a.sym).crypto);for(let i=0;i<2&&pool.length;i++)pool.splice(Math.floor(Math.random()*pool.length),1)[0].earn=true}
+function initAssets(){return ASSETS.map(d=>{const a={sym:d.sym,price:d.price,hist:[d.price],chg:0,reg:pick([-1,0,1]),fair:d.price*R(.8,1.2)};for(let i=0;i<6;i++)stepAsset(a,0);return a})}
+const RATING=['🔻 Vente','➖ Neutre','🔺 Achat'];
+function trendOf(a){const h=a.hist,n=h.length;if(n<4)return 0;const c=h[n-1]/h[n-4]-1,v=adef(a.sym).vol;return c>v*.5?1:c<-v*.5?-1:0}
+function valuation(a){return a.price/(a.fairEst||a.fair||a.price)-1}
+function signalsHTML(sym){const a=asset(sym),d=adef(sym),t=trendOf(a),v=valuation(a),r=a.rating||0;
+  return `<div class="panel" style="padding:12px">
+  <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="cash num" style="font-size:24px;margin:0">${fmtP(a.price)}</div><div class="${a.chg>=0?'pos':'neg'} small">${pct(a.chg)} au dernier tour</div></div>${spark(a.hist,150,56)}</div>
+  <div class="kv small"><span>📈 Tendance (3 tours)</span><b class="${t>0?'pos':t<0?'neg':''}">${['↘ Baissière','→ Sans direction','↗ Haussière'][t+1]}</b></div>
+  <div class="kv small"><span>⚖️ Valorisation</span><b class="${v<-.08?'pos':v>.08?'neg':''}">${Math.abs(v)<.08?'Prix correct':v<0?`Sous-évaluée de ${Math.round(-v*100)} %`:`Surévaluée de ${Math.round(v*100)} %`}</b></div>
+  <div class="kv small"><span>🧑‍💼 Analystes</span><b class="${r>0?'pos':r<0?'neg':''}">${RATING[r+1]}</b></div>
+  <div class="kv small"><span>🌪️ Volatilité</span><span>${d.vol>.3?'🔥 extrême':d.vol>.15?'élevée':'modérée'}</span></div>
+  ${a.earn?`<div class="note warn" style="margin-top:8px">📅 <b>Résultats trimestriels ce tour</b> : gros mouvement attendu, dans un sens ou dans l’autre.</div>`:''}
+  </div>`}
+const MKT_HELP=`<details class="rules" style="margin-top:8px"><summary>🧠 Comment lire le marché</summary>
+  <p><b>Tendance</b> : les actifs traversent des phases haussières ou baissières qui durent souvent plusieurs tours… jusqu’à ce qu’elles se retournent.</p>
+  <p><b>Valorisation</b> : un actif sous-évalué a tendance à remonter vers sa juste valeur, un actif surévalué à redescendre. L’estimation est approximative.</p>
+  <p><b>Analystes</b> : ils devinent la phase du prochain tour… et se trompent environ une fois sur trois.</p>
+  <p><b>Résultats trimestriels</b> : annoncés un tour à l’avance, ils provoquent de gros mouvements. Parfait pour parier, dangereux avec du levier.</p>
+  <p>Quand plusieurs signaux vont dans le même sens, tes chances sont meilleures. Rien n’est jamais garanti.</p></details>`;
+
+/* ================= TRADING (positions qui durent) ================= */
+const LEVS=[1,2,3,5,10], OPEN_FEE=.004, FUND=.006, MAINT=.1, MAX_POS=4;
+let tr={sym:'NEO',dir:1,lev:3,sl:.5,tp:0};
+function posPnl(o){return o.m*o.lev*o.dir*(asset(o.sym).price/o.entry-1)}
+function posVal(o){return Math.max(0,o.m+posPnl(o))}
+function posTotal(p){return (p.pos||[]).reduce((s,o)=>s+posVal(o),0)}
+function notional(p){return (p.pos||[]).reduce((s,o)=>s+o.m*o.lev,0)}
+function tradeCap(p){return Math.max(20000,netWorth(p)*2)}
+function liqPrice(o){return o.entry*(1-(1-MAINT)*o.dir/o.lev)}
+function openTrading(s){if(s)tr.sym=s;openSheet('⚡ Trading',tradeHTML(),()=>{$('#shBody').innerHTML=tradeHTML()})}
+function posHTML(o,mine){const a=asset(o.sym),d=adef(o.sym),v=posVal(o),g=v-o.m0;
+  return `<div class="item ${g>=0?'':'lock'}" style="opacity:1"><span class="ic">${d.e}</span><span class="bd"><b>${o.dir>0?'📈 Long':'📉 Short'} x${o.lev} · ${d.name}</b>
+    <span class="small muted">Entrée ${fmtP(o.entry)} → ${fmtP(a.price)} · liquidation ${fmtP(liqPrice(o))}${o.sl?` · stop −${o.sl*100} %`:''}${o.tp?` · objectif +${o.tp*100} %`:''}</span>
+    <div class="small">Mise ${fmt(o.m0)} · valeur <b class="num">${fmt(v)}</b> <b class="${g>=0?'pos':'neg'}">${fmt(g,true)}</b></div>
+    ${mine?`<div style="margin-top:8px"><button class="btn sm ${g>=0?'green':'red'}" onclick="closePos('${o.id}')">Clôturer · ${fmt(v)} (gratuit)</button></div>`:''}</span></div>`}
+function tradeHTML(){const p=cur(),pos=p.pos||[],room=Math.max(0,tradeCap(p)-notional(p)),maxM=Math.max(0,Math.floor(Math.min(p.cash/(1+tr.lev*OPEN_FEE),room/tr.lev)));
+  const lq=(1-MAINT)/tr.lev*100,fund=(tr.lev>1||tr.dir<0)?FUND*tr.lev*100:0,f1=x=>x.toFixed(1).replace('.',',');
+  return `<div class="note">Une position <b>reste ouverte d’un tour à l’autre</b> et suit les vrais mouvements du marché. Tu la clôtures quand tu veux pendant ton tour (gratuit). Ouvrir coûte <b>1 PA</b>.</div>
+  ${pos.length?`<h3 class="sec">Tes positions (${pos.length}/${MAX_POS})</h3><div class="list">${pos.map(o=>posHTML(o,true)).join('')}</div>`:''}
+  <h3 class="sec">Nouvelle position</h3>
+  <div class="tabs">${ASSETS.map(x=>`<button class="${tr.sym===x.sym?'on':''}" onclick="tr.sym='${x.sym}';refreshSheet()">${x.e} ${x.name}${asset(x.sym).earn?' 📅':''}</button>`).join('')}</div>
+  ${signalsHTML(tr.sym)}${MKT_HELP}
+  <h3 class="sec">Sens</h3><div class="seg"><button class="${tr.dir===1?'on':''}" onclick="tr.dir=1;refreshSheet()">📈 Hausse<small>long</small></button><button class="${tr.dir===-1?'on':''}" onclick="tr.dir=-1;refreshSheet()">📉 Baisse<small>short</small></button></div>
+  <h3 class="sec">Levier</h3><div class="seg">${LEVS.map(l=>`<button class="${tr.lev===l?'on':''}" onclick="tr.lev=${l};refreshSheet()">x${l}</button>`).join('')}</div>
+  <h3 class="sec">Stop-loss</h3><div class="seg">${[[0,'Aucun'],[.25,'−25 %'],[.5,'−50 %']].map(([v,l])=>`<button class="${tr.sl===v?'on':''}" onclick="tr.sl=${v};refreshSheet()">${l}<small>${v?'de la mise':'risqué'}</small></button>`).join('')}</div>
+  <h3 class="sec">Objectif de gain</h3><div class="seg">${[[0,'Aucun'],[.5,'+50 %'],[1,'+100 %'],[2,'+200 %']].map(([v,l])=>`<button class="${tr.tp===v?'on':''}" onclick="tr.tp=${v};refreshSheet()">${l}</button>`).join('')}</div>
+  <div class="panel" style="margin-top:12px;padding:10px 12px">
+    <div class="kv small"><span>Liquidation si le cours bouge de</span><b class="neg">${f1(lq)} % contre toi</b></div>
+    <div class="kv small"><span>Frais d’ouverture</span><span>${f1(OPEN_FEE*tr.lev*100)} % de la mise</span></div>
+    <div class="kv small"><span>Frais de financement</span><span>${fund?f1(fund)+' % de la mise par tour':'aucun'}</span></div>
+    <div class="kv small"><span>Exposition encore possible</span><span class="num">${fmt(room)}</span></div></div>
+  <h3 class="sec">Mise</h3>${amt('trAmt',maxM,Math.min(2000,maxM))}
+  <div style="margin-top:12px"><button class="btn" ${G.ap<1||pos.length>=MAX_POS||maxM<100?'disabled':''} onclick="openPos()">${pos.length>=MAX_POS?`Maximum ${MAX_POS} positions`:'Ouvrir la position · 1 PA'}</button></div>`}
+function openPos(){const p=cur(),a=asset(tr.sym),m=getAmt('trAmt');p.pos=p.pos||[];
+  if(m<100){toast('Mise minimum : 100 €.',1);return}
+  if(p.pos.length>=MAX_POS){toast(`Maximum ${MAX_POS} positions ouvertes.`,1);return}
+  if(m*tr.lev>tradeCap(p)-notional(p)+1){toast('Position trop grosse pour ta capacité de trading.',1);return}
+  const fee=m*tr.lev*OPEN_FEE;if(!canPay(p,m+fee)||!useAP(1))return;
+  p.cash-=m+fee;p.stats.trading-=fee;
+  p.pos.push({id:rid(5),sym:tr.sym,dir:tr.dir,lev:tr.lev,m,m0:m,entry:a.price,sl:tr.sl,tp:tr.tp,r:G.round});
+  addFeed(`ouvre une position ${tr.dir>0?'à la hausse':'à la baisse'} x${tr.lev} sur ${adef(tr.sym).name} ⚡`);sfx.coin();toast('⚡ Position ouverte : '+fmt(m));after()}
+function closePos(id){const p=cur(),i=(p.pos||[]).findIndex(o=>o.id===id);if(i<0||busy)return;const o=p.pos[i],v=posVal(o),g=v-o.m0;
+  p.cash+=v;p.stats.trading+=v-o.m0;p.pos.splice(i,1);
+  addFeed(`clôture sa position sur ${adef(o.sym).name} : ${fmt(g,true)} ⚡`);if(g>0){g>50000?(sfx.big(),confetti()):sfx.win();popMoney(g)}else sfx.lose();after()}
+/* Fin de tour : on rejoue le chemin intra-tour du cours pour déclencher liquidation / stop / objectif au bon moment. */
+function tradeTick(p,paths,add){
+  for(let i=(p.pos||[]).length-1;i>=0;i--){const o=p.pos[i],{p0,path}=paths[o.sym],lab=`${o.dir>0?'Long':'Short'} ${adef(o.sym).name} x${o.lev}`;
+    const v0=Math.max(0,o.m+o.m*o.lev*o.dir*(p0/o.entry-1));let closed=null;
+    for(const f of path){const pnl=o.m*o.lev*o.dir*(p0*f/o.entry-1);
+      if(o.m+pnl<=o.m*MAINT){closed=['💀 liquidé',0];break}
+      if(o.sl&&o.m+pnl-o.m0<=-o.sl*o.m0){closed=['🛑 stop déclenché',o.m+pnl];break}
+      if(o.tp&&o.m+pnl-o.m0>=o.tp*o.m0){closed=['🎯 objectif atteint',o.m+pnl];break}}
+    if(closed){const v=Math.max(0,closed[1]);p.cash+=v;p.stats.trading+=v-o.m0;p.pos.splice(i,1);add(p,`⚡ ${lab} : ${closed[0]} (mise ${fmt(o.m0)})`,v-o.m0);continue}
+    if(o.lev>1||o.dir<0){const fee=o.m*o.lev*FUND;o.m-=fee;p.stats.trading-=fee}
+    const v=posVal(o);
+    if(v<=o.m*MAINT){p.pos.splice(i,1);p.stats.trading-=o.m0-v;add(p,`⚡ ${lab} : 💀 liquidé`,-o.m0);continue}
+    add(p,`⚡ ${lab} (en cours, vaut ${fmt(v)})`,v-v0)}}
 
 /* ================= MARKET (free) ================= */
 let mSel=null;
@@ -1162,22 +1221,22 @@ function spark(h,w=80,hgt=28,col){if(h.length<2)h=[h[0],h[0]];const mn=Math.min(
   return `<svg width="${w}" height="${hgt}" viewBox="0 0 ${w} ${hgt}"><polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/><circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="2.5" fill="${col}"/></svg>`}
 function openMarket(s){mSel=s||null;openSheet('📈 Bourse & crypto',marketHTML(),()=>{$('#shBody').innerHTML=marketHTML()})}
 function marketHTML(){const p=cur();
-  if(mSel){const a=asset(mSel),d=ASSETS.find(x=>x.sym===mSel),q=p.stocks[mSel]||0,v=q*a.price,cost=p.cost[mSel]||0;
+  if(mSel){const a=asset(mSel),d=adef(mSel),q=p.stocks[mSel]||0,v=q*a.price,cost=p.cost[mSel]||0;
     return `<button class="chip" onclick="mSel=null;refreshSheet()">← Tous les actifs</button>
-    <div class="row" style="margin:14px 0 6px"><span style="font-size:40px">${d.e}</span><div><h2 style="font-size:20px">${d.name}</h2><div class="muted small">${d.crypto?'Crypto':'Action'} · ${d.sym}</div></div></div>
-    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="cash num" style="font-size:30px;margin:0">${fmtP(a.price)}</div><div class="${a.chg>=0?'pos':'neg'} small">${pct(a.chg)} au dernier tour</div></div>${spark(a.hist,150,60)}</div>
-    <p class="muted small">${d.desc}</p>
-    <div class="panel" style="padding:12px"><div class="kv"><span>Tu détiens</span><b class="num">${fmt(v)}</b></div><div class="kv"><span>Investi</span><span class="num">${fmt(cost)}</span></div><div class="kv"><span>Plus/moins-value</span><b class="${v-cost>=0?'pos':'neg'} num">${fmt(v-cost,true)}</b></div></div>
+    <div class="row" style="margin:14px 0 6px"><span style="font-size:40px">${d.e}</span><div><h2 style="font-size:18px">${d.name}</h2><div class="muted small">${d.crypto?'Crypto':'Action'} · ${d.sym}</div></div></div>
+    <p class="muted small">${d.desc}</p>${signalsHTML(mSel)}${MKT_HELP}
+    <div class="panel" style="padding:12px;margin-top:10px"><div class="kv"><span>Tu détiens</span><b class="num">${fmt(v)}</b></div><div class="kv"><span>Investi</span><span class="num">${fmt(cost)}</span></div><div class="kv"><span>Plus/moins-value</span><b class="${v-cost>=0?'pos':'neg'} num">${fmt(v-cost,true)}</b></div></div>
     <h3 class="sec">Acheter</h3>${amt('buyAmt',p.cash,Math.min(1000,p.cash))}<div style="margin-top:10px"><button class="btn green" onclick="buyAsset()">Acheter</button></div>
-    ${q>0?`<h3 class="sec">Vendre</h3>${amt('sellAmt',v,v)}<div style="margin-top:10px"><button class="btn red" onclick="sellAsset()">Vendre</button></div>`:''}`}
-  return `<div class="note">Achats et ventes illimités et gratuits (aucun PA). Les cours bougent à la fin de chaque tour de table.</div>
-  <div class="list" style="margin-top:12px">${ASSETS.map(d=>{const a=asset(d.sym),q=p.stocks[d.sym]||0;return `<button class="item" onclick="mSel='${d.sym}';refreshSheet()">
-    <span class="ic">${d.e}</span><span class="bd"><b>${d.name}</b><span class="small muted">${fmtP(a.price)} ${q>0?`· <span class="gold">${fmt(q*a.price)}</span>`:''}</span></span>
+    ${q>0?`<h3 class="sec">Vendre</h3>${amt('sellAmt',v,v)}<div style="margin-top:10px"><button class="btn red" onclick="sellAsset()">Vendre</button></div>`:''}
+    <div style="margin-top:12px"><button class="btn ghost" onclick="openTrading('${mSel}')">⚡ Parier avec levier sur cet actif</button></div>`}
+  return `<div class="note">Achats et ventes illimités et gratuits (aucun PA), sans levier. Les cours bougent à la fin de chaque tour de table. Touche un actif pour voir les signaux.</div>
+  <div class="list" style="margin-top:12px">${ASSETS.map(d=>{const a=asset(d.sym),q=p.stocks[d.sym]||0,r=a.rating||0;return `<button class="item" onclick="mSel='${d.sym}';refreshSheet()">
+    <span class="ic">${d.e}</span><span class="bd"><b>${d.name}${a.earn?' 📅':''}</b><span class="small muted">${fmtP(a.price)} · <span class="${r>0?'pos':r<0?'neg':''}">${RATING[r+1]}</span>${q>0?` · <span class="gold">${fmt(q*a.price)}</span>`:''}</span></span>
     <span>${spark(a.hist)}</span><span class="rt small ${a.chg>=0?'pos':'neg'}" style="width:58px">${pct(a.chg)}</span></button>`}).join('')}</div>`}
-function buyAsset(){const p=cur(),a=asset(mSel),n=getAmt('buyAmt');if(!canPay(p,n))return;p.cash-=n;p.stocks[mSel]=(p.stocks[mSel]||0)+n/a.price;p.cost[mSel]=(p.cost[mSel]||0)+n;addFeed(`achète ${fmt(n)} de ${ASSETS.find(x=>x.sym===mSel).name} 📈`);sfx.coin();toast('Achat effectué : '+fmt(n));after()}
+function buyAsset(){const p=cur(),a=asset(mSel),n=getAmt('buyAmt');if(!canPay(p,n))return;p.cash-=n;p.stocks[mSel]=(p.stocks[mSel]||0)+n/a.price;p.cost[mSel]=(p.cost[mSel]||0)+n;addFeed(`achète ${fmt(n)} de ${adef(mSel).name} 📈`);sfx.coin();toast('Achat effectué : '+fmt(n));after()}
 function sellAsset(){const p=cur(),a=asset(mSel),q=p.stocks[mSel]||0,v=q*a.price;let n=Math.min(getAmt('sellAmt'),v);if(v-n<1)n=v;if(n<=0)return;
   const frac=n/v;p.cash+=n;p.cost[mSel]=(p.cost[mSel]||0)*(1-frac);p.stocks[mSel]=q*(1-frac);if(p.stocks[mSel]*a.price<1){delete p.stocks[mSel];delete p.cost[mSel]}
-  addFeed(`vend ${fmt(n)} de ${ASSETS.find(x=>x.sym===mSel).name}`);sfx.coin();toast('Vente effectuée : '+fmt(n));after()}
+  addFeed(`vend ${fmt(n)} de ${adef(mSel).name}`);sfx.coin();toast('Vente effectuée : '+fmt(n));after()}
 
 /* ================= IMMO ================= */
 function openImmo(){openSheet('🏠 Immobilier',immoHTML(),()=>{$('#shBody').innerHTML=immoHTML()})}
@@ -1219,24 +1278,66 @@ function upBiz(i){const p=cur(),b=p.biz[i],up=bizDef(b.k).cost*.7*b.lvl;if(!canP
 function sellBiz(i){const p=cur(),b=p.biz[i],v=bizVal(b)*R(.8,1.2);p.cash+=v;p.biz.splice(i,1);addFeed(`revend ${esc(b.name)} pour ${fmt(v)}`);sfx.coin();toast(`${b.name} revendue ${fmt(v)}`);after()}
 
 /* ================= STARTUPS (VC) ================= */
-function genOffers(){return Array.from({length:3},()=>({id:Math.random().toString(36).slice(2,8),name:pick(SNAMES),pitch:pick(CONCEPTS)+' '+pick(TARGETS),e:pick(['🚀','🧪','📦','🛸','🧃','🪐','🐣','🛰️','🧩']),
-  min:pick([1000,5000,10000,25000,50000,100000]),hz:RI(2,3),hype:RI(1,5)}))}
+/* Chaque startup a une qualité cachée (équipe + vraie traction + part d'aléa). Ce qu'on voit : équipe (fiable), traction annoncée
+   (parfois gonflée), hype (fait monter le prix d'entrée, presque pas les chances). L'audit révèle la vérité. À chaque fin de tour la
+   startup lève, stagne, plonge ou meurt ; le moral de son secteur en Bourse pèse. Le joueur peut suivre les levées ou revendre. */
+const SECTS=[{n:'Tech & IA',sym:'NEO'},{n:'Santé',sym:'BIO'},{n:'Luxe & conso',sym:'LUX'},{n:'Crypto',sym:'BTC'},{n:'Mobilité',sym:'VLT'},{n:'Énergie',sym:'PDN'}];
+const STAGES=['Amorçage','Série A','Série B','Série C','Pré-IPO'];
+function genOffers(){return Array.from({length:3},()=>{const team=RI(1,5),trac=RI(1,5),hype=RI(1,5);
+  return {id:Math.random().toString(36).slice(2,8),name:pick(SNAMES),pitch:pick(CONCEPTS)+' '+pick(TARGETS),e:pick(['🚀','🧪','📦','🛸','🧃','🪐','🐣','🛰️','🧩']),
+    sec:RI(0,SECTS.length-1),team,trac,tracVis:clamp(trac+pick([-1,0,0,1]),1,5),hype,q:clamp(.45*(team-1)/4+.35*(trac-1)/4+R(-.1,.3),0,1),
+    min:pick([1000,5000,10000,25000,50000]),aud:[]}})}
+function entryRatio(o){return clamp(1-.07*(o.team+o.tracVis-6)-.08*(o.hype-1),.45,1.1)}
+function grade(q){return q>.7?'A':q>.5?'B':q>.3?'C':'D'}
+function auditCost(o){return Math.max(500,niceRound(o.min*.15))}
+function stars(n){return '★'.repeat(n)+'☆'.repeat(5-n)}
 function openVC(){openSheet('🦄 Startups non cotées',vcHTML(),()=>{$('#shBody').innerHTML=vcHTML()})}
 function vcHTML(){const p=cur();
-  return `<div class="note">Tu mises sur une jeune pousse. Dans 2 ou 3 tours, verdict : faillite totale, revente à la casse, ou jackpot jusqu’à <b>x40</b> si c’est une licorne. Nouvelles startups à chaque tour.</div>
-  ${G.offers.map(o=>`<div class="panel" style="margin-top:10px"><div class="row"><span style="font-size:34px">${o.e}</span><div style="flex:1"><b style="font-family:var(--display)">${esc(o.name)}</b><div class="small muted">${esc(o.pitch)}</div></div></div>
-    <div class="row small" style="margin:8px 0;gap:6px;flex-wrap:wrap"><span class="tag y">Ticket min ${fmt(o.min)}</span><span class="tag">Verdict dans ${o.hz} tours</span><span class="tag ${o.hype>=4?'g':''}">Hype ${'🔥'.repeat(o.hype)}</span></div>
-    ${amt('vc_'+o.id,p.cash,Math.min(Math.max(o.min,0),p.cash))}<div style="margin-top:10px"><button class="btn" ${G.ap<1?"disabled":""} onclick="investVC('${o.id}')">Investir · 1 PA</button></div></div>`).join('')}
-  ${p.deals.length?`<h3 class="sec">Tes participations</h3><div class="list">${p.deals.map(d=>`<div class="item"><span class="ic">${d.e}</span><span class="bd"><b>${esc(d.name)}</b><span class="small muted">${esc(d.pitch)}</span></span><span class="rt"><b class="num">${fmt(d.amt)}</b><div class="small muted">verdict tour ${d.mature}</div></span></div>`).join('')}</div>`:''}`}
+  return `<div class="note">Tu prends une part dans une jeune pousse. À chaque fin de tour elle peut <b>lever des fonds</b> (sa valeur grimpe), stagner, traverser une crise ou mourir. Dès la Série C, elle peut être rachetée ou entrer en Bourse : jackpot.</div>
+  <details class="rules"><summary>🧠 Comment choisir</summary>
+    <p><b>Équipe</b> et <b>traction</b> font la qualité cachée de la startup. La traction annoncée peut être gonflée : un <b>audit</b> révèle la vraie traction et une note de qualité de A à D.</p>
+    <p><b>Prix d’entrée</b> : les belles startups et celles qui font le buzz 🔥 sont chères, ta part vaut alors moins que ta mise. La hype n’améliore presque pas les chances : une bonne équipe sans buzz, c’est la bonne affaire.</p>
+    <p><b>Secteur</b> : si les analystes sont à l’achat sur son secteur en Bourse, la startup lève plus facilement et se revend mieux.</p>
+    <p>Après chaque levée réussie, tu peux <b>remettre au pot</b> au nouveau prix, ou <b>revendre ta part</b> (−20 %) pour sécuriser tes gains. Plusieurs petits tickets limitent la casse.</p></details>
+  ${G.offers.map(o=>{const au=(o.aud||[]).includes(p.id),s=SECTS[o.sec||0],sa=asset(s.sym),er=entryRatio(o);
+    return `<div class="panel" style="margin-top:10px"><div class="row"><span style="font-size:34px">${o.e}</span><div style="flex:1"><b style="font-family:var(--display);font-weight:400">${esc(o.name)}</b><div class="small muted">${esc(o.pitch)}</div></div></div>
+    <div class="kv small"><span>Secteur</span><span>${s.n} · Bourse ${adef(s.sym).e} <span class="${(sa.rating||0)>0?'pos':(sa.rating||0)<0?'neg':''}">${RATING[(sa.rating||0)+1]}</span></span></div>
+    <div class="kv small"><span>Équipe</span><span class="gold">${stars(o.team)}</span></div>
+    <div class="kv small"><span>Traction ${au?'(vérifiée)':'(annoncée)'}</span><span class="gold">${stars(au?o.trac:o.tracVis)}</span></div>
+    <div class="kv small"><span>Hype</span><span>${'🔥'.repeat(o.hype)}</span></div>
+    <div class="kv small"><span>Prix d’entrée</span><b class="${er>=.95?'pos':er<.7?'neg':''}">ta part vaut ${Math.round(er*100)} % de ta mise</b></div>
+    ${au?`<div class="kv small"><span>Note d’audit</span><b class="${o.q>.5?'pos':'neg'}">${grade(o.q)}</b></div>`:''}
+    <div class="row" style="margin:10px 0;gap:6px;flex-wrap:wrap"><span class="tag y">Ticket min ${fmt(o.min)}</span>${au?'':`<button class="btn ghost sm" ${p.cash<auditCost(o)?'disabled':''} onclick="auditVC('${o.id}')">🔍 Audit · ${fmt(auditCost(o))}</button>`}</div>
+    ${amt('vc_'+o.id,p.cash,Math.min(o.min,p.cash))}<div style="margin-top:10px"><button class="btn" ${G.ap<1?'disabled':''} onclick="investVC('${o.id}')">Investir · 1 PA</button></div></div>`}).join('')}
+  ${vcPortfolio(p,true)}`}
+function vcPortfolio(p,mine){const ds=p.deals.filter(d=>d.kind==='vc');if(!ds.length)return '';
+  return `<h3 class="sec">Ton portefeuille de startups</h3><div class="list">${ds.map(d=>{const g=d.value-d.amt,can=d.raise===G.round;
+    return `<div class="item"><span class="ic">${d.e}</span><span class="bd"><b>${esc(d.name)}</b><span class="small muted">${STAGES[d.stage]} · ${SECTS[d.sec].n} · ${esc(d.news||'')}</span>
+    <div class="small">Investi ${fmt(d.amt)} · ta part vaut <b class="num">${fmt(d.value)}</b> <b class="${g>=0?'pos':'neg'}">${fmt(g,true)}</b></div>
+    ${mine?`<div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn red sm" onclick="sellVC('${d.id}')">Revendre · ${fmt(d.value*.8)}</button>${can?`<button class="btn sm" ${G.ap<1||p.cash<d.follow?'disabled':''} onclick="followVC('${d.id}')">Suivre la levée · ${fmt(d.follow)} · 1 PA</button>`:''}</div>`:''}</span></div>`}).join('')}</div>`}
+function auditVC(id){const p=cur(),o=G.offers.find(x=>x.id===id);if(!o)return;o.aud=o.aud||[];if(o.aud.includes(p.id))return;const c=auditCost(o);if(!canPay(p,c))return;
+  p.cash-=c;p.stats.vc-=c;o.aud.push(p.id);sfx.tick();toast(`🔍 Audit de ${o.name} : note ${grade(o.q)}`);after()}
 function investVC(id){const p=cur(),o=G.offers.find(x=>x.id===id),n=getAmt('vc_'+id);if(!o)return;if(n<o.min){toast('Le ticket minimum est de '+fmt(o.min),1);return}
-  if(!canPay(p,n)||!useAP(1))return;p.cash-=n;p.deals.push({name:o.name,pitch:o.pitch,e:o.e,amt:n,mature:G.round+o.hz,hype:o.hype});addFeed(`investit ${fmt(n)} dans ${o.e} ${esc(o.name)}`);sfx.coin();toast(`Tu entres au capital de ${o.name} 🚀`);after()}
+  if(!canPay(p,n)||!useAP(1))return;p.cash-=n;
+  p.deals.push({kind:'vc',id:rid(5),name:o.name,pitch:o.pitch,e:o.e,sec:o.sec||0,q:o.q,hype:o.hype,amt:n,value:n*entryRatio(o),stage:0,news:'tu viens d’entrer au capital'});
+  addFeed(`investit ${fmt(n)} dans ${o.e} ${esc(o.name)}`);sfx.coin();toast(`Tu entres au capital de ${o.name} 🚀`);after()}
+function sellVC(id){const p=cur(),i=p.deals.findIndex(d=>d.id===id);if(i<0)return;const d=p.deals[i],v=d.value*.8;
+  p.cash+=v;p.stats.vc+=v-d.amt;p.deals.splice(i,1);addFeed(`revend sa part dans ${d.e} ${esc(d.name)} (${fmt(v)})`);sfx.coin();toast('Part revendue '+fmt(v));after()}
+function followVC(id){const p=cur(),d=p.deals.find(x=>x.id===id);if(!d||d.raise!==G.round)return;const n=d.follow;if(!canPay(p,n)||!useAP(1))return;
+  p.cash-=n;d.amt+=n;d.value+=n;d.raise=0;addFeed(`remet ${fmt(n)} dans ${d.e} ${esc(d.name)}`);sfx.coin();toast('Tu suis la levée de '+d.name);after()}
+function vcTick(p,d,add){const s=asset(SECTS[d.sec].sym).reg||0,q=d.q;
+  const pD=.03+.3*(1-q)+(d.stage===0?.04:0),pU=.05+.5*q+.06*s+.02*((d.hype||3)-3),pDn=.18*(1-q),r=Math.random();
+  if(r<pD){p.stats.vc-=d.amt;add(p,`${d.e} ${d.name} fait faillite 💀 (mise ${fmt(d.amt)})`,0);return 'dead'}
+  if(r<pD+pU){const m=R(1.5,2.3);d.value*=m;d.stage=Math.min(d.stage+1,4);
+    if(d.stage>=3&&Math.random()<(d.stage===3?.35:.7)){const pay=d.value*R(1.1,1.6)*(1+.2*s);p.cash+=pay;p.stats.vc+=pay-d.amt;
+      add(p,`${d.e} ${d.name} ${d.stage===4?'entre en Bourse 🔔':'est rachetée par un géant 🤝'} (mise ${fmt(d.amt)})`,pay);return 'exit'}
+    d.news=`lève sa ${STAGES[d.stage]} (x${m.toFixed(1).replace('.',',')})`;d.raise=G.round+1;d.follow=niceRound(Math.max(500,d.amt*.5))}
+  else if(r<pD+pU+pDn){d.value*=R(.45,.75);d.news='traverse une crise'}
+  else{d.value*=R(.9,1.05);d.news='stagne'}
+  add(p,`${d.e} ${d.name} ${d.news} · ta part ${fmt(d.value)}`,0);return 'ok'}
 function vcOutcome(h){const r=Math.random()-(h-3)*.02;
-  if(r<.44)return[0,'a fait faillite. Le fondateur élève des chèvres dans le Larzac.'];
-  if(r<.64)return[.6,'est rachetée à la casse.'];
-  if(r<.82)return[2,'réussit sa levée de fonds : x2 !'];
-  if(r<.93)return[4,'est rachetée par un géant américain : x4 !'];
-  if(r<.99)return[10,'devient incontournable : x10 !'];
-  return[40,'devient une LICORNE 🦄 x40 !!!']}
+  if(r<.44)return[0,'a fait faillite.'];if(r<.64)return[.6,'est rachetée à la casse.'];if(r<.82)return[2,'réussit sa levée de fonds : x2 !'];
+  if(r<.93)return[4,'est rachetée : x4 !'];if(r<.99)return[10,'devient incontournable : x10 !'];return[40,'devient une LICORNE 🦄 x40 !!!']}
 
 /* ================= JOB ================= */
 function openJob(){if(!hasAP(1))return;
@@ -1404,14 +1505,16 @@ function lawyer(){const p=cur(),c=lawyerCost(p);if(!canPay(p,c))return;p.cash-=c
 /* ================= ASSETS ================= */
 function openAssets(pid){const id=pid!=null?pid:cur().id;openSheet('💼 Patrimoine',assetsHTML(id),()=>{$('#shBody').innerHTML=assetsHTML(id)})}
 function assetsHTML(id){const p=G.players[id],mine=G.screen==='turn'&&id===cur().id&&isMyTurn();
-  const rows=[['💶 Cash',p.cash],['💵 Argent sale (compté 50 %)',(p.dirty||0)*DIRTY_VALUE],['📈 Bourse & crypto',stockVal(p)],['🌴 Immobilier',propsVal(p)],['🏢 Entreprises',bizTotal(p)],['🦄 Startups & coups',dealsVal(p)],['💳 Dettes',-p.debt]];
+  const rows=[['💶 Cash',p.cash],['💵 Argent sale (compté 50 %)',(p.dirty||0)*DIRTY_VALUE],['📈 Bourse & crypto',stockVal(p)],['⚡ Positions de trading',posTotal(p)],['🌴 Immobilier',propsVal(p)],['🏢 Entreprises',bizTotal(p)],['🦄 Startups & coups',dealsVal(p)],['💳 Dettes',-p.debt]];
   return `<div class="row" style="margin-bottom:12px"><div class="av" style="--c:${p.color}">${p.avatar}</div><div><b style="font-family:var(--display)">${esc(p.name)}</b><div class="gold num" style="font-weight:800">${fmt(netWorth(p))} net</div></div></div>
   <div class="panel">${rows.map(([l,v])=>`<div class="kv"><span>${l}</span><b class="num ${v<0?'neg':''}">${fmt(v)}</b></div>`).join('')}</div>
   ${spark(p.hist.concat([netWorth(p)]),440,70,p.color).replace('<svg','<svg style="width:100%;margin-top:12px"')}
   ${Object.keys(p.stocks).length?`<h3 class="sec">Positions</h3><div class="list">${Object.keys(p.stocks).map(s=>{const d=ASSETS.find(x=>x.sym===s),v=p.stocks[s]*asset(s).price,c=p.cost[s]||0;return `<${mine?'button':'div'} class="item" ${mine?`onclick="openMarket('${s}')"`:''}><span class="ic">${d.e}</span><span class="bd"><b>${d.name}</b></span><span class="rt"><b class="num">${fmt(v)}</b><div class="small ${v-c>=0?'pos':'neg'}">${fmt(v-c,true)}</div></span></${mine?'button':'div'}>`}).join('')}</div>`:''}
   ${myProps(p).length?`<h3 class="sec">Immobilier</h3><div class="list">${myProps(p).map(x=>`<div class="item"><span class="ic">${x.e}</span><span class="bd"><b>${x.n}</b><span class="small muted">${x.c} · ${fmt(propRent(x))}/tour</span></span><span class="rt"><b class="num">${fmt(propVal(x))}</b>${mine?`<div><button class="chip" onclick="sellProp(${x.id})">Vendre</button></div>`:''}</span></div>`).join('')}</div>`:''}
   ${p.biz.length?`<h3 class="sec">Entreprises</h3><div class="list">${p.biz.map((b,i)=>`<div class="item"><span class="ic">${bizDef(b.k).e}</span><span class="bd"><b>${esc(b.name)}</b><span class="small muted">niveau ${b.lvl}</span></span><span class="rt"><b class="num">${fmt(bizVal(b))}</b>${mine?`<div><button class="chip" onclick="sellBiz(${i})">Revendre</button></div>`:''}</span></div>`).join('')}</div>`:''}
-  ${p.deals.length?`<h3 class="sec">Startups</h3><div class="list">${p.deals.map(d=>`<div class="item"><span class="ic">${d.e}</span><span class="bd"><b>${esc(d.name)}</b><span class="small muted">verdict tour ${d.mature}</span></span><span class="rt num"><b>${fmt(d.amt)}</b></span></div>`).join('')}</div>`:''}
+  ${(p.pos||[]).length?`<h3 class="sec">Positions de trading</h3><div class="list">${p.pos.map(o=>posHTML(o,mine)).join('')}</div>`:''}
+  ${vcPortfolio(p,mine)}
+  ${p.deals.some(d=>d.kind!=='vc')?`<h3 class="sec">Coups en cours</h3><div class="list">${p.deals.filter(d=>d.kind!=='vc').map(d=>`<div class="item"><span class="ic">${d.e}</span><span class="bd"><b>${esc(d.name)}</b><span class="small muted">verdict tour ${d.mature}</span></span><span class="rt num"><b>${fmt(d.amt)}</b></span></div>`).join('')}</div>`:''}
   ${p.net||p.rep||p.shield>=G.round?`<h3 class="sec">Activités parallèles</h3><div class="list">
     ${p.rep?`<div class="item"><span class="ic">⭐</span><span class="bd"><b>Réputation ${p.rep}</b><span class="small muted">${p.stats.heists||0} braquage(s) réussi(s)</span></span></div>`:''}
     ${p.net?`<div class="item"><span class="ic">💊</span><span class="bd"><b>${NET[p.net].n}</b><span class="small muted">Le réseau lui-même ne compte pas dans le patrimoine</span></span></div>`:''}
@@ -1430,6 +1533,7 @@ function openMenu(){openSheet('⚙️ Menu',`<div class="stack">
 /* ================= END OF ROUND ================= */
 function liquidate(p,add){
   if(p.cash>=0)return;
+  while(p.cash<0&&(p.pos||[]).length){const o=p.pos.pop(),v=posVal(o);p.cash+=v;p.stats.trading+=v-o.m0;add(p,'🔻 Position clôturée de force : '+adef(o.sym).name,v)}
   for(const s of Object.keys(p.stocks)){if(p.cash>=0)break;const v=p.stocks[s]*asset(s).price;p.cash+=v;delete p.stocks[s];delete p.cost[s];add(p,'🔻 Vente forcée '+ASSETS.find(x=>x.sym===s).name,v)}
   for(const x of myProps(p).sort((a,b)=>a.p-b.p)){if(p.cash>=0)break;const v=propVal(x)*.85;p.cash+=v;x.owner=null;add(p,'🔻 Saisie : '+x.n,v)}
   while(p.cash<0&&p.biz.length){const b=p.biz.pop(),v=bizVal(b)*.7;p.cash+=v;add(p,'🔻 Liquidation : '+b.name,v)}
@@ -1441,8 +1545,9 @@ function endRound(){
   G.laundBoost=1;
   if(ev)ev.f(m,add);
   const bias=G.bias||{};G.bias={};
-  G.assets.forEach(a=>{const d=ASSETS.find(x=>x.sym===a.sym);let r=d.drift+d.vol*gauss()*.75+(d.crypto?m.crypto:m.all)+(m.stock[a.sym]||0)+(bias[a.sym]||0);r=Math.max(r,-.85);
-    const np=Math.max(d.crypto?.0001:1,a.price*(1+r));a.chg=np/a.price-1;a.price=np;a.hist.push(np);if(a.hist.length>25)a.hist.shift()});
+  const paths={};
+  G.assets.forEach(a=>{const d=adef(a.sym),s=(d.crypto?m.crypto:m.all)+(m.stock[a.sym]||0)+(bias[a.sym]||0);paths[a.sym]=stepAsset(a,Math.log(Math.max(.15,1+s)))});
+  setEarnings();
   G.reIndex=Math.max(.3,G.reIndex*(1+.018+gauss()*.03+m.re));
   G.players.forEach(p=>{
     const rent=myProps(p).reduce((s,x)=>s+propRent(x),0)*m.rentMult;if(rent>0){p.cash+=rent;p.stats.rent+=rent;add(p,'🏠 Loyers',rent)}
@@ -1454,7 +1559,10 @@ function endRound(){
       p.cash+=inc;p.stats.biz+=inc;add(p,`${d.e} ${b.name}`,inc)}
     if(p.net){const n=NET[p.net],inc=R(n.min,n.max);p.dirty=(p.dirty||0)+inc;p.stats.crime+=inc;p.heat=clamp(p.heat+n.heat,0,100);add(p,'💊 Trafic (argent sale)',0,inc)}
     if(p.debt>0){const it=p.debt*.04;p.cash-=it;add(p,'💳 Intérêts',-it)}
-    for(let i=p.deals.length-1;i>=0;i--){const d=p.deals[i];if(d.mature<=G.round){const [mul,txt]=d.out?rollOut(d.out):vcOutcome(d.hype);const v=d.amt*mul;p.cash+=v;
+    tradeTick(p,paths,add);
+    for(let i=p.deals.length-1;i>=0;i--){const d=p.deals[i];
+      if(d.kind==='vc'){if(vcTick(p,d,add)!=='ok')p.deals.splice(i,1);continue}
+      if(d.mature<=G.round){const [mul,txt]=d.out?rollOut(d.out):vcOutcome(d.hype);const v=d.amt*mul;p.cash+=v;
       if(d.out)p.stats.biz+=v-d.amt;else p.stats.vc+=v-d.amt;p.deals.splice(i,1);add(p,`${d.e} ${d.name} ${txt}`,v)}}
     const dh=dirtyHeat(p.dirty||0);if(dh){p.heat=clamp(p.heat+dh,0,100);add(p,`💵 Argent sale qui dort : 🚨 +${dh}`,0)}
     p.heat=clamp(p.heat-7,0,100);p.laund=0;
@@ -1462,7 +1570,7 @@ function endRound(){
     p.hist.push(netWorth(p));
   });
   const movers=G.assets.map(a=>({d:ASSETS.find(x=>x.sym===a.sym),chg:a.chg})).sort((a,b)=>b.chg-a.chg);
-  G.recap={round:G.round,ev,lines,movers,re:G.reIndex};
+  G.recap={round:G.round,ev,lines,movers,re:G.reIndex,earn:G.assets.filter(a=>a.earn).map(a=>adef(a.sym).e+' '+adef(a.sym).name)};
   G.offers=genOffers();
   G.sec=(G.sec||HEISTS.map(()=>0)).map(s=>Math.max(0,s-1));
   addFeed(`📰 Fin du tour ${G.round}${ev?' : '+ev.t.toLowerCase():''}`,null);
@@ -1474,6 +1582,7 @@ function renderRecap(){const rc=G.recap,last=G.round>=G.maxRounds;
   $('#app').innerHTML=`<div class="paper">
     <div class="mast">${PAPERS[(rc.round-1)%PAPERS.length]}</div><div class="dateline"><span>ÉDITION DU TOUR ${rc.round}</span><span>PRIX : 2 €</span></div>
     ${rc.ev?`<div style="font-size:40px">${rc.ev.e}</div><div class="headline">${rc.ev.t}</div><p>${rc.ev.d}</p>`:`<div class="headline">CALME PLAT SUR LES MARCHÉS</div><p>Rien à signaler. Les journalistes sont partis en RTT.</p>`}
+    ${rc.earn&&rc.earn.length?`<p><b>📅 Résultats trimestriels attendus au prochain tour :</b> ${rc.earn.join(', ')}.</p>`:''}
     <div class="movers">${rc.movers.map(x=>`<div><span>${x.d.e} ${x.d.name}</span><b class="${x.chg>=0?'pos':'neg'}">${pct(x.chg)}</b></div>`).join('')}<div><span>🏠 Immobilier</span><b class="${rc.re>=1?'pos':'neg'}">${pct(rc.re-1)}</b></div></div>
   </div>
   <div class="label" style="margin-top:26px">Le compte de chacun</div>
