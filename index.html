@@ -598,7 +598,11 @@ function iconize(root){if(!root||root.nodeType===8)return;
 function iconizeText(t){const par=t.parentNode;if(!par||!par.closest||par.closest('svg,#toast,script,style,textarea'))return;
   const txt=t.nodeValue;EMO_RE.lastIndex=0;if(!EMO_RE.test(txt))return;
   const mode=par.closest('.av,.bigav')?'bare':(par.matches(ICO_TILE)&&txt.replace(EMO_RE,'').trim()==='')?'tile':'bare';
-  const f=document.createDocumentFragment();let last=0;EMO_RE.lastIndex=0;let m;
+  /* Rien à remplacer (seulement des symboles conservés comme ♠ ★ ↗) : on ne touche pas au DOM, sinon le
+     MutationObserver ré-analyse le même texte à l'infini et la page se fige. */
+  EMO_RE.lastIndex=0;let any=false,m;while((m=EMO_RE.exec(txt))){if(!EMO_KEEP.includes(m[0].replace(/️/g,''))){any=true;break}}
+  if(!any)return;
+  const f=document.createDocumentFragment();let last=0;EMO_RE.lastIndex=0;
   while((m=EMO_RE.exec(txt))){const e=m[0];if(EMO_KEEP.includes(e.replace(/️/g,'')))continue;
     if(m.index>last)f.appendChild(document.createTextNode(txt.slice(last,m.index)));
     const svg=emoIcon(e,mode);if(svg){const s=document.createElement('span');s.className='i3w '+(mode==='tile'?'i3-tl':'i3-in');s.innerHTML=svg;f.appendChild(s)}
@@ -612,6 +616,13 @@ function iconizeText(t){const par=t.parentNode;if(!par||!par.closest||par.closes
   document.body.prepend(d)})();
 /* Tout ce qui entre dans la page passe par iconize : écrans, feuilles, cartes, rouleaux, dés. */
 new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1||n.nodeType===3)iconize(n)}).observe(document.body,{childList:true,subtree:true});
+
+/* Anti double-tap : après un clic, l'écran se redessine souvent ; un second tap rapide tombait alors sur le bouton
+   apparu au même endroit (revendre la boîte suivante, relancer une partie de casino, passer deux tours…). */
+let tapT=0,tapSeen=new WeakSet();
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(!b)return;const now=performance.now();
+  if(now-tapT<350&&!tapSeen.has(b)){e.stopImmediatePropagation();e.preventDefault();return}
+  tapT=now;tapSeen=new WeakSet(document.querySelectorAll('button'))},true);
 
 /* ================= AUDIO / FX ================= */
 let AC=null,SOUND=true;
@@ -808,7 +819,7 @@ let G=null, busy=false, sheetFn=null;
 let setup={players:[{name:'',av:'🦈'},{name:'',av:'🐺'},{name:'',av:'🦊'}],cash:10000,rounds:12};
 
 let APP={view:'home',err:'',joinCode:''};
-function save(){if(!G)return;if(ON){G.seq=(G.seq||0)+1;pubState();return}try{localStorage.setItem('sf_save',JSON.stringify(G))}catch(e){}}
+function save(){if(!G)return;if(ON){G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;pubState();return}try{localStorage.setItem('sf_save',JSON.stringify(G))}catch(e){}}
 function addFeed(txt,p){if(!G)return;if(p===undefined)p=cur();G.feedId=(G.feedId||0)+1;G.feed=G.feed||[];
   G.feed.push({id:G.feedId,t:p?`<b>${esc(p.name)}</b> ${txt}`:txt,av:p?p.avatar:'📰',c:p?p.color:'var(--line)',by:UID,r:G.round});if(G.feed.length>30)G.feed.shift()}
 function isMyTurn(){return !ON||(G&&G.players[G.cur]&&G.players[G.cur].uid===UID)}
@@ -850,12 +861,15 @@ function canPay(p,n){if(n<=0){toast('Choisis un montant.',1);return false}if(n>p
 /* ================= RENDER ROUTER ================= */
 /* Rendu par zones : chaque écran est une suite de blocs data-z. Si l'écran est le même, seuls les blocs dont
    le contenu a changé sont remplacés ; le défilement, le focus et la saisie en cours sont conservés. */
+/* On compare le HTML source de chaque zone (gardé dans __src) et non son outerHTML : les emojis y sont remplacés
+   par des icônes SVG, donc l'outerHTML différait toujours et chaque rendu recréait tous les boutons (clics perdus). */
 function paint(html,key){const app=$('#app');
-  if(app.dataset.key!==key){app.innerHTML=html;app.dataset.key=key;return}
   const t=document.createElement('template');t.innerHTML=html;
-  const nz=[...t.content.children],oz=[...app.children];
-  if(nz.length!==oz.length||nz.some((n,i)=>(n.dataset.z||'')!==(oz[i].dataset.z||''))){app.innerHTML=html;return}
-  nz.forEach((n,i)=>{if(n.outerHTML!==oz[i].outerHTML)oz[i].replaceWith(n)})}
+  const nz=[...t.content.children],src=nz.map(n=>n.outerHTML),oz=[...app.children];
+  const full=()=>{app.innerHTML=html;[...app.children].forEach((c,i)=>c.__src=src[i])};
+  if(app.dataset.key!==key){full();app.dataset.key=key;return}
+  if(nz.length!==oz.length||nz.some((n,i)=>(n.dataset.z||'')!==(oz[i].dataset.z||''))){full();return}
+  nz.forEach((n,i)=>{if(src[i]!==oz[i].__src){oz[i].replaceWith(n);n.__src=src[i]}})}
 function render(){
   /* Le décor reste en vedette sur l'accueil ; partout ailleurs, un voile sombre garantit la lisibilité du texte. */
   document.body.classList.toggle('dim',!!G||APP.view!=='home');
@@ -967,17 +981,50 @@ function pub(s,obj,retain,qos=1){if(!ON||!ON.client)return;try{ON.client.publish
 function pubState(){pub('state',{from:UID,G},true)}
 function pubLobby(){ON.lobby.ts=Date.now();pub('lobby',ON.lobby,true)}
 function isOnline(uid){if(uid===UID)return true;if(!ON||!uid)return false;if(!ON.presence[uid])ON.presence[uid]=Date.now();return Date.now()-ON.presence[uid]<14000}
+/* Un relais qui refuse la connexion échoue tout de suite (avant : on attendait le délai complet pour rien). */
 function connectBroker(url,ms){return new Promise((res,rej)=>{
   if(!window.mqtt)return rej(new Error('lib'));
-  let c;try{c=mqtt.connect(url,{clientId:'rq_'+UID+'_'+rid(4),clean:true,connectTimeout:ms,reconnectPeriod:2000,keepalive:30})}catch(e){return rej(e)}
-  const to=setTimeout(()=>{try{c.end(true)}catch(e){}rej(new Error('timeout'))},ms);
-  c.once('connect',()=>{clearTimeout(to);res(c)});c.on('error',()=>{});})}
-function newON(client,broker,code){
-  ON={client,broker,code,host:false,lobby:null,presence:{},pending:null,wasIn:false};
+  let c,done=false;
+  const fail=e=>{if(done)return;done=true;clearTimeout(to);try{c&&c.end(true)}catch(_){}rej(e)};
+  const to=setTimeout(()=>fail(new Error('timeout')),ms);
+  try{c=mqtt.connect(url,{clientId:'rq_'+UID+'_'+rid(4),clean:true,connectTimeout:ms,reconnectPeriod:2000,keepalive:30})}catch(e){return fail(e)}
+  c.once('connect',()=>{if(done)return;done=true;clearTimeout(to);res(c)});
+  c.on('error',()=>{if(!c.connected)fail(new Error('error'))});c.on('close',()=>{if(!c.connected)fail(new Error('close'))});})}
+/* Hôte : tous les relais sont essayés en même temps. On garde le plus prioritaire qui répond
+   (on lui laisse 1,5 s d'avance sur les autres), et on ferme les autres. */
+function firstBroker(list,ms){return new Promise(res=>{const st=list.map(()=>null);let done=false,grace=0;
+  const finish=()=>{if(done)return;done=true;clearTimeout(grace);const i=st.findIndex(x=>x&&x.c);
+    st.forEach((x,j)=>{if(x&&x.c&&j!==i)try{x.c.end(true)}catch(e){}});res(i<0?null:{client:st[i].c,broker:list[i]})};
+  const check=()=>{if(done)return;if(connAbort)return finish();const i=st.findIndex(x=>x&&x.c);
+    if(i<0){if(st.every(x=>x))finish();return}
+    if(st.slice(0,i).every(x=>x))return finish();
+    if(!grace)grace=setTimeout(finish,1500)};
+  list.forEach((u,i)=>connectBroker(u,ms).then(c=>{if(done){try{c.end(true)}catch(e){}return}st[i]={c};check()},()=>{st[i]={};check()}))})}
+/* Invité : on cherche le salon sur tous les relais à la fois, et on garde celui où l'hôte l'a ouvert.
+   Avant, les relais étaient testés un par un avec des délais différents de ceux de l'hôte : si le premier relais
+   était lent, l'hôte s'y connectait mais pas l'invité, qui finissait sur « Aucun salon avec ce code ». */
+function findRoom(list,code,ms){return new Promise(res=>{const probes=[];let done=false,left=list.length;
+  const end=w=>{if(done)return;done=true;clearTimeout(cap);clearInterval(ab);
+    probes.forEach(p=>{if(p!==w)try{p.c.end(true)}catch(e){}});res(w?{client:w.c,broker:w.u,buf:w.buf,h:w.h}:null)};
+  const closedOne=()=>probes.find(p=>p.closed)||null;
+  const cap=setTimeout(()=>end(closedOne()),ms+4000),ab=setInterval(()=>{if(connAbort)end(null)},150);
+  const idle=()=>{if(!done&&left===0&&probes.every(p=>performance.now()-p.t>3500))end(closedOne())};
+  list.forEach(u=>connectBroker(u,ms).then(c=>{if(done){try{c.end(true)}catch(e){}return}
+      const p={c,u,buf:[],t:performance.now(),closed:false};probes.push(p);
+      p.h=(t,pl)=>{p.buf.push([t,pl]);if(done||!t.endsWith('/lobby'))return;const str=pl.toString();if(!str)return;
+        let L;try{L=JSON.parse(str)}catch(e){return}if(L.closed){p.closed=true;return}end(p)};
+      c.on('message',p.h);c.subscribe(`${NS}/${code}/#`,{qos:1});setTimeout(idle,3600)},()=>{})
+    .finally(()=>{left--;idle()}))})}
+function newON(client,broker,code,subscribed){
+  ON={client,broker,code,host:false,lobby:null,presence:{},pending:null,wasIn:false,lastSeq:-1};
   client.on('message',onMessage);
-  client.on('connect',()=>{if(ON&&ON.client===client)render()});
-  client.subscribe(`${NS}/${code}/#`,{qos:1});
+  client.on('connect',()=>{if(ON&&ON.client===client){resync();render()}});
+  if(!subscribed)client.subscribe(`${NS}/${code}/#`,{qos:1});
   return ON}
+/* Après une coupure (téléphone en veille, réseau mobile), on republie ce qu'on est le seul à connaître :
+   le salon pour l'hôte, et l'état de la partie si c'est nous qui l'avons modifié en dernier. Sans ça, une fin de
+   tour envoyée pendant la coupure était perdue et la partie restait bloquée sur « … est en train de jouer ». */
+function resync(){if(!ON)return;if(ON.host&&ON.lobby&&!ON.lobby.closed)pubLobby();if(G&&ON.lastSeq===G.seq)pubState()}
 function persistSession(){try{localStorage.setItem('sf_online',JSON.stringify({code:ON.code,broker:ON.broker}))}catch(e){}}
 function abortConnect(){connAbort=true;if(ON&&ON.lobby){leaveOnline(false)}else{APP.view='home';render()}}
 function startPing(){clearInterval(pingTimer);const f=()=>{if(ON)pub('ping',{uid:UID},false,0)};f();pingTimer=setInterval(()=>{f();if(!G&&APP.view==='lobby')renderLobby();else if(G&&ON&&!isMyTurn()&&(G.screen==='pass'||G.screen==='turn'))renderSpectate();else if(G&&ON&&G.screen==='recap')renderRecap()},4000)}
@@ -985,8 +1032,7 @@ function startPing(){clearInterval(pingTimer);const f=()=>{if(ON)pub('ping',{uid
 async function createRoom(){
   saveProfile();if(!profile.name){APP.err='Choisis d’abord un pseudo.';renderHome();return}
   connAbort=false;APP.err='';APP.view='connecting';APP.connMsg='Ouverture du salon…';render();
-  let client=null,broker=null;
-  try{const r=await connectAny(BROKERS,12000);client=r.client;broker=r.broker}catch(e){}
+  const r=await firstBroker(BROKERS,8000),client=r&&r.client,broker=r&&r.broker;
   if(connAbort){client&&client.end(true);return}
   if(!client){APP.view='home';APP.err='Impossible de joindre le serveur de jeu. Vérifie ta connexion internet et réessaie.';render();return}
   const code=rid(4);newON(client,broker,code);ON.host=true;
@@ -999,11 +1045,11 @@ async function joinRoom(code){
   if(code.length!==4){APP.err='Le code fait 4 caractères.';APP.view='join';render();return}
   connAbort=false;APP.err='';APP.view='connecting';APP.connMsg='Recherche du salon '+code+'…';render();
   const ses=getSession();const order=ses&&ses.code===code&&ses.broker?[ses.broker,...BROKERS.filter(b=>b!==ses.broker)]:BROKERS;
-  const hit=await findRoom(order,code);
-  if(connAbort){if(hit)try{hit.c.end(true)}catch(e){}ON=null;return}
-  if(hit){newON(hit.c,hit.b,code);for(let i=0;i<40&&!ON.lobby;i++){await sleep(100);if(connAbort){hit.c.end(true);ON=null;return}}
-    if(!ON.lobby){try{hit.c.end(true)}catch(e){}ON=null}}
-  if(!ON){APP.view='join';APP.err=`Aucun salon avec le code ${code}. Vérifie le code (ou la connexion).`;render();return}
+  const found=await findRoom(order,code,7000);
+  if(connAbort){if(found)try{found.client.end(true)}catch(e){}return}
+  if(found){found.client.removeListener('message',found.h);newON(found.client,found.broker,code,true);
+    found.buf.forEach(([t,pl])=>{if(ON)onMessage(t,pl)})}
+  if(!ON||!ON.lobby){if(ON){try{ON.client.end(true)}catch(e){}ON=null}APP.view='join';APP.err=`Aucun salon avec le code ${code}. Vérifie le code (ou la connexion).`;render();return}
   const L=ON.lobby;
   if(L.closed){failJoin('Ce salon a été fermé par l’hôte.');return}
   const inIt=L.players.some(p=>p.uid===UID);
@@ -1014,18 +1060,6 @@ async function joinRoom(code){
   sfx.coin();render();
 }
 function failJoin(msg){try{ON.client.end(true)}catch(e){}ON=null;G=null;try{localStorage.removeItem('sf_online')}catch(e){}APP.view='join';APP.err=msg;render()}
-/* Contacte tous les relais en même temps et garde le premier qui répond (les autres sont refermés). */
-function connectAny(list,ms){return new Promise((res,rej)=>{let left=list.length,done=false;
-  list.forEach(b=>connectBroker(b,ms).then(c=>{if(done||connAbort){try{c.end(true)}catch(e){}return}done=true;res({client:c,broker:b})},
-    ()=>{if(--left===0&&!done)rej(new Error('aucun relais'))}))})}
-/* Cherche le salon sur tous les relais en parallèle : le premier relais qui renvoie le salon est retenu. */
-function findRoom(list,code){return new Promise(res=>{let pending=list.length,done=false;const cs=[];
-  const finish=hit=>{if(done)return;done=true;cs.forEach(c=>{if(!hit||c!==hit.c){try{c.end(true)}catch(e){}}});res(hit)};
-  const giveUp=()=>{if(--pending<=0)finish(null)};
-  list.forEach(b=>connectBroker(b,12000).then(c=>{if(done||connAbort){try{c.end(true)}catch(e){}return}cs.push(c);
-    const t=`${NS}/${code}/lobby`;c.on('message',(topic,pl)=>{if(topic===t&&pl&&pl.length)finish({c,b})});
-    c.subscribe(t,{qos:1});setTimeout(giveUp,5000)},giveUp));
-  setTimeout(()=>finish(null),20000)})}
 async function sendJoin(){for(let i=0;i<10;i++){if(!ON||!ON.lobby||ON.lobby.players.some(p=>p.uid===UID))return;pub('join',{uid:UID,name:profile.name,av:profile.av});await sleep(1500)}}
 function leaveOnline(forget){
   if(ON){if(ON.lobby&&!ON.lobby.started&&forget){if(ON.host){pub('lobby',{closed:true,host:UID},true);pub('state','',true)}else pub('leave',{uid:UID})}
@@ -1072,6 +1106,8 @@ function applyState(m){
   if(fresh.length)sfx.tick();
   const mineNow=isMyTurn()&&(G.screen==='pass'||G.screen==='turn');
   if(wasMine&&!mineNow){busy=false;forceClose();closeOv()}
+  /* La feuille de consultation ouverte pendant l'attente cachait le bouton « Jouer mon tour » et le journal du tour. */
+  if((mineNow&&!wasMine)||(same&&prevScreen!==G.screen+G.round&&(G.screen==='recap'||G.screen==='end')))forceClose();
   if(mineNow&&!wasMine&&G.screen==='pass'){sfx.big();buzz([120,60,120]);document.title='À toi de jouer ! · Scarface'}
   if(G.screen==='end'&&(!same||m.G.screen!=='end'))setTimeout(()=>confetti(160),300);
   scheduleRender();
@@ -1165,12 +1201,13 @@ function renderSpectate(){
   <div data-z="feed">${label('En direct')}
   <div class="feed">${feed.length?feed.map(f=>`<div class="fi ${f.r<G.round?'old':''}" style="--c:${f.c}"><span class="a">${f.av}</span><span>${f.t}</span></div>`).join(''):note('Rien pour l’instant.')}</div></div>`,'spec'+G.round+G.cur);
 }
-function hostSkip(){if(!ON||!ON.host)return;addFeed('est absent : son tour est passé.',cur());endTurn()}
+function hostSkip(){if(!ON||!ON.host||isOnline(cur().uid)||(G.screen!=='pass'&&G.screen!=='turn'))return;addFeed('est absent : son tour est passé.',cur());endTurn(true)}
 
 /* ================= PASS ================= */
 function renderPass(){const p=cur();paint(passScreen(p,'Passe le téléphone à',esc(p.name),'C’est moi, je joue'),'pass'+G.round+G.cur)}
 /* ================= TURN START ================= */
 function startTurn(){
+  if(!G||G.screen!=='pass'||!isMyTurn())return;
   const p=cur();sfx.coin();
   if(G.resumeTurn){G.resumeTurn=false;G.screen='turn';render();return}
   G.acted=false;G.ap=AP_MAX;G.inCasino=false;G.casinoLeft=3;G.lawyer=false;bj=null;
@@ -1201,7 +1238,7 @@ function jailCard(p){const bail=bailCost(p);
   return {k:'Prison',e:'🔒',t:'Tu es derrière les barreaux',bad:1,d:`Encore ${p.jail} tour${p.jail>1?'s':''} à purger. Ton avocat peut payer ta caution.`,
     btns:[{l:'Payer la caution',cost:fmt(bail),v:'primary',why:p.cash<bail?`Il te manque ${fmt(bail-p.cash)}`:'',fn:'payBail()'},{l:'Purger ma peine',cost:'passe le tour',v:'secondary',fn:'serveJail()'}]}}
 function payBail(){const p=cur(),b=bailCost(p);if(p.cash<b)return;p.cash-=b;p.jail=0;addFeed(`paie sa caution (${fmt(b)}) et sort de prison`);closeOv();sfx.coin();toast('Libéré sous caution. Fais-toi discret…');save();render()}
-function serveJail(){const p=cur();p.jail--;p.stats.jailTurns++;addFeed('purge sa peine en prison 🔒');closeOv();endTurn()}
+function serveJail(){const p=cur();if(!G||G.screen!=='turn'||!(p.jail>0))return;p.jail--;p.stats.jailTurns++;addFeed('purge sa peine en prison 🔒');closeOv();endTurn()}
 
 /* overlay cards */
 let ovQueue=[],ovOpener=null;
@@ -1274,9 +1311,11 @@ function renderTurn(){
 }
 function confirmEnd(){if(busy)return;if(!G.acted){openSheet('Passer ton tour ?',`<p class="muted">Tu n’as utilisé aucun point d’action.</p>
   <div class="sheet-foot stack">${B('Passer mon tour',{v:'primary',on:'endTurn()'})}${B('Continuer à jouer',{v:'secondary',on:'closeSheet()'})}</div>`);return}endTurn()}
-function endTurn(){
-  forceClose();
+function endTurn(force){
+  if(!G||(!force&&(G.screen!=='turn'||!isMyTurn())))return;
+  busy=false;forceClose();closeOv();
   if(bj&&!bj.over){const p=cur();p.cash-=bj.bet;p.stats.casino-=bj.bet;bj=null}
+  if(scratch&&!scratch.open){const won=scratch.price*scratch.m;scratch.open=true;if(won>0)casinoResult(won,1,won-scratch.price)}
   scratch=null;
   G.turnCount++;
   if(G.turnCount>=G.players.length){endRound()}
@@ -1289,22 +1328,29 @@ function endTurn(){
 let sheetOpener=null;
 function moveFoot(){const f=$('#shFoot'),s=$('#shBody .sheet-foot');f.innerHTML='';if(s)f.appendChild(s)}
 function openSheet(title,html,fn){const sh=$('#sheet'),was=sh.classList.contains('open');
-  $('#shTitle').textContent=noEmo(title);$('#shBody').innerHTML=html;sheetFn=fn||null;
+  $('#shTitle').textContent=noEmo(title);setBody(html);sheetFn=fn||null;
   if(!was){sheetOpener=document.activeElement;sh.classList.add('open');sh.setAttribute('aria-hidden','false');$('#shBody').scrollTop=0;
     document.body.classList.add('locked','paused');setTimeout(()=>{try{$('#shClose').focus({preventScroll:true})}catch(e){}},60)}
   showActiveTabs()}
 /* Garde la position des listes horizontales quand la feuille se redessine ; à l'ouverture, montre l'onglet actif. */
 function showActiveTabs(){document.querySelectorAll('#shBody .tabs').forEach(t=>{const on=t.querySelector('.on');if(on&&(on.offsetLeft<t.scrollLeft||on.offsetLeft+on.offsetWidth>t.scrollLeft+t.clientWidth))t.scrollLeft=on.offsetLeft-12})}
+/* Corps de feuille : rien n'est recréé si le HTML est identique (un spectateur reçoit un état à chaque action
+   du joueur actif : sans ça, ses boutons étaient remplacés sous son doigt). */
+function setBody(html){const b=$('#shBody');if(b.__src===html&&b.__first===b.firstElementChild)return;b.innerHTML=html;b.__src=html;b.__first=b.firstElementChild}
 function refreshSheet(){if(sheetFn&&$('#sheet').classList.contains('open')){const b=$('#shBody'),st=b.scrollTop,tl=[...b.querySelectorAll('.tabs')].map(t=>t.scrollLeft);
-  const ae=document.activeElement,aid=ae&&b.contains(ae)?ae.id:'';
-  sheetFn();b.scrollTop=st;b.querySelectorAll('.tabs').forEach((t,i)=>{if(tl[i]!=null)t.scrollLeft=tl[i]});
+  const ae=document.activeElement,aid=ae&&$('#sheet').contains(ae)?ae.id:'';
+  /* Les montants tapés par le joueur survivent au changement d'onglet, de levier, de mise… */
+  const typed=[...document.querySelectorAll('#sheet input[data-u]')].map(e=>[e.id,e.value]);
+  sheetFn();
+  typed.forEach(([id,v])=>{const e=id&&document.getElementById(id);if(e&&!e.dataset.u){e.value=v;e.dataset.u='1'}});b.scrollTop=st;b.querySelectorAll('.tabs').forEach((t,i)=>{if(tl[i]!=null)t.scrollLeft=tl[i]});
   if(aid){const n=document.getElementById(aid);n&&n.focus({preventScroll:true})}}}
 function closeSheet(){if(busy)return;forceClose()}
 function forceClose(){const sh=$('#sheet');sheetFn=null;if(!sh.classList.contains('open'))return;
   sh.classList.remove('open','dragging');sh.setAttribute('aria-hidden','true');sh.style.removeProperty('--drag');
   document.body.classList.remove('locked');if(!$('#ovWrap').children.length)document.body.classList.remove('paused');
   if(sheetOpener&&document.contains(sheetOpener)){try{sheetOpener.focus({preventScroll:true})}catch(e){}}sheetOpener=null}
-function after(){save();render();refreshSheet()}
+function after(){document.querySelectorAll('#sheet input[data-u]').forEach(e=>delete e.dataset.u);save();render();refreshSheet()}
+document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('#sheet input'))e.target.dataset.u='1'});
 /* Le pied suit le contenu : à chaque remplacement du corps, on y déplace le nouveau .sheet-foot (ou on le vide). */
 new MutationObserver(ms=>{if(ms.some(m=>[...m.addedNodes].some(n=>n.nodeType===1)))moveFoot()}).observe($('#shBody'),{childList:true});
 $('#shClose').innerHTML=icon('close');
@@ -1322,8 +1368,8 @@ function amt(id,max,def){max=Math.max(0,Math.floor(max));
   return `<div class="amt"><div class="amtrow"><input id="${id}" type="number" inputmode="numeric" min="0" value="${Math.max(0,Math.min(Math.floor(def),max))}" aria-label="Montant en euros"><span>€</span></div>
   <div class="chips">${ch.map(c=>`<button class="chip" onclick="amtAdd('${id}',${c[1]},${max})">${c[0]}</button>`).join('')}
   <button class="chip" onclick="amtSet('${id}',${Math.floor(max/2)})" aria-label="La moitié">½</button><button class="chip gold" onclick="amtSet('${id}',${max})">MAX</button><button class="chip" onclick="amtSet('${id}',0)">0</button></div></div>`}
-function amtAdd(id,n,max){const e=$('#'+id);e.value=Math.min(max,(+e.value||0)+n);sfx.tick()}
-function amtSet(id,n){$('#'+id).value=Math.max(0,Math.floor(n));sfx.tick()}
+function amtAdd(id,n,max){const e=$('#'+id);if(!e)return;e.value=Math.min(max,(+e.value||0)+n);e.dataset.u='1';sfx.tick()}
+function amtSet(id,n){const e=$('#'+id);if(!e)return;e.value=Math.max(0,Math.floor(n));e.dataset.u='1';sfx.tick()}
 function getAmt(id){const e=$('#'+id);return e?Math.max(0,Math.floor(+e.value||0)):0}
 /* ================= CASINO ================= */
 /* Casinos à paliers : chacun a une mise maximale. On débloque le suivant en cumulant, dans le casino actuel,
@@ -1341,7 +1387,7 @@ function casLvl(p){return p.casLvl||0}
 function casMax(p){return Math.min(Math.max(p.cash,0),CASINOS[cSel].max)}
 function openCasino(tab){if(tab)cTab=tab;lastRes='';const p=cur();if(cSel>casLvl(p))cSel=casLvl(p);
   if(!(G.inCasino&&G.casinoLeft>0)&&!hasAP(1))return;
-  openSheet('Casinos',casinoHTML(),()=>{$('#shBody').innerHTML=casinoHTML()})}
+  openSheet('Casinos',casinoHTML(),()=>setBody(casinoHTML()))}
 /* Change de salle parmi les casinos débloqués (pas pendant une main de blackjack). */
 function casMove(d){const p=cur(),n=cSel+d;if(busy||(bj&&!bj.over)||n<0||n>casLvl(p))return;cSel=n;lastRes='';sfx.tick();refreshSheet()}
 function casinoHTML(){const p=cur(),lv=casLvl(p),c=CASINOS[cSel],won=Math.max(0,(p.casWin||[])[cSel]||0),locked=bj&&!bj.over;
@@ -1383,9 +1429,9 @@ const RBETS={rouge:['Rouge',2,n=>REDS.includes(n)],noir:['Noir',2,n=>n>0&&!REDS.
 function rColor(n){return n===0?'g':REDS.includes(n)?'r':'b'}
 function rouletteHTML(){const p=cur();
   return `<div class="wheel" id="wheel" aria-live="polite">${rl.last!=null?rl.last:'?'}</div>
-  <div class="betgrid">${Object.entries(RBETS).filter(([k])=>k!=='plein').map(([k,[l,m]])=>`<button class="${rl.type===k?'on':''}" aria-pressed="${rl.type===k}" onclick="rl.type='${k}';sfx.tick();refreshSheet()">${l}<small>x${m}</small></button>`).join('')}</div>
-  <div class="row mt-2"><div class="betgrid one grow"><button class="${rl.type==='plein'?'on':''}" aria-pressed="${rl.type==='plein'}" onclick="rl.type='plein';refreshSheet()">Plein sur le <span class="num">${rl.num}</span><small>x36</small></button></div>
-    ${iconBtn('prev','Numéro précédent',"rl.num=(rl.num+36)%37;rl.type='plein';refreshSheet()")}${iconBtn('arrow','Numéro suivant',"rl.num=(rl.num+1)%37;rl.type='plein';refreshSheet()")}</div>
+  <div class="betgrid">${Object.entries(RBETS).filter(([k])=>k!=='plein').map(([k,[l,m]])=>`<button class="${rl.type===k?'on':''}" aria-pressed="${rl.type===k}" onclick="if(!busy){rl.type='${k}';sfx.tick();refreshSheet()}">${l}<small>x${m}</small></button>`).join('')}</div>
+  <div class="row mt-2"><div class="betgrid one grow"><button class="${rl.type==='plein'?'on':''}" aria-pressed="${rl.type==='plein'}" onclick="if(!busy){rl.type='plein';refreshSheet()}">Plein sur le <span class="num">${rl.num}</span><small>x36</small></button></div>
+    ${iconBtn('prev','Numéro précédent',"if(!busy){rl.num=(rl.num+36)%37;rl.type='plein';refreshSheet()}")}${iconBtn('arrow','Numéro suivant',"if(!busy){rl.num=(rl.num+1)%37;rl.type='plein';refreshSheet()}")}</div>
   <h3 class="sec">Ta mise</h3>${amt('rlAmt',casMax(p),Math.min(1000,casMax(p)))}
   <div id="cres">${lastRes}</div>
   <div class="sheet-foot">${B('Lancer la bille',{v:'primary',on:'spinRoulette()',why:casWhy()})}</div>`}
@@ -1410,10 +1456,10 @@ function bjHTML(){const p=cur();
   <div class="sheet-foot"><div class="row">${B('Tirer une carte',{v:'secondary',on:'bjHit()'})}${B('Rester',{v:'primary',on:'bjStand()'})}</div>${bj.p.length===2?`<div class="mt-2">${B('Doubler la mise',{v:'secondary',on:'bjDouble()',why:p.cash<bj.bet*2?'Pas assez de cash pour doubler':''})}</div>`:''}</div>`}
 function bjDeal(){const bet=getAmt('bjAmt');if(!casinoStart(bet))return;const d=newDeck();bj={d,p:[d.pop(),d.pop()],dl:[d.pop(),d.pop()],bet,bet0:bet,over:false,msg:''};sfx.card();
   if(hv(bj.p)===21){bjFinish()}else{render();refreshSheet()}}
-function bjHit(){bj.p.push(bj.d.pop());sfx.card();if(hv(bj.p)>21)bjFinish();else if(hv(bj.p)===21)bjStand();else refreshSheet()}
-function bjDouble(){bj.bet*=2;bj.p.push(bj.d.pop());sfx.card();if(hv(bj.p)>21)bjFinish();else bjStand()}
-function bjStand(){while(hv(bj.dl)<17)bj.dl.push(bj.d.pop());bjFinish()}
-function bjFinish(){const ps=hv(bj.p),ds=hv(bj.dl),nat=ps===21&&bj.p.length===2,dnat=ds===21&&bj.dl.length===2;let net,msg;
+function bjHit(){if(!bj||bj.over)return;bj.p.push(bj.d.pop());sfx.card();if(hv(bj.p)>21)bjFinish();else if(hv(bj.p)===21)bjStand();else refreshSheet()}
+function bjDouble(){if(!bj||bj.over||bj.p.length!==2)return;if(cur().cash<bj.bet*2){toast('Pas assez de cash pour doubler.',1);return}bj.bet*=2;bj.p.push(bj.d.pop());sfx.card();if(hv(bj.p)>21)bjFinish();else bjStand()}
+function bjStand(){if(!bj||bj.over)return;while(hv(bj.dl)<17)bj.dl.push(bj.d.pop());bjFinish()}
+function bjFinish(){if(!bj||bj.over)return;const ps=hv(bj.p),ds=hv(bj.dl),nat=ps===21&&bj.p.length===2,dnat=ds===21&&bj.dl.length===2;let net,msg;
   if(ps>21){net=-bj.bet;msg='Tu as sauté.'}
   else if(nat&&!dnat){net=bj.bet*1.5;msg='Blackjack !'}
   else if(ds>21){net=bj.bet;msg='Le croupier saute !'}
@@ -1514,7 +1560,7 @@ function posTotal(p){return (p.pos||[]).reduce((s,o)=>s+posVal(o),0)}
 function notional(p){return (p.pos||[]).reduce((s,o)=>s+o.m*o.lev,0)}
 function tradeCap(p){return Math.max(20000,netWorth(p)*2)}
 function liqPrice(o){return o.entry*(1-(1-MAINT)*o.dir/o.lev)}
-function openTrading(s){if(s)tr.sym=s;openSheet('Trading',tradeHTML(),()=>{$('#shBody').innerHTML=tradeHTML()})}
+function openTrading(s){if(s)tr.sym=s;openSheet('Trading',tradeHTML(),()=>setBody(tradeHTML()))}
 function posHTML(o,mine){const a=asset(o.sym),d=adef(o.sym),v=posVal(o),g=v-o.m0;
   return `<div class="item pick"><span class="ic">${d.e}</span><span class="bd"><b>${o.dir>0?'Hausse':'Baisse'} x${o.lev} · ${d.name}</b>
     <span class="small muted">Entrée <span class="num">${fmtP(o.entry)}</span> → <span class="num">${fmtP(a.price)}</span> · liquidation <span class="num">${fmtP(liqPrice(o))}</span>${o.sl?` · stop <span class="num">−${o.sl*100} %</span>`:''}${o.tp?` · objectif <span class="num">+${o.tp*100} %</span>`:''}</span>
@@ -1579,7 +1625,7 @@ function spark(h,w=96,hgt=32,col){if(h.length<2)h=[h[0],h[0]];const mn=Math.min(
   const pts=h.map((v,i)=>`${(i/(h.length-1)*w).toFixed(1)},${(hgt-3-(v-mn)/sp*(hgt-6)).toFixed(1)}`),last=pts[pts.length-1].split(',');
   const cls=col?'':(h[h.length-1]>=h[0]?'up':'down');
   return `<svg class="spark ${cls}" width="${w}" height="${hgt}" viewBox="0 0 ${w} ${hgt}" aria-hidden="true"${col?` style="--c:${col}"`:''}><polyline points="${pts.join(' ')}" fill="none" stroke-width="1.5" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2.5"/></svg>`}
-function openMarket(s){mSel=s||null;openSheet('Bourse et crypto',marketHTML(),()=>{$('#shBody').innerHTML=marketHTML()})}
+function openMarket(s){mSel=s||null;openSheet('Bourse et crypto',marketHTML(),()=>setBody(marketHTML()))}
 function marketHTML(){const p=viewer(),RO=ro();
   if(mSel){const a=asset(mSel),d=adef(mSel),q=p.stocks[mSel]||0,v=q*a.price,cost=p.cost[mSel]||0;
     return `${B(icon('prev')+'Tous les actifs',{v:'text',inline:1,on:'mSel=null;refreshSheet()'})}
@@ -1598,7 +1644,7 @@ function sellAsset(){const p=cur(),a=asset(mSel),q=p.stocks[mSel]||0,v=q*a.price
   const frac=n/v;p.cash+=n;p.cost[mSel]=(p.cost[mSel]||0)*(1-frac);p.stocks[mSel]=q*(1-frac);if(p.stocks[mSel]*a.price<1){delete p.stocks[mSel];delete p.cost[mSel]}
   addFeed(`vend ${fmt(n)} de ${adef(mSel).name}`);sfx.coin();toast('Vente effectuée : '+fmt(n));after()}
 /* ================= IMMO ================= */
-function openImmo(){openSheet('Immobilier',immoHTML(),()=>{$('#shBody').innerHTML=immoHTML()})}
+function openImmo(){openSheet('Immobilier',immoHTML(),()=>setBody(immoHTML()))}
 function immoHTML(){const p=viewer(),RO=ro();
   return `${RO?RO_NOTE:''}${note('Chaque bien est unique : premier arrivé, premier servi. Frais de notaire 7 %. Le loyer tombe à chaque fin de tour. À crédit, tu n’avances que 25 % du prix plus les frais, et la banque prête le reste à 4 % par tour.')}
   <div class="row between small muted mt-3"><span>Indice immobilier <b class="num ${G.reIndex>=1?'pos':'neg'}">${pct(G.reIndex-1)}</b></span><span>Cash <b class="gold num">${fmt(p.cash)}</b></span></div>
@@ -1615,7 +1661,7 @@ function sellProp(id){const p=cur(),x=G.props[id];if(x.owner!==p.id)return;const
 
 /* ================= BUSINESS ================= */
 let bizNameDraft={};
-function openBiz(){openSheet('Entreprises',bizHTML(),()=>{$('#shBody').innerHTML=bizHTML()})}
+function openBiz(){openSheet('Entreprises',bizHTML(),()=>setBody(bizHTML()))}
 function bizHTML(){const p=cur();
   const mine=p.biz.map((b,i)=>{const d=bizDef(b.k),up=d.cost*.7*b.lvl;return `<div class="item mine"><span class="ic">${d.e}</span><span class="bd"><b>${esc(b.name)}</b>
      <span class="small muted">${d.n} · valeur <b class="num">${fmt(bizVal(b))}</b> · niveau <span class="num">${b.lvl}/5</span> · revenu <span class="num">${fmt(d.min*bizMult(b.lvl))}</span> à <span class="num">${fmt(d.max*bizMult(b.lvl))}</span></span>
@@ -1649,7 +1695,7 @@ function entryRatio(o){return clamp(1-.07*(o.team+o.tracVis-6)-.08*(o.hype-1),.4
 function grade(q){return q>.7?'A':q>.5?'B':q>.3?'C':'D'}
 function auditCost(o){return Math.max(500,niceRound(o.min*.15))}
 function stars(n){return '★'.repeat(n)+'☆'.repeat(5-n)}
-function openVC(){openSheet('Startups non cotées',vcHTML(),()=>{$('#shBody').innerHTML=vcHTML()})}
+function openVC(){openSheet('Startups non cotées',vcHTML(),()=>setBody(vcHTML()))}
 function vcHTML(){const p=viewer(),RO=ro();
   return `${RO?RO_NOTE:''}${note('Tu prends une part dans une jeune pousse. À chaque fin de tour elle peut <b>lever des fonds</b> (sa valeur grimpe), stagner, traverser une crise ou mourir. Dès la Série C, elle peut être rachetée ou entrer en Bourse.')}
   <details class="rules"><summary>Comment choisir</summary>
@@ -1716,7 +1762,7 @@ function heistParts(){const p=cur(),h=HEISTS[hs.t];
 function heistChance(){return clamp(heistParts().reduce((s,x)=>s+x[1],0),.02,.9)}
 function heistCost(){const h=HEISTS[hs.t];return Math.round(h.prep+TEAMS[hs.team][3]*h.min)}
 function openHeist(){if(!hasAP(1))return;const p=cur();if(rep(p)<HEISTS[hs.t].rep)hs.t=0;
-  openSheet('Préparer un braquage',heistHTML(),()=>{$('#shBody').innerHTML=heistHTML()})}
+  openSheet('Préparer un braquage',heistHTML(),()=>setBody(heistHTML()))}
 function heistHTML(){const p=cur(),h=HEISTS[hs.t],ch=heistChance(),cut=TEAMS[hs.team][2],m=APPS[hs.app][2],cost=heistCost(),locked=rep(p)<h.rep,rb=reconBonus(p,hs.t);
   const parts=heistParts().filter(x=>Math.abs(x[1])>=.005);
   const why=G.ap<3?(G.ap?`Il faut tes 3 PA, il t’en reste ${G.ap}. Repère la cible maintenant, frappe au prochain tour.`:'Plus de points d’action'):p.cash<cost?`Il te manque ${fmt(cost-p.cash)}`:'';
@@ -1758,7 +1804,7 @@ async function runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)
   busy=false;save();render()}
 
 /* ================= TRAFFIC ================= */
-function openTraffic(){openSheet('Trafic',trafHTML(),()=>{$('#shBody').innerHTML=trafHTML()})}
+function openTraffic(){openSheet('Trafic',trafHTML(),()=>setBody(trafHTML()))}
 function trafHTML(){const p=cur(),lv=p.net,nx=NET[lv+1];
   return `${note('Un réseau rapporte de l’<b>argent sale</b> à chaque tour, et fait grimper ta jauge de police à chaque tour aussi. Si tu te fais arrêter, il est démantelé et ton argent sale est saisi. Monter d’un échelon coûte <b>2 PA</b>.','warn')}
   ${lv?`<div class="panel tight mt-3"><b>Niveau ${lv} · ${NET[lv].n}</b>
@@ -1771,7 +1817,7 @@ function closeNet(){const p=cur();p.net=0;toast('Réseau fermé. Tu te ranges, p
 /* ================= LAUNDERING (free) ================= */
 function launderCap(p){return Math.round(p.biz.reduce((s,b)=>s+bizDef(b.k).cost*.3*b.lvl,0)*(G.laundBoost||1))}
 function dirtyHeat(d){return d>5000?Math.round(3*Math.log10(d/1000)):0}
-function openLaunder(){openSheet('Blanchiment',launderHTML(),()=>{$('#shBody').innerHTML=launderHTML()})}
+function openLaunder(){openSheet('Blanchiment',launderHTML(),()=>setBody(launderHTML()))}
 function launderHTML(){const p=cur(),d=p.dirty||0,cap=Math.max(0,launderCap(p)-(p.laund||0)),a=Math.min(d,cap);
   return `<div class="panel tight"><div class="kv"><span>Argent sale</span><b class="dirty num">${fmt(d)}</b></div>
     <div class="kv"><span>Compté dans ton patrimoine</span><span class="num">${Math.round(DIRTY_VALUE*100)} % seulement</span></div>
@@ -1791,7 +1837,7 @@ function launder(mode){const p=cur();let n=Math.min(getAmt(mode?'lnB':'lnA'),p.d
 let dt={mode:'duel',target:null};
 function openDirty(){if(!hasAP(1))return;
   const others=G.players.filter(o=>o.id!==cur().id);if(dt.target==null||dt.target===cur().id||!G.players[dt.target])dt.target=others[0].id;
-  openSheet('Coups bas',dirtyHTML(),()=>{$('#shBody').innerHTML=dirtyHTML()})}
+  openSheet('Coups bas',dirtyHTML(),()=>setBody(dirtyHTML()))}
 function dirtyHTML(){const p=cur(),t=G.players[dt.target],others=G.players.filter(o=>o.id!==p.id);
   const modes=[['duel','🎲','Duel de dés','Mise contre un pote : le plus gros lancer rafle tout. Refuser coûte 10 % de la mise.'],
     ['scam','🃏','Arnaque','50 % de chances de lui soutirer 8 à 20 % de son cash. Si ça rate, tu lui dois un dédommagement.'],
@@ -1816,11 +1862,11 @@ function startDuel(){const p=cur(),t=G.players[dt.target],n=getAmt('duelAmt');if
   $('#shBody').innerHTML=`<div class="duel-wait"><div class="av lg" style="--c:${t.color}">${t.avatar}</div>
     <h2>Passe le téléphone à ${esc(t.name)}</h2><p class="muted">${esc(p.name)} te défie aux dés pour <b class="gold num">${fmt(n)}</b>. Refuser te coûte <span class="num">${fmt(n*.1)}</span>, et la honte.</p></div>
     <div class="sheet-foot stack">${B('J’accepte le duel',{v:'primary',on:'duelGo()'})}${B('Je me dégonfle',{v:'secondary',on:'duelRefuse()'})}</div>`;busy=true}
-function duelRefuse(){const p=cur(),t=G.players[dt.target],x=dt.stake*.1;t.cash-=x;p.cash+=x;busy=false;sfx.coin();
+function duelRefuse(){if(!dt.stake||dt.rolling)return;const p=cur(),t=G.players[dt.target],x=dt.stake*.1;dt.stake=0;t.cash-=x;p.cash+=x;busy=false;sfx.coin();
   addFeed(`se dégonfle face au défi de ${esc(p.name)} et lui verse ${fmt(x)}`,t);
   $('#shBody').innerHTML=`${resBox(1,esc(t.name)+' se dégonfle et te verse <span class="num">'+fmt(x)+'</span>')}${B('Fermer',{v:'secondary',on:'closeSheet()'})}`;save();render()}
 const DF=['⚀','⚁','⚂','⚃','⚄','⚅'];
-async function duelGo(){const p=cur(),t=G.players[dt.target];
+async function duelGo(){if(!dt.stake||dt.rolling)return;dt.rolling=true;const p=cur(),t=G.players[dt.target];
   $('#shBody').innerHTML=`<div class="dice"><div class="die"><div class="f" id="d1">⚀⚀</div><div class="sum" id="s1">–</div><div class="who">${p.avatar} ${esc(p.name)}</div></div><div class="die"><div class="f" id="d2">⚀⚀</div><div class="sum" id="s2">–</div><div class="who">${t.avatar} ${esc(t.name)}</div></div></div><div id="dres"></div>`;
   let a,b;do{for(let i=0;i<14;i++){$('#d1').textContent=pick(DF)+pick(DF);$('#d2').textContent=pick(DF)+pick(DF);sfx.tick();await sleep(70)}
     const a1=RI(1,6),a2=RI(1,6),b1=RI(1,6),b2=RI(1,6);a=a1+a2;b=b1+b2;$('#d1').textContent=DF[a1-1]+DF[a2-1];$('#d2').textContent=DF[b1-1]+DF[b2-1];$('#s1').textContent=a;$('#s2').textContent=b;
@@ -1828,7 +1874,7 @@ async function duelGo(){const p=cur(),t=G.players[dt.target];
   const win=a>b,w=win?p:t,l=win?t:p;w.cash+=dt.stake;l.cash-=dt.stake;
   addFeed(`remporte ${fmt(dt.stake)} au duel de dés contre ${esc(l.name)} (${Math.max(a,b)} à ${Math.min(a,b)})`,w);
   $('#dres').innerHTML=`${resBox(1,`${w.avatar} ${esc(w.name)} rafle <span class="num">${fmt(dt.stake)}</span>`)}${B('Fermer',{v:'secondary',on:'closeSheet()'})}`;
-  sfx.big();confetti(80);busy=false;save();render()}
+  dt.stake=0;dt.rolling=false;sfx.big();confetti(80);busy=false;save();render()}
 function doScam(){if(!useAP(1))return;const p=cur(),t=G.players[dt.target];let html;
   if(Math.random()<.5){const x=Math.max(0,t.cash)*R(.08,.2);t.cash-=x;p.cash+=x;p.stats.scam+=x;
     t.inbox.push({k:'Mauvaise nouvelle',e:'🃏',t:'Tu t’es fait arnaquer',d:`Un faux placement en or « garanti » : ${esc(p.name)} t’a eu en beauté.`,fx:fmt(-x)});
@@ -1845,7 +1891,7 @@ function doSnitch(){const p=cur(),t=G.players[dt.target];if(!canPay(p,3000)||!us
 /* ================= BANK ================= */
 function maxBorrow(p){return Math.max(0,Math.floor(grossAssets(p)*.6+5000-p.debt))}
 function lawyerCost(p){return Math.round(Math.max(2000,netWorth(p)*.04))}
-function openBank(){openSheet('Banque',bankHTML(),()=>{$('#shBody').innerHTML=bankHTML()})}
+function openBank(){openSheet('Banque',bankHTML(),()=>setBody(bankHTML()))}
 function bankHTML(){const p=cur(),mb=maxBorrow(p),lc=lawyerCost(p),rp=Math.min(Math.max(p.cash,0),p.debt);
   return `<div class="panel tight"><div class="kv"><span>Dette actuelle</span><b class="num">${fmt(p.debt)}</b></div><div class="kv"><span>Intérêts</span><span class="num">4 % par tour</span></div><div class="kv"><span>Capacité d’emprunt</span><b class="num">${fmt(mb)}</b></div></div>
   <h3 class="sec">Emprunter</h3>${amt('borAmt',mb,Math.min(10000,mb))}<div class="mt-3">${B('Emprunter',{v:'secondary',on:'borrow()',why:mb<=0?'Plus de capacité d’emprunt':''})}</div>
@@ -1857,7 +1903,7 @@ function borrow(){const p=cur(),n=Math.min(getAmt('borAmt'),maxBorrow(p));if(n<=
 function repay(){const p=cur(),n=Math.min(getAmt('repAmt'),p.debt,Math.max(p.cash,0));if(n<=0)return;p.cash-=n;p.debt-=n;if(p.debt<1)p.debt=0;sfx.coin();toast('Remboursé : '+fmt(n));after()}
 function lawyer(){const p=cur(),c=lawyerCost(p);if(!canPay(p,c))return;p.cash-=c;p.heat=clamp(p.heat-30,0,100);G.lawyer=true;sfx.coin();toast('Ton dossier s’est « égaré ».');after()}
 /* ================= ASSETS ================= */
-function openAssets(pid){const id=pid!=null?pid:cur().id;openSheet('Patrimoine',assetsHTML(id),()=>{$('#shBody').innerHTML=assetsHTML(id)})}
+function openAssets(pid){const id=pid!=null?pid:cur().id;openSheet('Patrimoine',assetsHTML(id),()=>setBody(assetsHTML(id)))}
 function assetsHTML(id){const p=G.players[id],mine=G.screen==='turn'&&id===cur().id&&isMyTurn();
   const rows=[['Cash',p.cash],['Argent sale (compté 50 %)',(p.dirty||0)*DIRTY_VALUE,'dirty'],['Bourse et crypto',stockVal(p)],['Positions de trading',posTotal(p)],['Immobilier',propsVal(p)],['Entreprises',bizTotal(p)],['Startups et coups',dealsVal(p)],['Dettes',-p.debt]];
   return `<div class="row mb-3"><div class="av" style="--c:${p.color}">${p.avatar}</div><div><b>${esc(p.name)}</b><div class="gold num bold">${fmt(netWorth(p))} net</div></div></div>
@@ -1946,7 +1992,7 @@ function renderRecap(){const rc=G.recap,last=G.round>=G.maxRounds;
   <div class="dock" data-z="dock">${canAdvance()?B(last?'Voir le classement final':'Passer au tour suivant',{v:'primary',on:'nextRound()'}):`<div class="center muted small" role="status">L’hôte lance la suite ${waitDots()}</div>`}</div>`,'recap'+G.round);
 }
 function canAdvance(){return !ON||ON.host||!isOnline(ON.lobby&&ON.lobby.host)}
-function nextRound(){if(!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){G.screen='end';save();render();setTimeout(()=>{sfx.big();confetti(200)},300);return}
+function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){G.screen='end';save();render();setTimeout(()=>{sfx.big();confetti(200)},300);return}
   G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';save();render();window.scrollTo(0,0)}
 
 /* ================= END ================= */
