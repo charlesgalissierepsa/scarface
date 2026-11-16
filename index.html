@@ -174,7 +174,8 @@ body.paused #bg *,body.away #bg *,body.paused .logo,body.away .bigav::after,body
 .btn-danger:active{transform:translate(2px,2px);box-shadow:var(--shadow-press) var(--shadow-red)}
 .btn-text{width:auto;min-height:var(--tap);padding:0 var(--sp-2);color:var(--ink-muted);font-weight:var(--fw-semibold)}
 .btn-text:hover,.btn-text:focus-visible{text-decoration:underline;color:var(--ink)}
-.btn.inline{width:auto}
+.btn.inline{width:auto;max-width:100%;flex-wrap:wrap}
+.btnwrap.inline{max-width:100%}
 .btn[disabled]{opacity:.4;box-shadow:none;pointer-events:none}
 .why{display:block;margin-top:var(--sp-1);font-size:var(--fs-xs);color:var(--ink-muted)}
 .btnwrap{display:block}
@@ -1515,11 +1516,11 @@ function immoHTML(){const p=viewer(),RO=ro();
   return `${RO?RO_NOTE:''}${note('Chaque bien est unique : premier arrivé, premier servi. Frais de notaire 7 %. Le loyer tombe à chaque fin de tour. À crédit, tu n’avances que 25 % du prix plus les frais, et la banque prête le reste à 4 % par tour.')}
   <div class="row between small muted mt-3"><span>Indice immobilier <b class="num ${G.reIndex>=1?'pos':'neg'}">${pct(G.reIndex-1)}</b></span><span>Cash <b class="gold num">${fmt(p.cash)}</b></span></div>
   <div class="list mt-2">${G.props.map(x=>{const v=propVal(x),own=x.owner!=null?G.players[x.owner]:null,mine=x.owner===p.id,cash=v*1.07,down=v*.25+v*.07;
-    return `<div class="item${mine?' mine':''}"><span class="ic">${x.e}</span><span class="bd"><b>${x.n}</b><span class="small muted">${x.c} · loyer <span class="num">${fmt(propRent(x))}</span> par tour</span>
+    return `<div class="item${mine?' mine':''}"><span class="ic">${x.e}</span><span class="bd"><b>${x.n}</b><span class="small muted">${x.c} · <b class="num">${fmt(v)}</b> · loyer <span class="num">${fmt(propRent(x))}</span> par tour</span>
       <span class="tags">${own&&!mine?`<span class="tag">${own.avatar} ${esc(own.name)}</span>`:''}${mine?'<span class="tag y">À toi</span>':''}</span>
       ${mine&&!RO?`<div class="btns">${B('Vendre',{v:'secondary',inline:1,on:`sellProp(${x.id})`,cost:fmt(v*.95)})}</div>`:''}
       ${!own&&!RO?`<div class="btns">${B('Acheter cash',{v:'secondary',inline:1,on:`buyProp(${x.id},0)`,cost:fmt(cash)+' · 1 PA',why:whyNot(1,cash,p)})}${B('À crédit',{v:'secondary',inline:1,on:`buyProp(${x.id},1)`,cost:'apport '+fmt(down)+' · 1 PA',why:whyNot(1,down,p)})}</div>`:''}
-    </span><span class="rt bold num">${fmt(v)}</span></div>`}).join('')}</div>`}
+    </span></div>`}).join('')}</div>`}
 function buyProp(id,credit){const p=cur(),x=G.props[id],v=propVal(x);if(x.owner!=null)return;
   const pay=credit?v*.32:v*1.07;if(!canPay(p,pay)||!useAP(1))return;p.cash-=pay;if(credit)p.debt+=v*.75;x.owner=p.id;
   addFeed(`achète ${x.e} ${x.n} à ${x.c}${credit?' (à crédit)':''}`);sfx.win();confetti(60);toast(`${x.n} à ${x.c} est à toi`);after()}
@@ -1530,9 +1531,8 @@ let bizNameDraft={};
 function openBiz(){openSheet('Entreprises',bizHTML(),()=>{$('#shBody').innerHTML=bizHTML()})}
 function bizHTML(){const p=cur();
   const mine=p.biz.map((b,i)=>{const d=bizDef(b.k),up=d.cost*.7*b.lvl;return `<div class="item mine"><span class="ic">${d.e}</span><span class="bd"><b>${esc(b.name)}</b>
-     <span class="small muted">${d.n} · niveau <span class="num">${b.lvl}/5</span> · revenu <span class="num">${fmt(d.min*bizMult(b.lvl))}</span> à <span class="num">${fmt(d.max*bizMult(b.lvl))}</span></span>
-     <div class="btns">${b.lvl<5?B('Développer',{v:'secondary',inline:1,on:`upBiz(${i})`,cost:fmt(up)+' · 1 PA',why:whyNot(1,up,p)}):'<span class="tag y">Niveau max</span>'}${B('Revendre',{v:'text',inline:1,on:`sellBiz(${i})`})}</div></span>
-     <span class="rt num">${fmt(bizVal(b))}</span></div>`}).join('');
+     <span class="small muted">${d.n} · valeur <b class="num">${fmt(bizVal(b))}</b> · niveau <span class="num">${b.lvl}/5</span> · revenu <span class="num">${fmt(d.min*bizMult(b.lvl))}</span> à <span class="num">${fmt(d.max*bizMult(b.lvl))}</span></span>
+     <div class="btns">${b.lvl<5?B('Développer',{v:'secondary',inline:1,on:`upBiz(${i})`,cost:fmt(up)+' · 1 PA',why:whyNot(1,up,p)}):'<span class="tag y">Niveau max</span>'}${B('Revendre',{v:'text',inline:1,on:`sellBiz(${i})`})}</div></span></div>`}).join('');
   return `${p.biz.length?`<h3 class="sec">Tes boîtes</h3><div class="list">${mine}</div>`:''}
   <h3 class="sec">Créer une entreprise</h3>${note('Chaque boîte rapporte (ou coûte) une somme aléatoire à chaque tour, avec un petit risque de faillite. La développer augmente ses revenus de 60 % par niveau.')}
   <div class="list mt-2">${BIZ.map(d=>`<div class="item"><span class="ic">${d.e}</span><span class="bd"><b>${d.n}</b>
