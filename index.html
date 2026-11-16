@@ -88,7 +88,7 @@
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
   /* ---- Boucles et animations de jeu (rythme propre, hors échelle de durées) ---- */
-  --loader:72px; --loop-spin:1.4s; --loop-bar:1.6s; --dur-splash:400ms;
+  --loop-bar:1.6s; --dur-splash:400ms;
   --loop-grid:2.4s; --loop-pulse:2s; --loop-blink:1s; --stagger:150ms; --dur-flicker:600ms; --dur-pop:1.4s; --dur-shake:400ms; --dur-reel:100ms;
 
   /* ---- Icônes 3D : face en dégradé (a vers b), accent du pictogramme, tranche ---- */
@@ -510,12 +510,6 @@ canvas#trc{width:100%;height:var(--chart-h);background:var(--surface-3);border:v
 .ev-e{justify-content:flex-start}
 
 /* ===== Chargement ===== */
-.loader{width:var(--loader);height:var(--loader)}
-.loader svg{display:block;width:100%;height:100%;overflow:visible}
-.loader circle{fill:none;stroke-width:3;transform-box:fill-box;transform-origin:center}
-.loader .l1{stroke:var(--neon-cyan);stroke-dasharray:56 120;animation:spin var(--loop-spin) linear infinite}
-.loader .l2{stroke:var(--neon-pink);stroke-dasharray:34 86;animation:spin var(--loop-spin) linear infinite reverse}
-@keyframes spin{to{transform:rotate(360deg)}}
 .lbar{position:relative;width:100%;max-width:var(--narrow);height:3px;background:var(--line);overflow:hidden}
 .lbar::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,var(--neon-pink),var(--neon-cyan),transparent);animation:sweep var(--loop-bar) var(--ease-in) infinite}
 @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
@@ -531,7 +525,7 @@ canvas#trc{width:100%;height:var(--chart-h);background:var(--surface-3);border:v
 </style>
 </head>
 <body>
-<div id="splash" role="status" aria-label="Chargement du jeu"><div class="logo">SCARFACE</div><div class="loader" aria-hidden="true"><svg viewBox="0 0 64 64"><circle class="l1" cx="32" cy="32" r="28"/><circle class="l2" cx="32" cy="32" r="19"/></svg></div><div class="lbar" aria-hidden="true"></div><p>Chargement</p></div>
+<div id="splash" role="status" aria-label="Chargement du jeu"><div class="logo">SCARFACE</div><div class="lbar" aria-hidden="true"></div><p>Chargement</p></div>
 <div id="bg" aria-hidden="true"><div class="stars"></div><div class="sun"></div>
 <svg class="city" viewBox="0 0 400 90" preserveAspectRatio="xMidYMax slice"><g fill="currentColor">
 <rect x="0" y="62" width="22" height="28"/><rect x="24" y="48" width="16" height="42"/><rect x="42" y="58" width="20" height="32"/><rect x="250" y="40" width="18" height="50"/><rect x="270" y="54" width="26" height="36"/><rect x="298" y="30" width="14" height="60"/><rect x="314" y="50" width="22" height="40"/><rect x="338" y="60" width="18" height="30"/><rect x="358" y="44" width="16" height="46"/><rect x="376" y="64" width="24" height="26"/>
@@ -999,10 +993,9 @@ function renderJoin(){
   <div class="mt-4">${B('Entrer dans le salon',{v:'primary',on:"joinRoom($('#codeIn').value)"})}</div></div>`,'join');
   setTimeout(()=>{const e=$('#codeIn');e&&!APP.joinCode&&e.focus()},50);
 }
-/* Indicateur de chargement : deux arcs néon qui tournent en sens inverses, et une barre à balayage. */
-function loaderHTML(){return `<div class="loader" aria-hidden="true"><svg viewBox="0 0 64 64"><circle class="l1" cx="32" cy="32" r="28"/><circle class="l2" cx="32" cy="32" r="19"/></svg></div>`}
+/* Indicateur de chargement : une barre néon à balayage. */
 function loadBar(){return `<div class="lbar" aria-hidden="true"></div>`}
-function renderConnecting(){paint(`<div class="pass" data-z="conn">${loaderHTML()}<h1 role="status">${APP.connMsg||'Connexion…'}</h1>
+function renderConnecting(){paint(`<div class="pass" data-z="conn"><h1 role="status">${APP.connMsg||'Connexion…'}</h1>
   ${loadBar()}<p class="muted small">Recherche du relais le plus rapide</p>
   ${B('Annuler',{v:'text',inline:1,on:'abortConnect()'})}</div>`,'conn')}
 /* ================= ONLINE (MQTT) ================= */
