@@ -986,7 +986,7 @@ async function createRoom(){
   saveProfile();if(!profile.name){APP.err='Choisis d’abord un pseudo.';renderHome();return}
   connAbort=false;APP.err='';APP.view='connecting';APP.connMsg='Ouverture du salon…';render();
   let client=null,broker=null;
-  for(const b of BROKERS){try{client=await connectBroker(b,6000);broker=b;break}catch(e){}if(connAbort)return}
+  try{const r=await connectAny(BROKERS,12000);client=r.client;broker=r.broker}catch(e){}
   if(connAbort){client&&client.end(true);return}
   if(!client){APP.view='home';APP.err='Impossible de joindre le serveur de jeu. Vérifie ta connexion internet et réessaie.';render();return}
   const code=rid(4);newON(client,broker,code);ON.host=true;
@@ -999,14 +999,10 @@ async function joinRoom(code){
   if(code.length!==4){APP.err='Le code fait 4 caractères.';APP.view='join';render();return}
   connAbort=false;APP.err='';APP.view='connecting';APP.connMsg='Recherche du salon '+code+'…';render();
   const ses=getSession();const order=ses&&ses.code===code&&ses.broker?[ses.broker,...BROKERS.filter(b=>b!==ses.broker)]:BROKERS;
-  for(const b of order){
-    let c;try{c=await connectBroker(b,5000)}catch(e){if(connAbort)return;continue}
-    if(connAbort){c.end(true);return}
-    newON(c,b,code);
-    for(let i=0;i<30&&!ON.lobby;i++){await sleep(100);if(connAbort){c.end(true);ON=null;return}}
-    if(ON.lobby)break;
-    c.end(true);ON=null;
-  }
+  const hit=await findRoom(order,code);
+  if(connAbort){if(hit)try{hit.c.end(true)}catch(e){}ON=null;return}
+  if(hit){newON(hit.c,hit.b,code);for(let i=0;i<40&&!ON.lobby;i++){await sleep(100);if(connAbort){hit.c.end(true);ON=null;return}}
+    if(!ON.lobby){try{hit.c.end(true)}catch(e){}ON=null}}
   if(!ON){APP.view='join';APP.err=`Aucun salon avec le code ${code}. Vérifie le code (ou la connexion).`;render();return}
   const L=ON.lobby;
   if(L.closed){failJoin('Ce salon a été fermé par l’hôte.');return}
@@ -1018,6 +1014,18 @@ async function joinRoom(code){
   sfx.coin();render();
 }
 function failJoin(msg){try{ON.client.end(true)}catch(e){}ON=null;G=null;try{localStorage.removeItem('sf_online')}catch(e){}APP.view='join';APP.err=msg;render()}
+/* Contacte tous les relais en même temps et garde le premier qui répond (les autres sont refermés). */
+function connectAny(list,ms){return new Promise((res,rej)=>{let left=list.length,done=false;
+  list.forEach(b=>connectBroker(b,ms).then(c=>{if(done||connAbort){try{c.end(true)}catch(e){}return}done=true;res({client:c,broker:b})},
+    ()=>{if(--left===0&&!done)rej(new Error('aucun relais'))}))})}
+/* Cherche le salon sur tous les relais en parallèle : le premier relais qui renvoie le salon est retenu. */
+function findRoom(list,code){return new Promise(res=>{let pending=list.length,done=false;const cs=[];
+  const finish=hit=>{if(done)return;done=true;cs.forEach(c=>{if(!hit||c!==hit.c){try{c.end(true)}catch(e){}}});res(hit)};
+  const giveUp=()=>{if(--pending<=0)finish(null)};
+  list.forEach(b=>connectBroker(b,12000).then(c=>{if(done||connAbort){try{c.end(true)}catch(e){}return}cs.push(c);
+    const t=`${NS}/${code}/lobby`;c.on('message',(topic,pl)=>{if(topic===t&&pl&&pl.length)finish({c,b})});
+    c.subscribe(t,{qos:1});setTimeout(giveUp,5000)},giveUp));
+  setTimeout(()=>finish(null),20000)})}
 async function sendJoin(){for(let i=0;i<10;i++){if(!ON||!ON.lobby||ON.lobby.players.some(p=>p.uid===UID))return;pub('join',{uid:UID,name:profile.name,av:profile.av});await sleep(1500)}}
 function leaveOnline(forget){
   if(ON){if(ON.lobby&&!ON.lobby.started&&forget){if(ON.host){pub('lobby',{closed:true,host:UID},true);pub('state','',true)}else pub('leave',{uid:UID})}
