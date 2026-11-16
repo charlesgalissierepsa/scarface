@@ -22,7 +22,7 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
   Un audit révèle la vérité. À chaque tour la startup lève, stagne, plonge ou meurt ; on peut suivre ses levées
   ou revendre sa part (−20 %). Le moral de son secteur en Bourse compte.
 - **Casinos à paliers** : six casinos, du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). On débloque le
-  suivant en cumulant, dans le casino actuel, un gain net égal à sa mise max.
+  suivant en cumulant, dans le casino actuel, des gains égaux à sa mise max. Les pertes ne comptent pas.
 - **En attendant son tour** (partie en ligne) : consultation de la Bourse et des signaux, de ses positions, des
   startups et de l'immobilier, sans pouvoir agir.
 - **Argent sale** (braquages, trafic) : compté à 50 % dans le patrimoine, il attire la police et il est saisi en

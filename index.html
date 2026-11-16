@@ -819,7 +819,7 @@ const RULES=`<details class="rules"><summary>Les règles en 1 minute</summary>
     <p>À chaque tour, <b>3 opportunités</b> tombent : yacht saisi, tuyau d’initié, commissaire corrompu. À toi de choisir ce qui vaut tes PA.</p>
     <p>La Bourse, la banque, le blanchiment et la vente de tes biens sont <b>gratuits</b>.</p>
     <p><b>Trading</b> : tes positions (hausse ou baisse, levier jusqu’à x10, stop-loss, objectif) restent ouvertes d’un tour à l’autre. Lis les signaux (tendance, valorisation, analystes, résultats trimestriels) : ils donnent un avantage, pas une certitude.</p>
-    <p><b>Casinos</b> : du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). Pour entrer dans le casino suivant, gagne au total l’équivalent de sa mise max dans le casino actuel.</p>
+    <p><b>Casinos</b> : du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). Pour entrer dans le casino suivant, cumule dans le casino actuel des gains égaux à sa mise max. Les pertes ne comptent pas.</p>
     <p>Pendant le tour des autres, consulte la Bourse, tes positions, les startups et l’immobilier pour préparer ton coup.</p>
     <p><b>Startups</b> : équipe, traction et hype font le prix et les chances. Un audit révèle la vraie qualité. Suis les levées des bonnes, revends les autres.</p>
     <p>Les braquages et le trafic rapportent de l’<b>argent sale</b> : il ne compte que pour moitié dans ton patrimoine, il attire la police et il est saisi si tu te fais arrêter. Blanchis-le via tes commerces (10 % de frais) ou chez le blanchisseur (30 %).</p>
@@ -1196,7 +1196,7 @@ function confirmEnd(){if(busy)return;if(!G.acted){openSheet('Passer ton tour ?',
   <div class="sheet-foot stack">${B('Passer mon tour',{v:'primary',on:'endTurn()'})}${B('Continuer à jouer',{v:'secondary',on:'closeSheet()'})}</div>`);return}endTurn()}
 function endTurn(){
   forceClose();
-  if(bj&&!bj.over){const p=cur();p.cash-=bj.bet;p.stats.casino-=bj.bet;casTrack(p,-bj.bet);bj=null}
+  if(bj&&!bj.over){const p=cur();p.cash-=bj.bet;p.stats.casino-=bj.bet;bj=null}
   scratch=null;
   G.turnCount++;
   if(G.turnCount>=G.players.length){endRound()}
@@ -1264,7 +1264,7 @@ function openCasino(tab){if(tab)cTab=tab;lastRes='';const p=cur();if(cSel>casLvl
   openSheet('Casinos',casinoHTML(),()=>{$('#shBody').innerHTML=casinoHTML()})}
 /* Change de salle parmi les casinos débloqués (pas pendant une main de blackjack). */
 function casMove(d){const p=cur(),n=cSel+d;if(busy||(bj&&!bj.over)||n<0||n>casLvl(p))return;cSel=n;lastRes='';sfx.tick();refreshSheet()}
-function casinoHTML(){const p=cur(),lv=casLvl(p),c=CASINOS[cSel],won=(p.casWin||[])[cSel]||0,locked=bj&&!bj.over;
+function casinoHTML(){const p=cur(),lv=casLvl(p),c=CASINOS[cSel],won=Math.max(0,(p.casWin||[])[cSel]||0),locked=bj&&!bj.over;
   const tabs=[['roulette','Roulette'],['bj','Blackjack'],['slots','Machine à sous'],['scratch','Grattage']];
   let body='';
   if(cTab==='roulette')body=rouletteHTML();else if(cTab==='bj')body=bjHTML();else if(cTab==='slots')body=slotsHTML();else body=scratchHTML();
@@ -1272,7 +1272,7 @@ function casinoHTML(){const p=cur(),lv=casLvl(p),c=CASINOS[cSel],won=(p.casWin||
   return `<div class="casino-head">${nav(-1,'prev','Casino précédent',cSel>0&&!locked)}
     <div class="t"><b>${c.e} ${c.n}</b><span class="small muted">Mise max <span class="num gold">${fmt(c.max)}</span> · salle ${cSel+1}/${CASINOS.length}</span></div>
     ${cSel<lv?nav(1,'arrow','Casino suivant',!locked):cSel<CASINOS.length-1?`<span class="iconbtn" aria-label="Casino suivant verrouillé" role="img">${icon('lock')}</span>`:''}</div>
-  ${note(`${c.d}${cSel===lv&&lv<CASINOS.length-1?` Pour entrer au <b>${CASINOS[lv+1].n}</b> : gagne ${fmt(c.max)} net ici (tu en es à <b class="num">${fmt(won,true)}</b>).`:''}${locked?' Finis ta main avant de changer de salle.':''}`,'mb-3')}
+  ${note(`${c.d}${cSel===lv&&lv<CASINOS.length-1?` Pour entrer au <b>${CASINOS[lv+1].n}</b> : cumule ${fmt(c.max)} de gains ici (tu en es à <b class="num">${fmt(won)}</b>). Les pertes ne comptent pas.`:''}${locked?' Finis ta main avant de changer de salle.':''}`,'mb-3')}
   <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${cTab===k}" class="${cTab===k?'on':''}" onclick="if(!busy&&!(bj&&!bj.over)){cTab='${k}';lastRes='';refreshSheet()}">${l}</button>`).join('')}</div>
   <div class="row between small muted mb-3"><span>${G.inCasino&&G.casinoLeft>0?`Parties restantes <b class="num gold">${G.casinoLeft}/3</b>`:`Entrée <b class="gold">1 PA = 3 parties</b>`}</span><span>Cash <b class="gold num">${fmt(p.cash)}</b></span></div>${body}`}
 function casinoStart(bet){const p=cur();
@@ -1285,12 +1285,13 @@ function casinoStart(bet){const p=cur();
   G.casinoLeft--;return true}
 /* Raison pour laquelle on ne peut pas jouer une partie (affichée sous le bouton). */
 function casWhy(){const p=cur();if(!(G.inCasino&&G.casinoLeft>0)&&G.ap<1)return 'Plus de points d’action pour entrer';if(p.cash<=0)return 'Plus de cash à miser';return ''}
-/* Comptabilise le gain/perte net dans le casino choisi et débloque le suivant si l'objectif est atteint. */
-function casTrack(p,net,idx){if(idx==null)idx=cSel;p.casWin=p.casWin||[];p.casWin[idx]=(p.casWin[idx]||0)+net;
+/* Cumule les gains (jamais les pertes) dans le casino choisi et débloque le suivant dès que le cumul atteint sa mise max. */
+function casTrack(p,net,idx){if(idx==null)idx=cSel;if(!(net>0))return;p.casWin=p.casWin||[];p.casWin[idx]=Math.max(0,p.casWin[idx]||0)+net;
   const lv=casLvl(p);if(idx===lv&&lv<CASINOS.length-1&&p.casWin[lv]>=CASINOS[lv].max){p.casLvl=lv+1;const n=CASINOS[lv+1];
     addFeed(`gagne son entrée au ${n.e} ${n.n}`,p);setTimeout(()=>{toast(`${n.n} débloqué : mise max ${fmt(n.max)}`);sfx.big()},700)}}
 const CGAME={roulette:'à la roulette',bj:'au blackjack',slots:'à la machine à sous',scratch:'au grattage'};
-function casinoResult(net,silent){const p=cur();p.cash+=net;p.stats.casino+=net;casTrack(p,net);
+/* gain : gain net de la partie pour le déblocage, si différent du montant crédité (grattage). */
+function casinoResult(net,silent,gain){const p=cur();p.cash+=net;p.stats.casino+=net;casTrack(p,gain==null?net:gain);
   if(net&&!silent)addFeed(`${net>0?'gagne':'perd'} ${fmt(Math.abs(net))} ${CGAME[cTab]} (${CASINOS[cSel].n})`);
   if(net>0){net>=50000?(sfx.big(),confetti()):sfx.win();popMoney(net);buzz(80)}else if(net<0){sfx.lose();buzz(150)}
   save();render()}
@@ -1374,13 +1375,13 @@ function scratchHTML(){
   <div class="seg">${scPrices().map(v=>`<button class="${scPrice===v?'on':''} num" aria-pressed="${scPrice===v}" onclick="scPrice=${v};refreshSheet()">${fmt(v)}</button>`).join('')}</div>
   <div class="sheet-foot">${B('Acheter un ticket',{v:'primary',on:'buyScratch()',why:scratch&&!scratch.open?'Gratte d’abord ton ticket':casWhy()})}</div>`}
 function scPrices(){const m=CASINOS[cSel].max,l=[.02,.1,.5,1].map(f=>Math.round(m*f));if(!l.includes(scPrice))scPrice=l[1];return l}
-function buyScratch(){if(!casinoStart(scPrice))return;const pp=cur();pp.cash-=scPrice;pp.stats.casino-=scPrice;casTrack(pp,-scPrice);const r=Math.random();let m=0;
+function buyScratch(){if(!casinoStart(scPrice))return;const pp=cur();pp.cash-=scPrice;pp.stats.casino-=scPrice;const r=Math.random();let m=0;
   if(r<1/50000)m=10000;else if(r<1/50000+1/500)m=100;else if(r<1/50000+1/500+1/40)m=10;else if(r<1/50000+1/500+1/40+1/5)m=2;
   scratch={m,price:scPrice,open:false,label:m?fmt(scPrice*m):'PERDU'};lastRes='';sfx.card();save();render();refreshSheet()}
 function scratchOpen(){if(!scratch||scratch.open)return;scratch.open=true;const won=scratch.price*scratch.m,net=won-scratch.price;
   lastRes=resBox(net>0?1:net<0?-1:0,net>0?'gagné <span class="num">'+fmt(net,true)+'</span>':net===0?'ticket remboursé':'pas de chance');
   for(let i=0;i<6;i++)setTimeout(sfx.tick,i*90);
-  setTimeout(()=>{if(won>0){casinoResult(won,1);addFeed(`${net>0?'gagne '+fmt(net):'récupère sa mise'} au grattage`)}else{addFeed(`perd ${fmt(scratch.price)} au grattage`);sfx.lose();save();render()}refreshSheet()},900);$('.ticket .cover').classList.add('gone')}
+  setTimeout(()=>{if(won>0){casinoResult(won,1,net);addFeed(`${net>0?'gagne '+fmt(net):'récupère sa mise'} au grattage`)}else{addFeed(`perd ${fmt(scratch.price)} au grattage`);sfx.lose();save();render()}refreshSheet()},900);$('.ticket .cover').classList.add('gone')}
 /* ================= MARCHÉ : modèle ================= */
 /* Chaque actif a une phase cachée (haussière / neutre / baissière) qui dure en moyenne ~3 tours, une « juste valeur » vers laquelle
    le cours revient, et parfois des résultats trimestriels annoncés un tour à l'avance. Les signaux visibles sont bruités :
