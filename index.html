@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d0221">
-<title>Scarface — le jeu du fric</title>
+<title>Scarface — The world is yours</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Kaushan+Script&family=Figtree:wght@400;600;800&display=swap" rel="stylesheet">
@@ -947,7 +947,7 @@ function renderHome(){
   const ses=getSession();
   const choice=(main,on,t,s)=>`<button class="choice${main?' main':''}" onclick="${on}"><span><b>${t}</b><span>${s}</span></span>${icon('arrow')}</button>`;
   paint(`
-  <div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">le jeu du fric entre potes</span></div>
+  <div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">The world is yours</span></div>
   <div data-z="profile">${label('Ton profil')}
   <div class="prow"><button class="av" style="--c:var(--cash)" onclick="saveProfile();profile.av=AVATARS[(AVATARS.indexOf(profile.av)+1)%AVATARS.length];sfx.tick();renderHome()" aria-label="Changer d’avatar">${profile.av}</button>
     <input id="myName" maxlength="14" placeholder="Ton pseudo" aria-label="Ton pseudo" value="${esc(profile.name)}" oninput="profile.name=this.value"></div></div>
@@ -1071,7 +1071,7 @@ function leaveOnline(forget){
     const c=ON.client;setTimeout(()=>{try{c.end(true)}catch(e){}},400)}
   ON=null;G=null;clearInterval(pingTimer);busy=false;forceClose();closeOv();
   if(forget){try{localStorage.removeItem('sf_online')}catch(e){}}
-  APP.view='home';document.title='Scarface — le jeu du fric';render()}
+  APP.view='home';document.title='Scarface — The world is yours';render()}
 
 function onMessage(topic,payload){
   if(!ON)return;const s=topic.split('/').pop();const str=payload.toString();if(!str)return;
@@ -1183,7 +1183,7 @@ function passScreen(p,lead,name,btn){return `<div class="pass" style="--c:${p.co
 function renderMyTurn(){const p=cur();document.title='À toi de jouer ! · Scarface';
   paint(passScreen(p,'C’est ton tour,',esc(p.name)+' !','Jouer mon tour'),'pass'+G.round+G.cur)}
 function renderSpectate(){
-  document.title='Scarface — le jeu du fric';
+  document.title='Scarface — The world is yours';
   const a=cur(),mp=me(),on=isOnline(a.uid),feed=(G.feed||[]).slice().reverse().slice(0,14);
   paint(`
   <div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds} · ${ON.code}</span>
@@ -2016,7 +2016,7 @@ function renderEnd(){const rk=ranked(),top=[rk[1],rk[0],rk[2]];
   A('⭐','Cerveau des braquages',p=>p.stats.heists||0,1,v=>v>0,v=>v+' coup'+(v>1?'s':'')+' réussi'+(v>1?'s':''));
   A('🧼','Roi de la lessive',p=>p.stats.laund||0,1,v=>v>0,v=>fmt(v)+' blanchis');
   paint(`<div data-z="title"><h1 class="endtitle">FIN DE PARTIE</h1>
-  <p class="center muted mt-2">${G.maxRounds} tours de néons, de fric et de quelques délits.</p></div>
+  <p class="center muted mt-2">${G.maxRounds} tours plus tard. The eyes, chico, they never lie.</p></div>
   <div class="podium" data-z="podium">${top.map((p,i)=>p?`<div class="pod"><div class="av" style="--c:${p.color}">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="v num">${fmt(netWorth(p))}</div><div class="blk" aria-label="${[2,1,3][i]}e place">${[2,1,3][i]}</div></div>`:'<div class="pod"></div>').join('')}</div>
   <h2 class="winner" data-z="winner">${esc(rk[0].name)} règne sur la ville</h2>
   <div class="panel" data-z="chart">${chartSVG()}</div>

@@ -1,4 +1,4 @@
-# Scarface 🌴 — le jeu du fric entre potes
+# Scarface — The world is yours
 
 Jeu de société sur mobile dans une ambiance néon années 80 : chacun part avec la même somme et tente
 de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, startups… et beaucoup d'activités moins légales).
