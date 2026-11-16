@@ -47,3 +47,7 @@ donc un joueur qui recharge la page ou perd le réseau peut revenir avec le bout
 « Revenir dans la partie ».
 
 Ces relais sont publics : ne mets rien de confidentiel dans les pseudos.
+
+## Crédits
+
+Icônes : tracés [Phosphor Icons](https://phosphoricons.com) (licence MIT), habillés en tuiles 3D néon pour le jeu.
