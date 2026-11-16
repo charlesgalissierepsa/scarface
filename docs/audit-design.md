@@ -20,9 +20,46 @@ Inventaire automatique de `index.html` avant la refonte : feuille de style et at
 10. **Listes en piles de cartes encadrées** partout, y compris pour des listes simples (Bourse, classement, comptes).
 11. **Animations permanentes nombreuses** : étoiles, soleil, grille, reflet des boutons, grésillement du logo, pulsation d'avatar, pulsation du casino. Trois d'entre elles animent des propriétés coûteuses : `background-position` (grille), `left` (reflet), `box-shadow` (pulsations).
 12. **124 attributs `style` écrits en dur dans le JavaScript** (marges, tailles, couleurs).
-13. **57 emploi d'emoji comme décor d'interface** (titres de feuilles, boutons, toasts, résumés) et des icônes d'interface en emoji (⚙️, 🏆, ✕, ←, 🔒).
+13. **57 emplois d'emoji comme décor d'interface** (titres de feuilles, boutons, toasts, résumés) et des icônes d'interface en emoji (⚙️, 🏆, ✕, ←, 🔒).
 14. **Hauteurs en `vh`**, qui sautent quand la barre d'adresse mobile apparaît.
 15. **Rendu complet de l'écran** (`innerHTML` de toute l'app) à chaque changement d'état, y compris toutes les 4 secondes en ligne : le défilement et la saisie en cours peuvent être perdus.
+
+## Compte rendu de la refonte
+
+La refonte a été faite en cinq commits : audit, tokens, composants, finitions des écrans, animations. La logique du jeu, l'équilibrage et les textes de contenu n'ont pas changé. Une partie simulée de bout en bout (30 parties, toutes les feuilles rendues) ne produit aucune erreur.
+
+### Ce qui a changé
+
+- **Une seule feuille de style**, entièrement pilotée par des tokens dans `:root` : 6 couleurs de rôle, 6 néons, échelle de 7 tailles (12 à 48 px), 3 graisses, grille d'espacement de 4, 4 durées. Hors de `:root`, aucune couleur, taille de police, durée ou ombre en dur.
+- **Trois familles de polices** : Audiowide pour le display (logo, cash, code du salon, titre de fin, une du journal), Kaushan Script pour l'accroche et le nom du journal, Figtree pour tout le reste, boutons et titres de feuilles compris.
+- **Surfaces opaques** : plus de verre dépoli ni de cartes semi-transparentes. Hors accueil, un voile sombre couvre le décor pour garder le texte lisible.
+- **Angles vifs partout**, sauf avatars, points d'état, soleil du décor et roue de roulette (objet de jeu).
+- **Un seul halo par écran** : le logo sur l'accueil, le code sur le salon, le cash sur l'écran du tour, l'avatar sur l'écran de passage, le titre sur la fin de partie.
+- **Quatre variantes de bouton** (`btn-primary`, `btn-secondary`, `btn-danger`, `btn-text`) générées par une seule fonction `B()`. Un seul bouton principal visible à la fois, coût affiché à part, et une ligne qui dit pourquoi un bouton est désactivé (« Il te manque 51 750 € », « Plus de points d'action »).
+- **Icônes SVG** (fermer, retour, menu, classement, cadenas, copier, partager, son, flèches) à la place des emoji d'interface. Les emoji restent quand ils sont le contenu : avatars, actifs, biens, cartes, illustration des cases.
+- **Listes en lignes** séparées par des filets ; seules les choses sélectionnables (cibles, coups, positions, startups) restent des cartes encadrées.
+- **Feuilles** : en-tête fixe, corps qui défile, pied fixe portant le bouton principal, fermeture animée, glisser vers le bas pour fermer, `role="dialog"`, focus rendu à l'élément d'origine, page bloquée derrière, défilement et onglets conservés au re-rendu.
+- **Casinos** : un seul niveau d'onglets ; on change de salle avec des flèches sous un titre.
+- **Rendu par zones** : seuls les blocs qui changent sont remplacés, et en ligne les mises à jour sont regroupées dans une image. Le défilement, le focus et la saisie en cours sont conservés.
+- **Animations** : uniquement `transform` et `opacity`. Restent la grille qui défile (en `transform`), le grésillement du logo toutes les 6 à 10 s sur l'accueil, le pulse de l'avatar, et les animations de jeu. Le soleil, les étoiles et le reflet permanent des boutons sont supprimés. Le décor se met en pause quand une feuille ou une carte est ouverte, ou quand l'onglet est caché. `prefers-reduced-motion` coupe tout le décoratif.
+
+### Vérifications
+
+- Captures de tous les écrans à 320, 360, 390 et 430 px, avec un détecteur automatique de débordement horizontal et d'erreur JavaScript : aucun débordement après correction de l'immobilier et des entreprises à 320 px.
+- Recherche dans le code : un seul `backdrop-filter` (voile des cartes plein écran), aucun `border-radius` autre que 0 hors cercles, aucun emoji dans un bouton, un titre de feuille, un libellé de section ou un toast.
+
+### Décisions prises
+
+- **Monoton abandonnée** pour respecter la limite de trois familles. Le logo est désormais en Audiowide avec un contour et un halo néon.
+- **Couleur de sélection** : cyan par défaut, rose dans les feuilles illégales (braquage, coups bas).
+- **Cases illégales** : en plus du liseré rose, elles portent le libellé « Illégal », pour ne pas dépendre de la couleur.
+- **Les épaisseurs de trait de 1 et 2 px** restent écrites telles quelles, comme le veut la règle « bordure 1 px plein ».
+
+### Reste à arbitrer
+
+- **Partie en ligne à deux onglets** : non testée en conditions réelles depuis cet environnement. La logique réseau n'a pas changé, mais le rendu par zones et le regroupement des mises à jour en ligne mériteraient une partie de contrôle à deux téléphones.
+- **Montants qui comptent** (cash et patrimoine animés en 400 ms) : optionnel dans la consigne, non fait.
+- **Contraste** : `--ink-muted` (#c3b1de) dépasse 4,5:1 sur toutes les surfaces sombres ; à revérifier si les surfaces changent.
 
 ## Couleurs
 
