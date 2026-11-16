@@ -658,12 +658,24 @@ const sfx={
   siren:()=>{for(let i=0;i<4;i++){tone(700,.22,'sawtooth',.04,i*.44);tone(950,.22,'sawtooth',.04,i*.44+.22)}},
   card:()=>tone(300,.05,'triangle',.06)
 };
-function buzz(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+/* Vibrations : un petit vocabulaire cohérent, réservé aux moments qui comptent.
+   Android : motifs rythmés (API Vibration). iPhone : Safari ne sait pas vibrer ; depuis iOS 18, basculer un
+   interrupteur natif produit un tic haptique, utilisé en repli (un tic, ou deux pour les grands moments). */
+const HAPTIC={action:[12],confirm:[18,40,18],start:[25,60,25,60,70],turn:[40,70,40,70,120],round:[30,50,60],
+  win:[20,40,40],jackpot:[30,40,30,40,30,40,120],lose:[70],error:[45,30,45],arrest:[200,100,200,100,400],unlock:[20,40,20,40,80],step:[25]};
+let HAPTICS=true;try{HAPTICS=localStorage.getItem('sf_haptics')!=='0'}catch(e){}
+const iosTick=(()=>{if('vibrate' in navigator)return null;try{const l=document.createElement('label'),i=document.createElement('input');
+  i.type='checkbox';i.setAttribute('switch','');i.tabIndex=-1;l.className='sr';l.setAttribute('aria-hidden','true');l.appendChild(i);document.body.appendChild(l);
+  return ()=>{try{l.click()}catch(e){}}}catch(e){return null}})();
+const canHaptic=('vibrate' in navigator)||!!iosTick;
+function haptic(name){if(!HAPTICS)return;const p=HAPTIC[name]||HAPTIC.action;
+  try{if(navigator.vibrate){navigator.vibrate(p);return}if(iosTick){iosTick();if(p.length>3)setTimeout(iosTick,p[0]+p[1])}}catch(e){}}
+function buzz(){haptic('action')}
 /* Toasts : une seule file, deux visibles au plus, pas de doublon consécutif, jamais d'emoji en tête. */
 let toastLast='';
 function toast(m,bad){m=stripEmo(m);const tw=$('#toast');if(m===toastLast&&tw.children.length)return;toastLast=m;
   while(tw.children.length>=2)tw.firstChild.remove();
-  const d=document.createElement('div');d.className='t'+(bad?' bad':'');d.textContent=m;tw.appendChild(d);if(bad)buzz(60);
+  const d=document.createElement('div');d.className='t'+(bad?' bad':'');d.textContent=m;tw.appendChild(d);if(bad)haptic('error');
   setTimeout(()=>{d.classList.add('out');setTimeout(()=>{d.remove();if(!tw.children.length)toastLast=''},150)},2600)}
 function popMoney(n){const d=document.createElement('div');d.className='pop '+(n>=0?'up':'down');d.textContent=fmt(n,true);document.body.appendChild(d);setTimeout(()=>d.remove(),1500)}
 function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
@@ -875,7 +887,7 @@ const AP_MAX=3;
 function apTxt(n){return n+' PA'}
 function noAP(n){toast(G.ap>0?`Il te reste ${G.ap} point${G.ap>1?'s':''} d’action, il en faut ${n}.`:'Plus de points d’action ce tour-ci.',1)}
 function hasAP(n){if(G.ap<n){noAP(n);return false}return true}
-function useAP(n){if(!hasAP(n))return false;G.ap-=n;G.acted=true;return true}
+function useAP(n){if(!hasAP(n))return false;G.ap-=n;G.acted=true;haptic('action');return true}
 function rep(p){return p.rep||0}
 function canPay(p,n){if(n<=0){toast('Choisis un montant.',1);return false}if(n>p.cash+.5){toast('Pas assez de cash. Passe par la banque ou vends des actifs.',1);return false}return true}
 
@@ -949,7 +961,7 @@ function buildGame(list,cash,rounds){
       rep:0,recon:null,shield:0,laund:0,pos:[],
       stats:{casino:0,trading:0,crime:0,jailTurns:0,biz:0,rent:0,scam:0,vc:0,laund:0,heists:0},hist:[cash]}))};
 }
-function newGame(){G=buildGame(setup.players,setup.cash,setup.rounds);save();sfx.coin();render()}
+function newGame(){G=buildGame(setup.players,setup.cash,setup.rounds);save();sfx.coin();haptic('start');render()}
 
 /* ================= HOME ================= */
 let profile={name:'',av:pick(AVATARS)};
@@ -1134,7 +1146,7 @@ function applyState(m){
   if(wasMine&&!mineNow){busy=false;forceClose();closeOv()}
   /* La feuille de consultation ouverte pendant l'attente cachait le bouton « Jouer mon tour » et le journal du tour. */
   if((mineNow&&!wasMine)||(same&&prevScreen!==G.screen+G.round&&(G.screen==='recap'||G.screen==='end')))forceClose();
-  if(mineNow&&!wasMine&&G.screen==='pass'){sfx.big();buzz([120,60,120]);document.title='À toi de jouer ! · Scarface'}
+  if(mineNow&&!wasMine&&G.screen==='pass'){sfx.big();haptic('turn');document.title='À toi de jouer ! · Scarface'}
   if(G.screen==='end'&&(!same||m.G.screen!=='end'))setTimeout(()=>confetti(160),300);
   scheduleRender();
 }
@@ -1145,7 +1157,7 @@ function onJoin(m){
   if(L.started||L.players.length>=6)return;
   let av=m.av;if(L.players.some(p=>p.av===av))av=AVATARS.find(a=>!L.players.some(p=>p.av===a));
   L.players.push({uid:m.uid,name:(m.name||'Joueur').slice(0,14),av});ON.presence[m.uid]=Date.now();
-  pubLobby();sfx.coin();render();
+  pubLobby();sfx.coin();haptic('action');render();
 }
 function onLeave(m){if(!ON.host||!ON.lobby||ON.lobby.started)return;ON.lobby.players=ON.lobby.players.filter(p=>p.uid!==m.uid);pubLobby();render()}
 function onMsg(m){
@@ -1153,7 +1165,7 @@ function onMsg(m){
   if(m.type==='duelReq'){
     showCards([{k:'DÉFI',e:'🎲',t:`${m.fromAv} ${m.fromName} te défie aux dés !`,d:`Mise : <b>${fmt(m.stake)}</b>. Le plus gros lancer rafle tout. Si tu refuses, tu lui verses ${fmt(m.stake*.1)}.`,
       btns:[{l:'J’accepte le duel',cls:'',fn:`duelAnswer('${m.id}','${m.from}',1)`},{l:'Je me dégonfle',cls:'ghost',fn:`duelAnswer('${m.id}','${m.from}',0)`}]}]);
-    sfx.big();buzz([200,80,200]);
+    sfx.big();haptic('turn');
   }
   if(m.type==='duelRes'&&dt.reqId&&m.id===dt.reqId){clearTimeout(dt.timer);dt.reqId=null;m.acc?duelGo():duelRefuse()}
 }
@@ -1189,7 +1201,7 @@ function startOnline(){
   L.gameId=rid(8);L.started=true;
   G=buildGame(L.players.map(p=>({uid:p.uid,name:p.name,av:p.av})),L.settings.cash,L.settings.rounds);G.gameId=L.gameId;
   addFeed('🎲 La partie commence ! '+G.players.map(p=>p.avatar).join(' '),null);
-  pubLobby();save();sfx.big();render();
+  pubLobby();save();sfx.big();haptic('start');render();
 }
 function backToLobby(){if(!ON||!ON.host)return;ON.lobby.started=false;ON.lobby.gameId=null;pub('state','',true);pubLobby();G=null;APP.view='lobby';render()}
 
@@ -1234,7 +1246,7 @@ function renderPass(){const p=cur();paint(passScreen(p,'Passe le téléphone à'
 /* ================= TURN START ================= */
 function startTurn(){
   if(!G||G.screen!=='pass'||!isMyTurn())return;
-  const p=cur();sfx.coin();
+  const p=cur();sfx.coin();haptic('turn');
   if(G.resumeTurn){G.resumeTurn=false;G.screen='turn';render();return}
   G.acted=false;G.ap=AP_MAX;G.inCasino=false;G.casinoLeft=3;G.lawyer=false;bj=null;
   const cards=[];
@@ -1256,7 +1268,7 @@ function arrest(p,why){
   if(p.dirty>0){lost+=` Ton argent sale (${fmt(p.dirty)}) est saisi.`;p.dirty=0}
   p.recon=null;
   const t=RI(1,2)+(p.heat>70?1:0);p.jail=t;p.heat=15;addFeed(`se fait arrêter par la police 🚔 (${t} tour${t>1?'s':''} de prison)`,p);
-  setTimeout(()=>{sfx.siren();buzz([200,100,200,100,400])},200);
+  setTimeout(()=>{sfx.siren();haptic('arrest')},200);
   return {k:'POLICE',e:'🚔',t:'ARRESTATION !',bad:1,d:`${why}${lost} Tu prends ${t} tour${t>1?'s':''} de prison.`,fx:fmt(-fine)+' d’amende'};
 }
 function bailCost(p){return Math.round(Math.max(5000,netWorth(p)*.1)*p.jail)}
@@ -1280,7 +1292,7 @@ function nextCard(){const c=ovQueue.shift();if(!c){closeOv();return}sfx.card();
   </div></div>`;
   document.body.classList.add('paused');
   setTimeout(()=>{const b=$('#ovWrap .btn:not([disabled])');b&&b.focus({preventScroll:true})},60);
-  if(fxCls==='pos'){sfx.win()}else if(fxCls==='neg'){sfx.lose()}
+  if(fxCls==='pos'){sfx.win();haptic('win')}else if(fxCls==='neg'){sfx.lose();haptic('lose')}
   render();
 }
 function closeOv(){$('#ovWrap').innerHTML='';ovQueue=[];if(!$('#sheet').classList.contains('open'))document.body.classList.remove('paused');
@@ -1339,7 +1351,7 @@ function confirmEnd(){if(busy)return;if(!G.acted){openSheet('Passer ton tour ?',
   <div class="sheet-foot stack">${B('Passer mon tour',{v:'primary',on:'endTurn()'})}${B('Continuer à jouer',{v:'secondary',on:'closeSheet()'})}</div>`);return}endTurn()}
 function endTurn(force){
   if(!G||(!force&&(G.screen!=='turn'||!isMyTurn())))return;
-  busy=false;forceClose();closeOv();
+  busy=false;forceClose();closeOv();haptic('confirm');
   if(bj&&!bj.over){const p=cur();p.cash-=bj.bet;p.stats.casino-=bj.bet;bj=null}
   if(scratch&&!scratch.open){const won=scratch.price*scratch.m;scratch.open=true;if(won>0)casinoResult(won,1,won-scratch.price)}
   scratch=null;
@@ -1440,12 +1452,12 @@ function casWhy(){const p=cur();if(!(G.inCasino&&G.casinoLeft>0)&&G.ap<1)return 
 /* Cumule les gains (jamais les pertes) dans le casino choisi et débloque le suivant dès que le cumul atteint sa mise max. */
 function casTrack(p,net,idx){if(idx==null)idx=cSel;if(!(net>0))return;p.casWin=p.casWin||[];p.casWin[idx]=Math.max(0,p.casWin[idx]||0)+net;
   const lv=casLvl(p);if(idx===lv&&lv<CASINOS.length-1&&p.casWin[lv]>=CASINOS[lv].max){p.casLvl=lv+1;const n=CASINOS[lv+1];
-    addFeed(`gagne son entrée au ${n.e} ${n.n}`,p);setTimeout(()=>{toast(`${n.n} débloqué : mise max ${fmt(n.max)}`);sfx.big()},700)}}
+    addFeed(`gagne son entrée au ${n.e} ${n.n}`,p);setTimeout(()=>{toast(`${n.n} débloqué : mise max ${fmt(n.max)}`);sfx.big();haptic('unlock')},700)}}
 const CGAME={roulette:'à la roulette',bj:'au blackjack',slots:'à la machine à sous',scratch:'au grattage'};
 /* gain : gain net de la partie pour le déblocage, si différent du montant crédité (grattage). */
 function casinoResult(net,silent,gain){const p=cur();p.cash+=net;p.stats.casino+=net;casTrack(p,gain==null?net:gain);
   if(net&&!silent)addFeed(`${net>0?'gagne':'perd'} ${fmt(Math.abs(net))} ${CGAME[cTab]} (${CASINOS[cSel].n})`);
-  if(net>0){net>=50000?(sfx.big(),confetti()):sfx.win();popMoney(net);buzz(80)}else if(net<0){sfx.lose();buzz(150)}
+  if(net>0){net>=50000?(sfx.big(),confetti(),haptic('jackpot')):(sfx.win(),haptic('win'));popMoney(net)}else if(net<0){sfx.lose();haptic('lose')}
   save();render()}
 function resBox(win,html){return `<div class="result ${win>0?'w':win<0?'l':''}" role="status">${html}</div>`}
 /* roulette */
@@ -1629,7 +1641,7 @@ function openPos(){const p=cur(),a=asset(tr.sym),m=getAmt('trAmt');p.pos=p.pos||
   addFeed(`ouvre une position ${tr.dir>0?'à la hausse':'à la baisse'} x${tr.lev} sur ${adef(tr.sym).name}`);sfx.coin();toast('Position ouverte : '+fmt(m));after()}
 function closePos(id){const p=cur(),i=(p.pos||[]).findIndex(o=>o.id===id);if(i<0||busy)return;const o=p.pos[i],v=posVal(o),g=v-o.m0;
   p.cash+=v;p.stats.trading+=v-o.m0;p.pos.splice(i,1);
-  addFeed(`clôture sa position sur ${adef(o.sym).name} : ${fmt(g,true)}`);if(g>0){g>50000?(sfx.big(),confetti()):sfx.win();popMoney(g)}else sfx.lose();after()}
+  addFeed(`clôture sa position sur ${adef(o.sym).name} : ${fmt(g,true)}`);if(g>0){g>50000?(sfx.big(),confetti()):sfx.win();haptic('win');popMoney(g)}else{sfx.lose();haptic('lose')}after()}
 /* Fin de tour : on rejoue le chemin intra-tour du cours pour déclencher liquidation / stop / objectif au bon moment. */
 function tradeTick(p,paths,add){
   for(let i=(p.pos||[]).length-1;i>=0;i--){const o=p.pos[i],{p0,path}=paths[o.sym],lab=`${o.dir>0?'Long':'Short'} ${adef(o.sym).name} x${o.lev}`;
@@ -1815,16 +1827,16 @@ async function runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)
   const ch=heistChance();p.cash-=cost;busy=true;render();
   const steps=[['🚐','Planque devant la cible…'],['🎭','Masques et gants enfilés…'],[pick(['💥','🔓','🧨']),'C’est parti !'],['🏎️','La fuite à fond sur l’autoroute…']];
   $('#shTitle').textContent=h.n;$('#shBody').innerHTML=`<div class="steps" id="hsteps" aria-live="polite"></div><div id="hres"></div>`;
-  for(const [e,t] of steps){const d=document.createElement('div');d.textContent=e+'  '+t;$('#hsteps').appendChild(d);tone(220,.15,'triangle',.06);buzz(30);await sleep(950)}
+  for(const [e,t] of steps){const d=document.createElement('div');d.textContent=e+'  '+t;$('#hsteps').appendChild(d);tone(220,.15,'triangle',.06);haptic('step');await sleep(950)}
   const ok=Math.random()<ch;let html,hLoot=0;p.recon=null;
   if(ok){const loot=R(h.min,h.max)*APPS[hs.app][2]*(1-TEAMS[hs.team][2]);hLoot=loot;p.dirty+=loot;p.stats.crime+=loot;p.stats.heists++;p.rep=rep(p)+1;
     G.sec=G.sec||HEISTS.map(()=>0);G.sec[hs.t]+=2;p.heat=clamp(p.heat+h.heat*APPS[hs.app][3],0,100);
     html=`${resBox(1,`Braquage réussi<span class="big dirty">${fmt(loot,true)}</span>`)}<p class="muted small">Argent sale : pense à le blanchir. Réputation ${p.rep}. La cible renforce sa sécurité.</p>`;
-    loot>100000?(sfx.big(),confetti()):sfx.win();popMoney(loot)}
+    loot>100000?(sfx.big(),confetti()):sfx.win();haptic('jackpot');popMoney(loot)}
   else if(Math.random()<.2){p.heat=clamp(p.heat+h.heat*.6,0,100);html=`${resBox(-1,'Raté, mais tu t’enfuis les mains vides')}<p class="muted small">La préparation (<span class="num">${fmt(cost)}</span>) est perdue et les flics ont ton signalement.</p>`;sfx.lose()}
   else{const fine=Math.max(0,p.cash)*.3;p.cash-=fine;const t=h.jail+RI(0,1);p.jail=t;p.heat=clamp(p.heat+h.heat,0,100);let lost='';
     if(p.net){p.net=0;lost+='<br>Ton réseau est démantelé.'}if(p.dirty>0){lost+=`<br>Argent sale saisi : ${fmt(p.dirty)}.`;p.dirty=0}
-    html=`${resBox(-1,'Arrêté')}<p>${h.fl}</p><p class="muted small">Amende <span class="num">${fmt(fine)}</span> · ${t} tour${t>1?'s':''} de prison${lost}</p>`;sfx.siren();shake();buzz([300,100,300])}
+    html=`${resBox(-1,'Arrêté')}<p>${h.fl}</p><p class="muted small">Amende <span class="num">${fmt(fine)}</span> · ${t} tour${t>1?'s':''} de prison${lost}</p>`;sfx.siren();shake();haptic('arrest')}
   addFeed(ok?`braque ${h.e} ${h.n} et repart avec ${fmt(hLoot)}`:p.jail?`se fait arrêter en braquant ${h.e} ${h.n}`:`rate son braquage (${h.n}) mais s’enfuit`);
   $('#hres').innerHTML=html+`<div class="mt-3">${B('Fermer',{v:'secondary',on:'busy=false;closeSheet()'})}</div>`;
   busy=false;save();render()}
@@ -1951,6 +1963,7 @@ function openRanking(){openSheet('Classement',`<div class="list">${ranked().map(
   <span class="bd"><b>${esc(p.name)}${p.jail?` <span class="tag r">En prison</span>`:''}</b><span class="small muted">cash <span class="num">${fmt(p.cash)}</span>${p.dirty>0?` · sale <span class="dirty num">${fmt(p.dirty)}</span>`:''} · police <span class="num">${Math.round(p.heat)}</span> · réputation <span class="num">${rep(p)}</span></span></span><span class="rt"><b class="num gold">${fmt(netWorth(p))}</b></span></button>`).join('')}</div><p class="small muted mt-3">Touche un joueur pour voir son patrimoine.</p>`)}
 function openMenu(){openSheet('Menu',`<div class="stack">
   ${B(icon(SOUND?'sound':'mute')+(SOUND?'Couper le son':'Activer le son'),{v:'secondary',on:"SOUND=!SOUND;try{localStorage.setItem('rq_sound',SOUND?'1':'0')}catch(e){};openMenu()"})}
+  ${canHaptic?B(HAPTICS?'Couper les vibrations':'Activer les vibrations',{v:'secondary',on:"HAPTICS=!HAPTICS;try{localStorage.setItem('sf_haptics',HAPTICS?'1':'0')}catch(e){};haptic('confirm');openMenu()"}):''}
   ${ON?B('Quitter la partie',{v:'secondary',on:'leaveOnline(false)'})+`<p class="small muted">Tu pourras revenir avec le code <span class="num">${ON.code}</span>.</p>`:`
   ${B('Quitter et sauvegarder',{v:'secondary',on:"forceClose();G.screen='pass';G.resumeTurn=true;save();G=null;APP.view='home';render()"})}
   <button class="btn btn-danger" onclick="if(this.dataset.c){clearSave();G=null;forceClose();APP.view='home';render()}else{this.dataset.c=1;this.textContent='Touche encore pour abandonner'}">Abandonner la partie</button>`}</div>`)}
@@ -2018,7 +2031,8 @@ function renderRecap(){const rc=G.recap,last=G.round>=G.maxRounds;
   <div class="dock" data-z="dock">${canAdvance()?B(last?'Voir le classement final':'Passer au tour suivant',{v:'primary',on:'nextRound()'}):`<div class="center muted small" role="status">L’hôte lance la suite ${waitDots()}</div>`}</div>`,'recap'+G.round);
 }
 function canAdvance(){return !ON||ON.host||!isOnline(ON.lobby&&ON.lobby.host)}
-function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){G.screen='end';save();render();setTimeout(()=>{sfx.big();confetti(200)},300);return}
+function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){G.screen='end';save();render();haptic('jackpot');setTimeout(()=>{sfx.big();confetti(200)},300);return}
+  haptic('round');
   G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';save();render();window.scrollTo(0,0)}
 
 /* ================= END ================= */
