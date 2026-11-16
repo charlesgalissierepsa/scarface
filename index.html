@@ -88,7 +88,7 @@
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
   /* ---- Boucles et animations de jeu (rythme propre, hors échelle de durées) ---- */
-  --loop-bar:1.6s; --dur-splash:400ms;
+  --loop-bar:1.6s; --foot-btn:136px; --dur-splash:400ms;
   --loop-grid:2.4s; --loop-pulse:2s; --loop-blink:1s; --stagger:150ms; --dur-flicker:600ms; --dur-pop:1.4s; --dur-shake:400ms; --dur-reel:100ms;
 
   /* ---- Icônes 3D : face en dégradé (a vers b), accent du pictogramme, tranche ---- */
@@ -520,6 +520,19 @@ canvas#trc{width:100%;height:var(--chart-h);background:var(--surface-3);border:v
 #splash .logo{margin-top:0}
 #splash p{color:var(--ink-muted);font-size:var(--fs-sm);margin:0}
 
+/* ===== Pied de l'accueil et fenêtre des règles ===== */
+.foot-btns{display:flex;justify-content:center;flex-wrap:wrap;gap:var(--sp-3);margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:var(--border)}
+.foot-btns .btn{min-width:var(--foot-btn)}
+.modal{position:relative;width:100%;max-width:var(--dock-w);max-height:84dvh;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--neon-cyan);animation:card-in var(--dur-slow) var(--ease-in)}
+.modal::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--stripes);
+  background:linear-gradient(180deg,var(--stripe-1) 0 2px,transparent 2px 3px,var(--stripe-2) 3px 5px,transparent 5px 6px,var(--stripe-3) 6px 8px)}
+.modal-head{flex:none;display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);padding:var(--sp-6) var(--sp-4) var(--sp-2)}
+.modal-head h2{font-size:var(--fs-lg)}
+.modal-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 var(--sp-4) var(--sp-4)}
+.modal-body p{color:var(--ink-muted);font-size:var(--fs-sm)}
+.modal-body b{color:var(--ink)}
+.modal-foot{flex:none;padding:var(--sp-3) var(--sp-4);border-top:var(--border)}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:opacity var(--dur-fast) linear!important}
   .sheet .panel2,.sheet.open .panel2{transition:opacity var(--dur-fast) linear!important}
@@ -926,11 +939,10 @@ function renderSetup(){
   <div class="seg">${[[5000,'5 000 €','Galère'],[10000,'10 000 €','Classique'],[50000,'50 000 €','Fils à papa']].map(([v,l,s])=>`<button class="${setup.cash===v?'on':''}" aria-pressed="${setup.cash===v}" onclick="setup.cash=${v};renderSetup()">${l}<small>${s}</small></button>`).join('')}</div></div>
   <div data-z="rounds">${label('Durée de la partie')}
   <div class="seg">${[[8,'8 tours','~30 min'],[12,'12 tours','~45 min'],[20,'20 tours','La soirée']].map(([v,l,s])=>`<button class="${setup.rounds===v?'on':''}" aria-pressed="${setup.rounds===v}" onclick="setup.rounds=${v};renderSetup()">${l}<small>${s}</small></button>`).join('')}</div></div>
-  <div data-z="rules">${RULES}</div>
+  <div data-z="rules">${FOOT_BTNS}</div>
   <div class="dock" data-z="dock">${B('Lancer la partie',{v:'primary',on:'newGame()'})}</div>`,'setup');
 }
-const RULES=`<details class="rules"><summary>Les règles en 1 minute</summary>
-    <p>Chacun part avec la même somme. À ton tour, tu as <b>3 points d’action (PA)</b>. Chaque action en coûte : casino, trading, immobilier, startup, boulot ou coup bas = 1 PA ; créer une entreprise ou monter un réseau = 2 PA ; un braquage = <b>3 PA, tout ton tour</b>.</p>
+const RULES_BODY=`    <p>Chacun part avec la même somme. À ton tour, tu as <b>3 points d’action (PA)</b>. Chaque action en coûte : casino, trading, immobilier, startup, boulot ou coup bas = 1 PA ; créer une entreprise ou monter un réseau = 2 PA ; un braquage = <b>3 PA, tout ton tour</b>.</p>
     <p>À chaque tour, <b>3 opportunités</b> tombent : yacht saisi, tuyau d’initié, commissaire corrompu. À toi de choisir ce qui vaut tes PA.</p>
     <p>La Bourse, la banque, le blanchiment et la vente de tes biens sont <b>gratuits</b>.</p>
     <p><b>Trading</b> : tes positions (hausse ou baisse, levier jusqu’à x10, stop-loss, objectif) restent ouvertes d’un tour à l’autre. Lis les signaux (tendance, valorisation, analystes, résultats trimestriels) : ils donnent un avantage, pas une certitude.</p>
@@ -940,8 +952,16 @@ const RULES=`<details class="rules"><summary>Les règles en 1 minute</summary>
     <p>Les braquages et le trafic rapportent de l’<b>argent sale</b> : il ne compte que pour moitié dans ton patrimoine, il attire la police et il est saisi si tu te fais arrêter. Blanchis-le via tes commerces (10 % de frais) ou chez le blanchisseur (30 %).</p>
     <p>Les grosses cibles demandent de la <b>réputation</b> (braquages réussis) et une préparation payée d’avance. Un repérage (1 PA) augmente tes chances au tour suivant.</p>
     <p>La <b>jauge de police</b> monte avec le crime : plus elle est haute, plus tu risques l’arrestation au début de ton tour.</p>
-    <p>À la fin, le plus gros <b>patrimoine net</b> gagne.</p>
-  </details>`;
+    <p>À la fin, le plus gros <b>patrimoine net</b> gagne.</p>`;
+/* Pied de l'accueil et de la configuration : deux boutons explicites, centrés. */
+const FOOT_BTNS=`<div class="foot-btns">${B('Règles',{v:'secondary',inline:1,on:'openRules()'})}${B('Réglages',{v:'secondary',inline:1,on:'openSettings()'})}</div>`;
+/* Règles : fenêtre au centre de l'écran (pas une feuille qui monte, pas un bloc qui se déplie). */
+function openRules(){ovOpener=document.activeElement;ovQueue=[];
+  $('#ovWrap').innerHTML=`<div class="ov" onclick="if(event.target===this)closeOv()"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="rulesT">
+    <div class="modal-head"><h2 id="rulesT">Les règles</h2>${iconBtn('close','Fermer les règles','closeOv()')}</div>
+    <div class="modal-body">${RULES_BODY}</div>
+    <div class="modal-foot">${B('Fermer',{v:'primary',on:'closeOv()'})}</div></div></div>`;
+  document.body.classList.add('paused');setTimeout(()=>{const b=$('#ovWrap .modal .iconbtn');b&&b.focus({preventScroll:true})},60)}
 function cycleAv(i){const used=setup.players.map(p=>p.av);let k=AVATARS.indexOf(setup.players[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));setup.players[i].av=AVATARS[k];sfx.tick();renderSetup()}
 function addPlayer(){const used=setup.players.map(p=>p.av);setup.players.push({name:'',av:AVATARS.find(a=>!used.includes(a))});renderSetup();setTimeout(()=>{const el=$('#pn'+(setup.players.length-1));el&&el.focus()},50)}
 function rmPlayer(i){setup.players.splice(i,1);renderSetup()}
@@ -972,7 +992,6 @@ function renderHome(){
   const ses=getSession();
   const choice=(main,on,t,s)=>`<button class="choice${main?' main':''}" onclick="${on}"><span><b>${t}</b><span>${s}</span></span>${icon('arrow')}</button>`;
   paint(`
-  <div class="top end" data-z="top"><span></span>${iconBtn('gear','Réglages','openSettings()')}</div>
   <div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">The world is yours</span></div>
   <div data-z="profile">${label('Ton profil')}
   <div class="prow"><button class="av" style="--c:var(--cash)" onclick="saveProfile();profile.av=AVATARS[(AVATARS.indexOf(profile.av)+1)%AVATARS.length];sfx.tick();renderHome()" aria-label="Changer d’avatar">${profile.av}</button>
@@ -985,7 +1004,7 @@ function renderHome(){
     ${choice(0,"saveProfile();APP.view='local';render()",'Jouer sur un seul téléphone','On se passe le téléphone à tour de rôle.')}
   </div>
   <div data-z="err">${APP.err?`<div class="err" role="alert">${APP.err}</div>`:''}</div>
-  <div data-z="rules">${RULES}</div>`,'home');
+  <div data-z="rules">${FOOT_BTNS}</div>`,'home');
   flickLogo();
 }
 function renderJoin(){
@@ -1395,7 +1414,7 @@ $('#shClose').innerHTML=icon('close');
   const up=()=>{if(y0==null)return;const v=dy/Math.max(1,performance.now()-t0);sh.classList.remove('dragging');y0=null;
     if(dy>80||v>.6)closeSheet();else sh.style.setProperty('--drag','0px')};
   ['shGrab','shHead'].forEach(id=>{const n=document.getElementById(id);n.addEventListener('pointerdown',down);n.addEventListener('pointermove',move);n.addEventListener('pointerup',up);n.addEventListener('pointercancel',up)})})();
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#ovWrap').children.length)return;closeSheet()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#ovWrap .modal')){closeOv();return}if($('#ovWrap').children.length)return;closeSheet()}});
 
 function amt(id,max,def){max=Math.max(0,Math.floor(max));
   const ch=[['+1k',1e3],['+10k',1e4],['+100k',1e5],['+1M',1e6]].filter(c=>c[1]<=Math.max(max,1000));
