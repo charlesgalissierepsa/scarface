@@ -1049,7 +1049,8 @@ async function joinRoom(code){
   if(code.length!==4){APP.err='Le code fait 4 caractères.';APP.view='join';render();return}
   connAbort=false;APP.err='';APP.view='connecting';APP.connMsg='Recherche du salon '+code+'…';render();
   const ses=getSession();const order=ses&&ses.code===code&&ses.broker?[ses.broker,...BROKERS.filter(b=>b!==ses.broker)]:BROKERS;
-  const found=await findRoom(order,code,7000);
+  /* L’invité attend plus longtemps que l’hôte (8 s) : il doit pouvoir atteindre le relais, même lent, où le salon a été ouvert. */
+  const found=await findRoom(order,code,12000);
   if(connAbort){if(found)try{found.client.end(true)}catch(e){}return}
   if(found){found.client.removeListener('message',found.h);newON(found.client,found.broker,code,true);
     found.buf.forEach(([t,pl])=>{if(ON)onMessage(t,pl)})}
