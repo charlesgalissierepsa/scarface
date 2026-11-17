@@ -87,7 +87,7 @@
 
   /* ---- Tailles propres à un composant ---- */
   --slant:8px; --slant-sm:4px; --stripes:8px; --pip-w:24px; --pip-h:10px; --choice-h:72px; --pill-h:28px; --free-h:64px;
-  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --switch-w:128px; --card-w:44px; --card-h:62px; --card-r:4px; --dur-flip:420ms; --pin:10px;
+  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --switch-w:128px; --switch-ico:24px; --card-w:44px; --card-h:62px; --card-r:4px; --dur-flip:420ms; --pin:10px;
   --wheel:144px; --card-w:50px; --card-h:72px; --reel-w:76px; --reel-h:86px; --ticket-h:150px; --chart-h:180px;
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
@@ -310,8 +310,10 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 /* Interrupteur Manche / Actions : deux moitiés, la moitié active prend le dégradé néon des sélecteurs. */
 .tswitch{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-1);width:var(--switch-w);min-height:var(--btn-h);padding:var(--sp-1);background:var(--surface-3);border:var(--border)}
 .tswitch span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:var(--fs-xs);font-weight:var(--fw-semibold);color:var(--ink-muted);transition:color var(--dur-fast)}
-.tswitch span .ico{width:16px;height:16px}
-.tswitch span.on{color:var(--on-neon);font-weight:var(--fw-bold);background:linear-gradient(90deg,var(--seg-a),var(--seg-b));clip-path:polygon(var(--slant-sm) 0,100% 0,calc(100% - var(--slant-sm)) 100%,0 100%)}
+.tswitch span .i3d{width:var(--switch-ico);height:var(--switch-ico);transition:transform var(--dur-fast),filter var(--dur-fast)}
+.tswitch span:not(.on) .i3d{filter:grayscale(.85) brightness(.7)}
+.tswitch span.on{color:var(--ink);font-weight:var(--fw-bold);background:var(--surface-1);box-shadow:inset 0 0 0 1px var(--neon-pink),0 0 var(--glow-sm) var(--halo-pink)}
+.tswitch span.on .i3d{transform:scale(1.08)}
 .tswitch:active{transform:translate(1px,1px)}
 
 /* ===== Feuilles ===== */
@@ -1672,7 +1674,7 @@ function renderTurn(){
 let turnTab='manche';
 function turnSwitch(){const m=turnTab==='manche';
   return `<button class="tswitch" role="switch" aria-checked="${!m}" aria-label="Afficher ${m?'les actions':'la manche'}" onclick="setTurnTab('${m?'actions':'manche'}')">
-    <span class="${m?'on':''}">${icon('info')}Manche</span><span class="${m?'':'on'}">${icon('grid')}Actions</span></button>`}
+    <span class="${m?'on':''}">${icon3d('newspaper','cyan','tile')}Manche</span><span class="${m?'':'on'}">${icon3d('hand-fist','pink','tile')}Actions</span></button>`}
 function setTurnTab(t){if(turnTab===t)return;turnTab=t;sfx.tick();haptic('action');render();window.scrollTo(0,0)}
 function confirmEnd(){if(busy)return;if(!G.acted){openSheet('Passer ton tour ?',`<p class="muted">Tu n’as utilisé aucun point d’action.</p>
   <div class="sheet-foot stack">${B('Passer mon tour',{v:'primary',on:'endTurn()'})}${B('Continuer à jouer',{v:'secondary',on:'closeSheet()'})}</div>`);return}endTurn()}
