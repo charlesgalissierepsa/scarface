@@ -64,6 +64,8 @@
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px;
 
   /* ---- Tailles de composants ---- */
+  /* Carte de l'immobilier */
+  --map-sea:#0a0418; --map-edge:rgba(25,230,255,.25);
   --tap:44px; --btn-h:48px; --row-h:56px; --head-h:56px; --tag-h:20px; --chip-h:32px; --bar-w:3px;
   --av:44px; --av-sm:40px; --av-lg:72px; --av-xl:128px; --dot:8px; --icon:20px; --tile-emoji-box:32px;
   --sheet-max:88dvh; --app-max:480px; --ico-tile:1.6em; --ico-inline:1.15em;
@@ -83,7 +85,7 @@
 
   /* ---- Tailles propres à un composant ---- */
   --slant:8px; --slant-sm:4px; --stripes:8px; --pip-w:24px; --pip-h:10px; --choice-h:72px; --pill-h:28px; --free-h:64px;
-  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px;
+  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --pin:10px;
   --wheel:144px; --card-w:50px; --card-h:72px; --reel-w:76px; --reel-h:86px; --ticket-h:150px; --chart-h:180px;
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
@@ -343,6 +345,41 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .item.pick.sel{border-color:var(--neon-cyan)}
 .ill .item.pick.sel{border-color:var(--neon-pink)}
 .item .btns{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-2)}
+/* Deux choix côte à côte, sur une ligne : libellé en haut, coût en dessous. */
+.item .btns.duo{display:grid;grid-template-columns:1fr 1fr}
+.btns.duo .btn{width:100%;flex-direction:column;gap:0;padding:var(--sp-2);line-height:var(--lh-tight)}
+.btns.duo .cost{font-size:var(--fs-xs)}
+
+/* ===== Carte des États-Unis (immobilier) ===== */
+.usmap{position:relative;aspect-ratio:4/3;margin-top:var(--sp-2);background:var(--map-sea);border:1px solid var(--map-edge);overflow:hidden}
+.usmap>svg{position:absolute;inset:0;width:100%;height:100%}
+.usmap .land{fill:var(--surface-1)}
+.usmap .grid{fill:url(#mgrid)}
+.usmap .coast{fill:none;stroke:var(--neon-cyan);stroke-width:1.6;stroke-linejoin:round;filter:drop-shadow(0 0 3px var(--halo-cyan))}
+.usmap .gl{stroke:var(--neon-pink);stroke-width:.6;opacity:.28}
+.mpin{position:absolute;width:var(--tap);height:var(--tap);margin:calc(var(--tap) / -2) 0 0 calc(var(--tap) / -2);background:none;border:0;color:var(--ink)}
+.mpin i{position:absolute;left:50%;top:50%;width:var(--pin);height:var(--pin);margin:calc(var(--pin) / -2);transform:rotate(45deg);background:var(--neon-pink);box-shadow:0 0 var(--glow-sm) var(--halo-pink)}
+.mpin.sel i{background:var(--cash);box-shadow:0 0 var(--glow-sm) var(--halo-cash);animation:pin-pulse 1.4s ease-in-out infinite}
+@keyframes pin-pulse{50%{box-shadow:0 0 var(--glow-lg) var(--halo-cash)}}
+.mpin .lb{position:absolute;white-space:nowrap;font-size:var(--fs-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-caps);text-transform:uppercase;line-height:var(--lh-tight);text-shadow:0 1px 2px var(--bg-scene),0 0 6px var(--bg-scene);text-align:left}
+.mpin .lb small{display:block;font-size:var(--fs-xs);font-weight:var(--fw-semibold);letter-spacing:0;text-transform:none}
+.mpin.sel .lb{color:var(--cash)}
+.mpin.at-r .lb{left:calc(50% + var(--pin));top:50%;transform:translateY(-50%)}
+.mpin.at-l .lb{right:calc(50% + var(--pin));top:50%;transform:translateY(-50%);text-align:right}
+.mpin.at-t .lb{bottom:calc(50% + var(--pin));left:50%;transform:translateX(-50%);text-align:center}
+.mpin.at-bl .lb{top:calc(50% + var(--pin));left:calc(var(--pin) * -1)}
+.mpin.at-b .lb{top:calc(50% + var(--pin));left:50%;transform:translateX(-50%);text-align:center}
+/* Fiche de la ville : posée sur la moitié de carte opposée à la ville, pour la laisser visible. */
+.mcard{position:absolute;top:var(--sp-2);bottom:var(--sp-2);width:62%;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--neon-cyan);box-shadow:var(--shadow-offset) var(--shadow-line);animation:mcard-in var(--dur-base) var(--ease-in)}
+.mcard.l{left:var(--sp-2)} .mcard.r{right:var(--sp-2)}
+@keyframes mcard-in{from{opacity:0;transform:translateY(var(--sp-2))}}
+.mcard .mh{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);padding:var(--sp-1) var(--sp-1) 0 var(--sp-3)}
+.mcard .mh h4{font:var(--fw-regular) var(--fs-md)/1.1 var(--font-display);color:var(--cash)}
+.mcard .mb{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 var(--sp-3) var(--sp-2)}
+.mcard .kv{padding:var(--sp-1) 0;font-size:var(--fs-xs)}
+.mcard .spark{margin:var(--sp-1) 0}
+.mcard .iconbtn{width:var(--chip-h);height:var(--chip-h)}
+.mcard p{font-size:var(--fs-xs);color:var(--ink-muted);margin-top:var(--sp-2)}
 .panel{padding:var(--sp-4);background:var(--surface-1);border:var(--border)}
 .panel.tight{padding:var(--sp-3) var(--sp-4)}
 .offer{margin-top:var(--sp-3)}
@@ -588,9 +625,9 @@ function iconBtn(n,label,on){return `<button class="iconbtn" aria-label="${label
 function topActs(game){return `<div class="row top-act">${game?iconBtn('trophy','Classement','openRanking()'):''}${iconBtn('book','Règles','openRules()')}${iconBtn('gear','Réglages','openSettings()')}${game?iconBtn('exit','Quitter la partie','openQuit()'):''}</div>`}
 function topBar(left,game){return `<div class="top" data-z="top">${left||'<span></span>'}${topActs(game)}</div>`}
 /* Bouton. v : primary | secondary | danger | text. cost : montant affiché à part. why : raison écrite sous un bouton désactivé. */
-function B(label,o={}){const v=o.v||'secondary',dis=!!o.why;
+function B(label,o={}){const v=o.v||'secondary',dis=!!o.why;/* quiet : désactivé, sans phrase d'explication dessous */
   const b=`<button class="btn btn-${v}${o.inline?' inline':''}${o.intro?' intro':''}"${o.id?` id="${o.id}"`:''}${dis?' disabled':''} onclick="${o.on||''}">${label}${o.cost?` <span class="cost">${o.cost}</span>`:''}</button>`;
-  return dis?`<span class="btnwrap${o.inline?' inline':''}">${b}<span class="why">${o.why}</span></span>`:b}
+  return dis&&!o.quiet?`<span class="btnwrap${o.inline?' inline':''}">${b}<span class="why">${o.why}</span></span>`:b}
 /* Raison commune d'indisponibilité : points d'action d'abord, puis cash. */
 function whyNot(ap,cost,p){p=p||cur();if(ap&&G.ap<ap)return G.ap?`Il faut ${ap} PA, il t’en reste ${G.ap}`:'Plus de points d’action';if(cost>0&&p.cash<cost)return `Il te manque ${fmt(cost-p.cash)}`;return ''}
 function note(html,k){return `<div class="note${k?' '+k:''}">${html}</div>`}
@@ -1943,27 +1980,40 @@ function stepCity(c,shock){const d=cdef(c.k);
 function initCities(){return CITIES.map(d=>{const c={k:d.k,idx:1,yld:d.yld,reg:pick([-1,0,1]),hist:[1],chg:0,rating:0};
   for(let i=0;i<4;i++)stepCity(c,0);c.idx0=c.idx;return c})}
 function trendCity(c){const h=c.hist,n=h.length;if(n<4)return 0;const ch=h[n-1]/h[n-4]-1,v=cdef(c.k).vol;return ch>v?1:ch<-v?-1:0}
-let imSel='miami';
+let imSel=null;
 function openImmo(){openSheet('Immobilier',immoHTML(),()=>setBody(immoHTML()))}
 function reItem(x,mine){const rt=rdef(x.t),cd=cdef(x.c),v=rprice(x.c,x.t),g=v-x.paid;
   return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n} · ${cd.n}</b><span class="small muted">Valeur <b class="num">${fmt(v)}</b> · <span class="num ${g>=0?'pos':'neg'}">${fmt(g,true)}</span> · loyer ≈ <span class="num">${fmt(rrent(x.c,x.t))}</span> par tour</span>
     ${mine?`<div class="btns">${B('Vendre',{v:'secondary',inline:1,on:`sellRE('${x.id}')`,cost:fmt(v*.95)})}</div>`:''}</span></div>`}
-function immoHTML(){const p=viewer(),RO=ro(),c=city(imSel),d=cdef(imSel),t=trendCity(c),mine=(p.re||[]);
-  return `${RO?RO_NOTE:''}${note('Choisis ta ville : chacune a son niveau de prix, son rendement locatif et sa tendance, qui changent à chaque tour. Le loyer tombe en fin de tour, mais un logement peut rester vide. Frais d’acquisition ${Math.round(reFee(p)*100)} %. À crédit, tu avances 25 % plus les frais et la banque prête le reste à 4 % par tour.')}
-  <h3 class="sec">Les villes</h3><div class="list">${G.cities.map(x=>{const dd=cdef(x.k);
-    return `<button class="item pick ${x.k===imSel?'sel':''}" aria-pressed="${x.k===imSel}" onclick="imSel='${x.k}';refreshSheet()"><span class="ic">${dd.e}</span><span class="bd"><b>${dd.n}</b><span class="small muted">Rendement <b class="num">${pctY(x.yld)}</b> par tour · prix <span class="num ${x.chg>=0?'pos':'neg'}">${pct(x.chg)}</span></span></span>${spark(x.hist)}</button>`}).join('')}</div>
-  <h3 class="sec">${d.n}</h3><div class="panel tight"><p class="small muted">${d.d}</p>
-    <div class="kv"><span>Prix depuis le début</span><b class="num ${c.idx>=c.idx0?'pos':'neg'}">${pct(c.idx/c.idx0-1)}</b></div>
-    <div class="kv"><span>Rendement locatif</span><b class="num">${pctY(c.yld)} par tour</b></div>
-    <div class="kv"><span>Tendance (3 tours)</span><b class="${t>0?'pos':t<0?'neg':''}">${['↘ Baissière','→ Stable','↗ Haussière'][t+1]}</b></div>
-    <div class="kv"><span>Demande selon les agents</span><b class="${c.rating>0?'pos':c.rating<0?'neg':''}">${['Faible','Normale','Forte'][c.rating+1]}</b></div>
-    <div class="kv"><span>Volatilité des prix</span><span>${d.vol>.055?'élevée':d.vol>.04?'moyenne':'faible'}</span></div></div>
-  <h3 class="sec">Acheter à ${d.n}</h3><div class="list">${RTYPES.map(rt=>{const v=rprice(imSel,rt.k),cash=v*(1+reFee(p)),down=v*(.25+reFee(p));
+/* Position des villes sur la carte (en % de la carte) et côté de leur étiquette. */
+const MAP_POS={miami:[83.2,85.3,'l'],ny:[87.9,38.3,'b'],la:[10.3,57.7,'bl'],vegas:[16.8,53.1,'r'],chicago:[65,39.5,'t']};
+const US_PATH='M33.5 36.6 44.8 34.4 208.8 57.2 211.2 53.6 242.9 64.8 273.5 75.4 289.8 84.1 292.1 104.8 289.4 114.3 315.0 102.9 312.8 97.8 329.8 87.1 337.0 78.2 358.0 73.0 363.1 55.8 366.1 48.4 375.1 48.6 386.0 66.8 369.4 83.1 369.2 92.5 375.2 99.3 366.9 104.3 352.4 115.5 354.0 125.4 348.7 133.1 345.3 150.6 352.1 164.9 342.7 173.4 330.4 184.1 318.8 200.7 316.3 214.0 325.7 233.4 333.0 247.6 331.9 261.4 326.4 263.2 318.7 250.8 309.7 239.5 306.0 230.0 294.9 223.3 286.7 227.0 277.5 221.6 265.9 222.7 253.7 225.4 255.9 234.3 247.3 235.7 235.3 231.8 221.2 231.4 213.5 235.1 200.1 244.2 194.4 250.4 194.2 265.6 178.9 259.9 176.0 250.8 164.9 233.3 154.1 229.0 148.2 235.8 137.6 229.5 124.3 208.2 111.4 206.7 110.8 211.2 88.8 208.0 63.1 192.3 46.1 188.7 39.3 175.1 25.3 164.0 21.0 144.0 19.9 132.4 16.3 112.4 14.0 106.0 19.5 92.5 27.6 70.4 32.4 56.8 33.3 49.6Z';
+function usMapHTML(p){const sel=imSel&&city(imSel),pos=sel&&MAP_POS[imSel];
+  const pins=G.cities.map(x=>{const d=cdef(x.k),[l,t,side]=MAP_POS[x.k],g=x.idx/x.idx0-1,own=(p.re||[]).filter(r=>r.c===x.k).length;
+    return `<button class="mpin at-${side}${x.k===imSel?' sel':''}" style="left:${l}%;top:${t}%" aria-pressed="${x.k===imSel}" aria-label="${d.n} : voir le marché" onclick="imSel=${x.k===imSel?'null':`'${x.k}'`};refreshSheet()"><i></i>
+      <span class="lb">${d.n}<small class="num ${g>=0?'pos':'neg'}">${pct(g)}${own?` · ${own} bien${own>1?'s':''}`:''}</small></span></button>`}).join('');
+  let card='';
+  if(sel){const d=cdef(imSel),c=sel,t=trendCity(c);
+    card=`<div class="mcard ${pos[0]>50?'l':'r'}" role="region" aria-label="Marché de ${d.n}"><div class="mh"><h4>${d.n}</h4>${iconBtn('close','Fermer la fiche','imSel=null;refreshSheet()')}</div>
+      <div class="mb">${spark(c.hist,160,24)}
+      <div class="kv"><span>Prix depuis le début</span><b class="num ${c.idx>=c.idx0?'pos':'neg'}">${pct(c.idx/c.idx0-1)}</b></div>
+      <div class="kv"><span>Dernier tour</span><b class="num ${c.chg>=0?'pos':'neg'}">${pct(c.chg)}</b></div>
+      <div class="kv"><span>Rendement locatif</span><b class="num">${pctY(c.yld)} / tour</b></div>
+      <div class="kv"><span>Tendance</span><b class="${t>0?'pos':t<0?'neg':''}">${['↘ Baisse','→ Stable','↗ Hausse'][t+1]}</b></div>
+      <div class="kv"><span>Demande</span><b class="${c.rating>0?'pos':c.rating<0?'neg':''}">${['Faible','Normale','Forte'][c.rating+1]}</b></div>
+      <div class="kv"><span>Volatilité</span><span>${d.vol>.055?'Élevée':d.vol>.04?'Moyenne':'Faible'}</span></div>
+      <p>${d.d}</p></div></div>`}
+  return `<div class="usmap"><svg viewBox="0 0 400 300" aria-hidden="true"><defs><pattern id="mgrid" width="16" height="16" patternUnits="userSpaceOnUse"><path class="gl" d="M16 0H0V16" fill="none"/></pattern></defs>
+    <path class="land" d="${US_PATH}"/><path class="grid" d="${US_PATH}"/><path class="coast" d="${US_PATH}"/></svg>${pins}${card}</div>`}
+function immoHTML(){const p=viewer(),RO=ro(),d=imSel&&cdef(imSel),mine=(p.re||[]);
+  return `${RO?RO_NOTE:''}${note(`Chaque ville a son niveau de prix, son rendement locatif et sa tendance, qui changent à chaque tour. Le loyer tombe en fin de tour, mais un logement peut rester vide. Frais d’acquisition ${Math.round(reFee(p)*100)} %. À crédit, tu avances 25 % plus les frais et la banque prête le reste à 4 % par tour.`)}
+  <h3 class="sec">La carte</h3>${usMapHTML(p)}
+  ${d?`<h3 class="sec">Acheter à ${d.n}</h3><div class="list">${RTYPES.map(rt=>{const v=rprice(imSel,rt.k),cash=v*(1+reFee(p)),down=v*(.25+reFee(p));
     return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n}</b><span class="small muted"><b class="num">${fmt(v)}</b> · loyer ≈ <span class="num">${fmt(rrent(imSel,rt.k))}</span> par tour</span>
-      ${RO?'':`<div class="btns">${B('Acheter cash',{v:'secondary',inline:1,on:`buyRE('${rt.k}',0)`,cost:fmt(cash)+' · 1 PA',why:whyNot(1,cash,p)})}${B('À crédit',{v:'secondary',inline:1,on:`buyRE('${rt.k}',1)`,cost:'apport '+fmt(down)+' · 1 PA',why:chr(p)==='trader'?'Pas de crédit pour le Trader':whyNot(1,down,p)})}</div>`}</span></div>`}).join('')}</div>
+      ${RO?'':`<div class="btns duo">${B('Acheter cash',{v:'secondary',quiet:1,on:`buyRE('${rt.k}',0)`,cost:fmt(cash)+' · 1 PA',why:whyNot(1,cash,p)})}${B('À crédit',{v:'secondary',quiet:1,on:`buyRE('${rt.k}',1)`,cost:'apport '+fmt(down)+' · 1 PA',why:chr(p)==='trader'?'Pas de crédit pour le Trader':whyNot(1,down,p)})}</div>`}</span></div>`}).join('')}</div>`:note('Touche une ville sur la carte pour voir son marché et y acheter.','mt-3')}
   ${mine.length?`<h3 class="sec">Tes biens <span class="num">(${mine.length})</span></h3><div class="list">${mine.map(x=>reItem(x,!RO)).join('')}</div>`:''}`}
 const reFee=p=>chr(p)==='builder'?.02:.07;
-function buyRE(tk,credit){const p=cur(),rt=rdef(tk),cd=cdef(imSel),v=rprice(imSel,tk);
+function buyRE(tk,credit){if(!imSel)return;const p=cur(),rt=rdef(tk),cd=cdef(imSel),v=rprice(imSel,tk);
   if(credit&&chr(p)==='trader'){toast('Le Trader n’obtient pas de crédit immobilier.',1);return}
   const fee=reFee(p),pay=credit?v*(.25+fee):v*(1+fee);if(!canPay(p,pay)||!useAP(1))return;p.cash-=pay;if(credit)p.debt+=v*.75;
   p.re=p.re||[];p.re.push({id:rid(5),c:imSel,t:tk,paid:v});
