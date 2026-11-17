@@ -370,7 +370,7 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .mpin.at-bl .lb{top:calc(50% + var(--pin));left:calc(var(--pin) * -1)}
 .mpin.at-b .lb{top:calc(50% + var(--pin));left:50%;transform:translateX(-50%);text-align:center}
 /* Fiche de la ville : posée sur la moitié de carte opposée à la ville, pour la laisser visible. */
-.mcard{position:absolute;top:var(--sp-2);bottom:var(--sp-2);width:62%;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--neon-cyan);box-shadow:var(--shadow-offset) var(--shadow-line);animation:mcard-in var(--dur-base) var(--ease-in)}
+.mcard{position:absolute;top:var(--sp-2);bottom:var(--sp-2);width:57%;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--neon-cyan);box-shadow:var(--shadow-offset) var(--shadow-line);animation:mcard-in var(--dur-base) var(--ease-in)}
 .mcard.l{left:var(--sp-2)} .mcard.r{right:var(--sp-2)}
 @keyframes mcard-in{from{opacity:0;transform:translateY(var(--sp-2))}}
 .mcard .mh{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);padding:var(--sp-1) var(--sp-1) 0 var(--sp-3)}
@@ -817,6 +817,8 @@ const EVENTS=[
  {e:'🏖️',t:'ÉTÉ CANICULAIRE',d:'Les touristes se ruent sur les locations : loyers x2 ce tour-ci.',f:m=>{m.rentMult=2}},
  {e:'🚁',t:'DESCENTE DES STUPS',d:'Hélicos, chiens renifleurs, vedettes rapides : 25 % de l’argent sale de chacun est saisi.',f:(m,add)=>G.players.forEach(p=>{if(p.dirty>0){const x=p.dirty*.25;p.dirty-=x;add(p,'🚁 Saisie des stups (argent sale)',0,-x)}})},
  {e:'🏝️',t:'PARADIS FISCAL À LA MODE',d:'Les banques offshore ouvrent grand leurs portes : la capacité de blanchiment de tes commerces double ce tour-ci.',f:()=>{G.laundBoost=2}},
+ {e:'🏭',t:'DETROIT RELANCE SES USINES',d:'Un constructeur rouvre ses chaînes : les acheteurs reviennent à Detroit.',f:m=>{m.city.detroit=.15}},
+ {e:'🎷',t:'MARDI GRAS À NEW ORLEANS',d:'La ville déborde de visiteurs : les loyers grimpent.',f:m=>{m.cityYld.nola=1.3}},
  {e:'🌴',t:'MIAMI S’ARRACHE',d:'Les célébrités achètent tout ce qui a vue sur l’océan : les prix bondissent.',f:m=>{m.city.miami=.15}},
  {e:'🏬',t:'CHICAGO ACCUEILLE LES ÉTUDIANTS',d:'Les universités affichent complet : les loyers grimpent à Chicago.',f:m=>{m.cityYld.chicago=1.25}},
  {e:'🎰',t:'UN CASINO GÉANT OUVRE À VEGAS',d:'Des milliers d’employés à loger : prix et loyers en hausse.',f:m=>{m.city.vegas=.1;m.cityYld.vegas=1.15}},
@@ -1148,7 +1150,7 @@ const RULES_BODY=`    <p>Chacun part avec la même somme. À ton tour, tu as <b>
     <p>À chaque tour, <b>3 opportunités</b> tombent : yacht saisi, tuyau d’initié, commissaire corrompu. À toi de choisir ce qui vaut tes PA.</p>
     <p>La Bourse, la banque, le blanchiment et la vente de tes biens sont <b>gratuits</b>.</p>
     <p><b>Trading</b> : tes positions (hausse ou baisse, levier jusqu’à x10, stop-loss, objectif) restent ouvertes d’un tour à l’autre. Lis les signaux (tendance, valorisation, analystes, résultats trimestriels) : ils donnent un avantage, pas une certitude.</p>
-    <p><b>Immobilier</b> : 5 villes américaines, chacune avec son niveau de prix, son rendement locatif et sa tendance, qui évoluent à chaque tour. Compare avant d’acheter : un studio à Chicago rapporte beaucoup en loyers, une villa à New York compte surtout sur la hausse des prix. Un logement peut rester vide un tour.</p>
+    <p><b>Immobilier</b> : 7 villes américaines, chacune avec son niveau de prix, son rendement locatif et sa tendance, qui évoluent à chaque tour. Compare avant d’acheter : un studio à Detroit ne coûte que quelques milliers d’euros et rapporte beaucoup en loyers, une villa à New York compte surtout sur la hausse des prix. Un logement peut rester vide un tour.</p>
     <p><b>Casinos</b> : du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). Pour entrer dans le casino suivant, cumule dans le casino actuel des gains égaux à sa mise max. Les pertes ne comptent pas.</p>
     <p><b>En ligne, deux phases par tour.</b> D’abord la <b>phase libre</b> : tout le monde joue en même temps ses actions personnelles (casino, Bourse, immobilier, entreprises, startups, enchère). Puis la <b>phase des coups</b>, chacun son tour sous les yeux de tous, avec les PA que tu as gardés : braquages et coups bas. Sur un seul téléphone, on joue chacun son tour comme avant.</p>
     <p><b>Personnage et objectif secret</b> : chacun reçoit un personnage (un talent, un défaut) et un objectif secret. Objectif réussi à la fin : +15 % de patrimoine.</p>
@@ -1175,7 +1177,7 @@ function openRules(){openModal('rules','Les règles',RULES_BODY)}
 function cycleAv(i){const used=setup.players.map(p=>p.av);let k=AVATARS.indexOf(setup.players[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));setup.players[i].av=AVATARS[k];sfx.tick();renderSetup()}
 function addPlayer(){const used=setup.players.map(p=>p.av);setup.players.push({name:'',av:AVATARS.find(a=>!used.includes(a))});renderSetup();setTimeout(()=>{const el=$('#pn'+(setup.players.length-1));el&&el.focus()},50)}
 function rmPlayer(i){setup.players.splice(i,1);renderSetup()}
-function migrate(g){if(!g)return g;if(g.pot==null){g.pot=0;g.highlights=g.highlights||[]}if(!g.cities){g.cities=initCities();const CMAP={paris:'ny','saint-tropez':'miami','morbihan':'miami',chamonix:'la',lyon:'chicago',bordeaux:'la','émilion':'la',montpellier:'miami',marseille:'vegas',lille:'chicago'};
+function migrate(g){if(!g)return g;if(g.cities){const fresh=initCities();CITIES.forEach(d=>{if(!g.cities.some(c=>c.k===d.k))g.cities.push(fresh.find(c=>c.k===d.k))})}if(g.pot==null){g.pot=0;g.highlights=g.highlights||[]}if(!g.cities){g.cities=initCities();const CMAP={paris:'ny','saint-tropez':'miami','morbihan':'miami',chamonix:'la',lyon:'chicago',bordeaux:'la','émilion':'la',montpellier:'miami',marseille:'vegas',lille:'chicago'};
   g.players.forEach(p=>{p.re=p.re||[]});(g.props||[]).forEach(x=>{if(x.owner==null||!g.players[x.owner])return;const lc=(x.c||'').toLowerCase(),key=Object.keys(CMAP).find(k=>lc.includes(k));const ck=key?CMAP[key]:'chicago';
     const t=RTYPES.slice().sort((a,b)=>Math.abs(Math.log(a.base*cdef(ck).lvl/x.p))-Math.abs(Math.log(b.base*cdef(ck).lvl/x.p)))[0].k;g.players[x.owner].re.push({id:Math.random().toString(36).slice(2,7),c:ck,t,paid:x.p})});delete g.props}
   g.players.forEach(p=>{p.re=p.re||[]});g.assets.forEach(a=>{if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;if(a.rating==null)a.rating=0});(g.offers||[]).forEach(o=>{if(!o.aud)o.aud=[];if(o.team==null){o.team=o.trac=o.tracVis=3;o.q=.5;o.sec=0}});g.players.forEach(p=>{p.pos=p.pos||[]});return g}
@@ -1539,7 +1541,7 @@ function closeOv(){$('#ovWrap').innerHTML='';ovQueue=[];if(!$('#sheet').classLis
 const MAIN=[
  {k:'casino',e:'🎰',n:'Casino',s:'3 parties',ap:1,fn:'openCasino()'},
  {k:'trade',e:'⚡',n:'Trading',s:'Long, short, levier',ap:1,fn:'openTrading()'},
- {k:'immo',e:'🌴',n:'Immobilier',s:'5 villes',ap:1,fn:'openImmo()'},
+ {k:'immo',e:'🌴',n:'Immobilier',s:'7 villes',ap:1,fn:'openImmo()'},
  {k:'biz',e:'🏢',n:'Entreprise',s:'Créer 2 · Dév. 1',ap:1,fn:'openBiz()'},
  {k:'vc',e:'🦄',n:'Startups',s:'Non cotées',ap:1,fn:'openVC()'},
  {k:'job',e:'🧑‍🍳',n:'Boulot',s:'Argent propre',ap:1,fn:'openJob()'},
@@ -1956,6 +1958,8 @@ const CITIES=[
  {k:'ny',n:'New York',e:'🗼',lvl:1.9,yld:.03,vol:.035,drift:.02,d:'Prix très élevés et solides, rendement faible.'},
  {k:'la',n:'Los Angeles',e:'🏊',lvl:1.6,yld:.035,vol:.05,drift:.018,d:'Villas avec piscine : la valeur grimpe, les loyers moins.'},
  {k:'vegas',n:'Las Vegas',e:'🎰',lvl:.9,yld:.06,vol:.07,drift:.01,d:'Casinos et chantiers : rendement élevé, prix imprévisibles.'},
+ {k:'detroit',n:'Detroit',e:'🏭',lvl:.26,yld:.085,vol:.065,drift:.002,d:'Prix au plancher et loyers juteux, mais la ville reste fragile.'},
+ {k:'nola',n:'New Orleans',e:'🎷',lvl:.3,yld:.07,vol:.05,drift:.01,d:'Jazz, bayous et maisons créoles : petits prix, loyers corrects.'},
  {k:'chicago',n:'Chicago',e:'🏬',lvl:.8,yld:.065,vol:.04,drift:.008,d:'Marché solide et populaire : bons loyers, prix sages.'},
 ];
 /* ym : multiplicateur de rendement (les petites surfaces rapportent proportionnellement plus). */
@@ -1986,7 +1990,7 @@ function reItem(x,mine){const rt=rdef(x.t),cd=cdef(x.c),v=rprice(x.c,x.t),g=v-x.
   return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n} · ${cd.n}</b><span class="small muted">Valeur <b class="num">${fmt(v)}</b> · <span class="num ${g>=0?'pos':'neg'}">${fmt(g,true)}</span> · loyer ≈ <span class="num">${fmt(rrent(x.c,x.t))}</span> par tour</span>
     ${mine?`<div class="btns">${B('Vendre',{v:'secondary',inline:1,on:`sellRE('${x.id}')`,cost:fmt(v*.95)})}</div>`:''}</span></div>`}
 /* Position des villes sur la carte (en % de la carte) et côté de leur étiquette. */
-const MAP_POS={miami:[83.2,85.3,'l'],ny:[87.9,38.3,'b'],la:[10.3,57.7,'bl'],vegas:[16.8,53.1,'r'],chicago:[65,39.5,'t']};
+const MAP_POS={detroit:[72.3,37.1,'t'],nola:[62.5,76,'r'],miami:[83.2,85.3,'b'],ny:[87.9,38.3,'b'],la:[10.3,57.7,'bl'],vegas:[16.8,53.1,'r'],chicago:[65,39.5,'l']};
 const US_PATH='M33.5 36.6 44.8 34.4 208.8 57.2 211.2 53.6 242.9 64.8 273.5 75.4 289.8 84.1 292.1 104.8 289.4 114.3 315.0 102.9 312.8 97.8 329.8 87.1 337.0 78.2 358.0 73.0 363.1 55.8 366.1 48.4 375.1 48.6 386.0 66.8 369.4 83.1 369.2 92.5 375.2 99.3 366.9 104.3 352.4 115.5 354.0 125.4 348.7 133.1 345.3 150.6 352.1 164.9 342.7 173.4 330.4 184.1 318.8 200.7 316.3 214.0 325.7 233.4 333.0 247.6 331.9 261.4 326.4 263.2 318.7 250.8 309.7 239.5 306.0 230.0 294.9 223.3 286.7 227.0 277.5 221.6 265.9 222.7 253.7 225.4 255.9 234.3 247.3 235.7 235.3 231.8 221.2 231.4 213.5 235.1 200.1 244.2 194.4 250.4 194.2 265.6 178.9 259.9 176.0 250.8 164.9 233.3 154.1 229.0 148.2 235.8 137.6 229.5 124.3 208.2 111.4 206.7 110.8 211.2 88.8 208.0 63.1 192.3 46.1 188.7 39.3 175.1 25.3 164.0 21.0 144.0 19.9 132.4 16.3 112.4 14.0 106.0 19.5 92.5 27.6 70.4 32.4 56.8 33.3 49.6Z';
 function usMapHTML(p){const sel=imSel&&city(imSel),pos=sel&&MAP_POS[imSel];
   const pins=G.cities.map(x=>{const d=cdef(x.k),[l,t,side]=MAP_POS[x.k],g=x.idx/x.idx0-1,own=(p.re||[]).filter(r=>r.c===x.k).length;
@@ -1998,7 +2002,7 @@ function usMapHTML(p){const sel=imSel&&city(imSel),pos=sel&&MAP_POS[imSel];
       <div class="mb">${spark(c.hist,160,24)}
       <div class="kv"><span>Prix depuis le début</span><b class="num ${c.idx>=c.idx0?'pos':'neg'}">${pct(c.idx/c.idx0-1)}</b></div>
       <div class="kv"><span>Dernier tour</span><b class="num ${c.chg>=0?'pos':'neg'}">${pct(c.chg)}</b></div>
-      <div class="kv"><span>Rendement locatif</span><b class="num">${pctY(c.yld)} / tour</b></div>
+      <div class="kv"><span>Rendement</span><b class="num">${pctY(c.yld)} / tour</b></div>
       <div class="kv"><span>Tendance</span><b class="${t>0?'pos':t<0?'neg':''}">${['↘ Baisse','→ Stable','↗ Hausse'][t+1]}</b></div>
       <div class="kv"><span>Demande</span><b class="${c.rating>0?'pos':c.rating<0?'neg':''}">${['Faible','Normale','Forte'][c.rating+1]}</b></div>
       <div class="kv"><span>Volatilité</span><span>${d.vol>.055?'Élevée':d.vol>.04?'Moyenne':'Faible'}</span></div>
@@ -2061,11 +2065,6 @@ function stars(n){return '★'.repeat(n)+'☆'.repeat(5-n)}
 function openVC(){openSheet('Startups non cotées',vcHTML(),()=>setBody(vcHTML()))}
 function vcHTML(){const p=viewer(),RO=ro();
   return `${RO?RO_NOTE:''}${note('Tu prends une part dans une jeune pousse. À chaque fin de tour elle peut <b>lever des fonds</b> (sa valeur grimpe), stagner, traverser une crise ou mourir. Dès la Série C, elle peut être rachetée ou entrer en Bourse.')}
-  <details class="rules"><summary>Comment choisir</summary>
-    <p><b>Équipe</b> et <b>traction</b> font la qualité cachée de la startup. La traction annoncée peut être gonflée : un <b>audit</b> révèle la vraie traction et une note de qualité de A à D.</p>
-    <p><b>Prix d’entrée</b> : les belles startups et celles qui font le buzz sont chères, ta part vaut alors moins que ta mise. La hype n’améliore presque pas les chances : une bonne équipe sans buzz, c’est la bonne affaire.</p>
-    <p><b>Secteur</b> : si les analystes sont à l’achat sur son secteur en Bourse, la startup lève plus facilement et se revend mieux.</p>
-    <p>Après chaque levée réussie, tu peux <b>remettre au pot</b> au nouveau prix, ou <b>revendre ta part</b> (−20 %) pour sécuriser tes gains. Plusieurs petits tickets limitent la casse.</p></details>
   ${G.offers.map(o=>{const au=audited(p,o),s=SECTS[o.sec||0],sa=asset(s.sym),er=entryRatio(o),ac=auditCost(o);
     return `<div class="panel offer"><div class="head"><span class="e">${o.e}</span><div><b>${esc(o.name)}</b><div class="small muted">${esc(o.pitch)}</div></div></div>
     <div class="kv"><span>Secteur</span><span>${s.n} · <span class="${(sa.rating||0)>0?'pos':(sa.rating||0)<0?'neg':''}">${RATING[(sa.rating||0)+1]}</span></span></div>
