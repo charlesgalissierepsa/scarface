@@ -66,6 +66,8 @@
   /* ---- Tailles de composants ---- */
   /* Carte de l'immobilier */
   --map-sea:#0a0418; --map-edge:rgba(25,230,255,.25);
+  /* Table de poker */
+  --pk-felt-1:#1d0a3d; --pk-felt-2:#07021a; --pk-seat:rgba(0,0,0,.28); --pk-line:rgba(255,255,255,.16); --card-face:#f7f2ff; --card-ink:#1b0b33; --card-red:#e0115f; --card-edge:#cfc4e6;
   --tap:44px; --btn-h:48px; --row-h:56px; --head-h:56px; --tag-h:20px; --chip-h:32px; --bar-w:3px;
   --av:44px; --av-sm:40px; --av-lg:72px; --av-xl:128px; --dot:8px; --icon:20px; --tile-emoji-box:32px;
   --sheet-max:88dvh; --app-max:480px; --ico-tile:1.6em; --ico-inline:1.15em;
@@ -85,7 +87,7 @@
 
   /* ---- Tailles propres à un composant ---- */
   --slant:8px; --slant-sm:4px; --stripes:8px; --pip-w:24px; --pip-h:10px; --choice-h:72px; --pill-h:28px; --free-h:64px;
-  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --pin:10px;
+  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --card-w:44px; --card-h:62px; --card-r:4px; --dur-flip:420ms; --pin:10px;
   --wheel:144px; --card-w:50px; --card-h:72px; --reel-w:76px; --reel-h:86px; --ticket-h:150px; --chart-h:180px;
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
@@ -446,11 +448,37 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .ticket .cover.gone{opacity:0;transform:scale(1.15);pointer-events:none}
 .steps{display:flex;flex-direction:column;gap:var(--sp-2);margin:var(--sp-3) 0}
 .steps div{padding:var(--sp-3);background:var(--surface-1);border-left:var(--bar-w) solid var(--neon-pink);animation:deal var(--dur-slow) var(--ease-in);font-weight:var(--fw-semibold)}
-.dice{display:flex;gap:var(--sp-8);justify-content:center;margin:var(--sp-4) 0}
-.die{text-align:center}
-.die .f{font-size:var(--fs-3xl);line-height:1}
-.die .who{font-size:var(--fs-sm);font-weight:var(--fw-semibold);margin-top:var(--sp-2)}
-.die .sum{font:var(--fw-regular) var(--fs-xl)/1 var(--font-display);margin-top:var(--sp-2)}
+/* ===== Poker (duel) : table néon, cartes qui se retournent. Les cartes gardent de petits coins arrondis : objet de jeu. ===== */
+.pkov{z-index:90}
+.pk{position:relative;width:100%;max-width:var(--dock-w);display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-6) var(--sp-4) var(--sp-4);
+  background:radial-gradient(ellipse at 50% 45%,var(--pk-felt-1),var(--pk-felt-2) 75%);border:1px solid var(--neon-pink);box-shadow:0 0 var(--glow-lg) var(--halo-pink);animation:card-in var(--dur-slow) var(--ease-in)}
+.pk::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--stripes);
+  background:linear-gradient(180deg,var(--stripe-1) 0 2px,transparent 2px 3px,var(--stripe-2) 3px 5px,transparent 5px 6px,var(--stripe-3) 6px 8px)}
+.pk-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--sp-3)}
+.pk-t{font:var(--fw-regular) var(--fs-lg)/1 var(--font-display);color:var(--neon-cyan);text-shadow:0 0 var(--glow-sm) var(--halo-cyan)}
+.pk-pot{font-size:var(--fs-sm);color:var(--ink-muted)}.pk-pot b{color:var(--cash);font-size:var(--fs-md)}
+.pk-seat{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) var(--sp-3);background:var(--pk-seat);border:1px solid var(--line);border-left:var(--bar-w) solid var(--c);transition:opacity var(--dur-slow),box-shadow var(--dur-slow)}
+.pk-seat .who{flex:1;min-width:0}.pk-seat .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-seat .hand{display:block;font-size:var(--fs-xs);font-weight:var(--fw-semibold);color:var(--neon-cyan);min-height:1.2em}
+.pk-seat.win{border-color:var(--cash);box-shadow:0 0 var(--glow-sm) var(--halo-cash)}.pk-seat.win .hand{color:var(--cash)}
+.pk-seat.lose{opacity:.6}
+.pk-cards{display:flex;gap:var(--sp-1);flex:none}
+.pk-board{display:flex;justify-content:center;gap:var(--sp-1);padding:var(--sp-3) 0;border-top:1px dashed var(--pk-line);border-bottom:1px dashed var(--pk-line)}
+.pkc{width:var(--card-w);height:var(--card-h);perspective:600px;flex:none;transition:opacity var(--dur-slow)}
+.pkc .in{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform var(--dur-flip) var(--ease-in)}
+.pkc.up .in{transform:rotateY(180deg)}
+.pkc .bk,.pkc .fr{position:absolute;inset:0;border-radius:var(--card-r);-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.pkc .bk{background:repeating-linear-gradient(45deg,var(--neon-pink) 0 3px,var(--surface-2) 3px 7px);border:2px solid var(--card-face)}
+.pkc .fr{transform:rotateY(180deg);background:var(--card-face);color:var(--card-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;border:1px solid var(--card-edge)}
+.pkc .fr.red{color:var(--card-red)}
+.pkc .r{font:var(--fw-bold) var(--fs-md)/1 var(--font-body)}.pkc .u{font-size:var(--fs-lg);line-height:1}
+.pkc.slot .in{visibility:hidden}.pkc.slot{border:1px dashed var(--pk-line);border-radius:var(--card-r)}
+.pkc.deal{animation:pk-deal var(--dur-base) var(--ease-in)}
+@keyframes pk-deal{from{transform:translateY(calc(var(--sp-4) * -1));opacity:0}}
+.pkc.dim{opacity:.4}
+.pkc.hi .fr{box-shadow:0 0 0 2px var(--cash),0 0 var(--glow-sm) var(--halo-cash)}
+.pk-res{text-align:center;min-height:var(--btn-h)}.pk-res b{display:block;font:var(--fw-regular) var(--fs-lg)/1.2 var(--font-display)}.pk-res span{color:var(--cash);font-weight:var(--fw-bold)}
+.pk-foot:empty{display:none}
 .duel-wait{text-align:center;padding:var(--sp-3) 0}
 .spark{display:block;flex:none;color:var(--c,var(--ink-muted))}
 .spark polyline{stroke:currentColor}.spark circle{fill:currentColor}
@@ -669,7 +697,7 @@ function iconize(root){if(!root||root.nodeType===8)return;
   const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),list=[];let n;
   while(n=w.nextNode()){EMO_RE.lastIndex=0;if(EMO_RE.test(n.nodeValue))list.push(n)}
   list.forEach(iconizeText)}
-function iconizeText(t){const par=t.parentNode;if(!par||!par.closest||par.closest('svg,#toast,script,style,textarea'))return;
+function iconizeText(t){const par=t.parentNode;if(!par||!par.closest||par.closest('svg,#toast,script,style,textarea,.pk'))return;
   const txt=t.nodeValue;EMO_RE.lastIndex=0;if(!EMO_RE.test(txt))return;
   const mode=par.closest('.av,.bigav')?'bare':(par.matches(ICO_TILE)&&txt.replace(EMO_RE,'').trim()==='')?'tile':'bare';
   /* Rien à remplacer (seulement des symboles conservés comme ♠ ★ ↗) : on ne touche pas au DOM, sinon le
@@ -981,17 +1009,40 @@ function addFeed(txt,p){if(!G)return;if(p===undefined)p=cur();G.feed=G.feed||[];
   /* En phase libre, plusieurs téléphones écrivent en même temps : identifiant fondé sur l'heure, fusionné par l'hôte. */
   const id=simFree()?Date.now()*100+RI(0,99):(G.feedId||0)+1;
   shared({t:'feed',item:{id,t:p?`<b>${esc(p.name)}</b> ${txt}`:txt,av:p?p.avatar:'📰',c:p?p.color:'var(--line)',by:UID,r:G.round}})}
-/* ================= MODE HYBRIDE EN LIGNE =================
-   Phase libre : tout le monde joue en même temps ses actions personnelles (casino, Bourse, immobilier, entreprises,
-   startups, banque, enchère). Chaque téléphone est seul maître de sa propre fiche et l'envoie à l'hôte, qui fusionne
-   et rediffuse. Ce qui touche aux données communes passe par de petites opérations (journal, cagnotte, tuyaux).
-   Phase des coups : chacun son tour, avec les PA gardés, pour les braquages et les coups bas, sous les yeux de tous. */
+/* ================= EN LIGNE : TOUT LE MONDE JOUE EN MÊME TEMPS =================
+   Chaque tour, tous les joueurs jouent leur tour complet en parallèle (casino, Bourse, immobilier, entreprises,
+   startups, braquages, coups bas…). Chaque téléphone est seul maître de sa propre fiche et l'envoie à l'hôte, qui
+   fusionne et rediffuse. Ce qui touche aux données communes passe par de petites opérations (journal, cagnotte,
+   tuyaux, sécurité des cibles). Un coup contre un autre joueur (duel, arnaque, balance) est une opération « hit » :
+   envoyée directement à la victime pour un effet immédiat, et gardée par l'hôte tant que la victime ne l'a pas
+   appliquée à sa fiche. Quand tout le monde a fini son tour, l'hôte applique ce qui reste et ferme la manche. */
 function simFree(){return !!(ON&&G&&G.mode==='sim'&&G.screen==='free')}
 function simStarted(){const m=me();return !!(m&&m.t&&m.t.round===G.round)}
 function applyOp(op){if(op.t==='feed'){if(!G.feed.some(f=>f.id===op.item.id)){G.feed.push(op.item);G.feed.sort((a,b)=>a.id-b.id);while(G.feed.length>30)G.feed.shift()}G.feedId=Math.max(G.feedId||0,op.item.id)}
   else if(op.t==='pot')G.pot=Math.max(0,(G.pot||0)+op.d);
   else if(op.t==='bias'){G.bias=G.bias||{};G.bias[op.sym]=(G.bias[op.sym]||0)+op.v}
-  else if(op.t==='hl')(G.highlights=G.highlights||[]).push(op.item)}
+  else if(op.t==='hl')(G.highlights=G.highlights||[]).push(op.item)
+  else if(op.t==='sec'){G.sec=G.sec||HEISTS.map(()=>0);G.sec[op.i]=(G.sec[op.i]||0)+op.d}
+  else if(op.t==='hit'){const q=G.players[op.pid];if(!q)return;
+    if(simFree()){if(q.uid===UID)applyHit(q,op);
+      else if(ON.host&&!(q.hitIds||[]).includes(op.id)&&!(G.hits||[]).some(h=>h.id===op.id))(G.hits=G.hits||[]).push(op)}
+    else applyHit(q,op,true)}}
+/* Coup porté à un autre joueur : effet sur sa fiche (argent, police, message, partie de poker à afficher). */
+function hitPlayer(t,eff){const op={t:'hit',id:rid(10),pid:t.id,eff};
+  if(simFree()&&t.uid&&t.uid!==UID)pub('msg',{to:t.uid,from:UID,type:'hit',op,gameId:G.gameId,round:G.round});
+  shared(op)}
+/* Appliqué une seule fois par fiche (identifiant gardé). local : pas d'affichage en direct (même téléphone, ou hôte qui clôt la manche). */
+function applyHit(q,op,local){q.hitIds=q.hitIds||[];if(q.hitIds.includes(op.id))return;q.hitIds.push(op.id);if(q.hitIds.length>60)q.hitIds.shift();
+  const e=op.eff||{};
+  if(e.take)takeLiquid(q,e.take);
+  if(e.cash)q.cash+=e.cash;
+  if(e.heat)q.heat=clamp(q.heat+e.heat,0,100);
+  if(e.snR)q.snR=e.snR;
+  const live=!local&&ON&&q.uid===UID;
+  if(e.card){if(live&&simStarted()&&!e.show){showCards([e.card]);haptic(e.card.bad?'error':'turn')}else q.inbox.push(e.card)}
+  if(live){if(e.show)pokerShow(e.show,'b');save();scheduleRender()}}
+/* Hôte : applique à leurs fiches les coups que les victimes n'ont pas encore reçus. */
+function flushHits(){(G.hits||[]).forEach(h=>{const q=G.players[h.pid];if(q)applyHit(q,h,true)});G.hits=[]}
 function shared(op){op.id=op.id||rid(8);op.r=G.round;applyOp(op);if(simFree()){G.opsSeen=G.opsSeen||{};G.opsSeen[op.id]=1;if(!ON.host)(ON.ops=ON.ops||[]).push(op)}}
 /* Les variables du tour (PA, casino, avocat, opportunités) : dans ma fiche en phase libre, communes sinon. */
 const LOCALS=['ap','acted','inCasino','casinoLeft','lawyer','opps'];
@@ -1007,22 +1058,20 @@ function pubStateSoon(){clearTimeout(pubSoonT);pubSoonT=setTimeout(()=>{if(ON&&G
 function onMe(m){if(!ON||!ON.host||!G||m.gameId!==G.gameId||m.round!==G.round||G.screen!=='free')return;
   const i=G.players.findIndex(q=>q.uid===m.from);if(i<0)return;
   if((m.P.v||0)>(G.players[i].v||0))G.players[i]=m.P;
+  const ids=G.players[i].hitIds||[];if(G.hits)G.hits=G.hits.filter(h=>!(h.pid===i&&ids.includes(h.id)));
   G.opsSeen=G.opsSeen||{};(m.ops||[]).forEach(op=>{if(!G.opsSeen[op.id]){G.opsSeen[op.id]=1;applyOp(op)}});
   G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;simCheck();pubStateSoon();scheduleRender()}
-/* Hôte : quand tout le monde a fini la phase libre, on passe à la phase des coups (ou directement au journal). */
+/* Hôte : quand tout le monde a fini son tour, les coups en attente sont appliqués et la manche se ferme. */
 function simDone(q){return !!(q.t&&q.t.round===G.round&&q.t.done)}
+function simDoneCount(){return G.players.filter(simDone).length}
 function simCheck(){if(!ON||!ON.host||!G||G.screen!=='free')return;if(!G.players.every(simDone))return;
-  const n=G.players.length,start=(G.round-1)%n;
-  G.coupsQ=Array.from({length:n},(_,k)=>(start+k)%n).filter(i=>{const q=G.players[i];return (q.t.apLeft||0)>0&&!(q.jail>0)});
-  G.turnCount=0;
-  if(!G.coupsQ.length){addFeed('Personne ne tente de coup ce tour-ci.',null);endRound()}
-  else{G.cur=G.coupsQ[0];G.screen='pass';addFeed('⚔️ Phase des coups : chacun son tour, sous les yeux de tous.',null)}
+  flushHits();G.turnCount=0;endRound();
   G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;pubState();scheduleRender()}
-/* Hôte : un joueur absent pendant la phase libre est marqué « fini ». */
+/* Hôte : un joueur absent est marqué « fini ». */
 function simSkip(i){if(!ON||!ON.host||G.screen!=='free')return;const q=G.players[i];if(!q||isOnline(q.uid))return;
-  q.t={round:G.round,ap:0,apLeft:0,done:true,opps:[],acted:false,inCasino:false,casinoLeft:0,lawyer:false};addFeed('est absent : sa phase libre est passée.',q);
+  q.t={round:G.round,ap:0,apLeft:0,done:true,opps:[],acted:false,inCasino:false,casinoLeft:0,lawyer:false};addFeed('est absent : son tour est passé.',q);
   G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;simCheck();pubState();render()}
-/* Début de ma phase libre : carte Destin, police, opportunités (comme un début de tour, mais pour moi seul). */
+/* Début de mon tour : carte Destin, police, opportunités. */
 function simStart(){if(!simFree()||simStarted())return;const p=me();if(!p)return;sfx.coin();haptic('turn');
   p.t={round:G.round,ap:AP_MAX,acted:false,inCasino:false,casinoLeft:3,lawyer:false,opps:[],done:false};bj=null;scratch=null;
   const cards=[];p.inbox.forEach(m=>cards.push(m));p.inbox=[];
@@ -1031,33 +1080,34 @@ function simStart(){if(!simFree()||simStarted())return;const p=me();if(!p)return
   else if(Math.random()<.42){const d=pick(DESTIN.filter(x=>x.f!==robin&&x.f!==bday));const fx=d.f(p);cards.push({k:'CARTE DESTIN',e:d.e,t:d.t,d:d.d,fx});addFeed(`pioche une carte Destin ${d.e} « ${d.t} » : ${fx}`)}
   p.t.opps=p.jail>0?[]:genOpps(p);
   save();render();if(cards.length)showCards(cards)}
-/* Fin de ma phase libre : les PA restants sont gardés pour la phase des coups. */
+/* Fin de mon tour : on attend les autres. */
 function simEnd(){if(!simFree()||!simStarted())return;const p=me();busy=false;forceClose();closeOv();haptic('confirm');
   if(bj&&!bj.over){p.cash-=bj.bet;p.stats.casino-=bj.bet;bj=null}
   if(scratch&&!scratch.open){const won=scratch.price*scratch.m;scratch.open=true;if(won>0)casinoResult(won,1,won-scratch.price)}
-  scratch=null;p.t.apLeft=p.jail>0?0:p.t.ap;p.t.done=true;save();render();window.scrollTo(0,0)}
+  scratch=null;p.t.apLeft=0;p.t.done=true;save();render();window.scrollTo(0,0)}
 function renderFree(){const p=me();if(!p)return renderSpectate();
   if(!simStarted())return paint(`${topBar('',1)}<div class="pass" style="--c:${p.color}" data-z="pass">
-    <span class="pill num">Tour ${G.round} / ${G.maxRounds} · phase libre</span>
+    <span class="pill num">Tour ${G.round} / ${G.maxRounds}</span>
     <div class="bigav">${p.avatar}</div>
     <div><div class="who-lbl">Tout le monde joue en même temps</div><h1>À toi, ${esc(p.name)} !</h1></div>
-    <p class="muted small center">Casino, Bourse, immobilier, entreprises, startups, enchère : joue sans attendre les autres. Garde des points d’action pour la phase des coups (braquages et coups bas), qui se joue ensuite chacun son tour.</p>
+    <p class="muted small center">Casino, Bourse, immobilier, braquages, coups bas : tout se joue maintenant, sans attendre les autres. Les coups bas tombent en direct sur l’écran de la victime.</p>
     ${p.jail>0?`<span class="tag r">${icon('lock')}&nbsp;En prison</span>`:''}
-    <div class="btnwrap">${B('Jouer ma phase libre',{v:'primary',on:'simStart()',intro:1})}</div></div>`,'free'+G.round);
+    <div class="btnwrap">${B('Jouer mon tour',{v:'primary',on:'simStart()',intro:1})}</div></div>`,'free'+G.round);
   if(!p.t.done)return renderTurn();
   return renderWaitFree()}
 function renderWaitFree(){const p=me(),feed=(G.feed||[]).slice().reverse().slice(0,10);
   paint(`<div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds} · ${ON.code}</span>
     ${topActs(1)}</div>
-  <div class="panel" data-z="who">${label('Phase libre')}<p class="small muted">Tu as fini. Tu gardes <b class="num">${p.t.apLeft||0} PA</b> pour la phase des coups.</p>
-    <div class="list">${G.players.map((q,i)=>{const d=simDone(q),on=isOnline(q.uid);return `<div class="item"><div class="av sm" style="--c:${q.color}">${q.avatar}</div><span class="bd"><b>${esc(q.name)}${q.uid===UID?' <span class="tag">toi</span>':''}</b><span class="small muted">${d?'a terminé':on?'joue encore…':'hors ligne'}</span></span>${!d&&!on&&ON.host?B('Passer',{v:'secondary',inline:1,on:`simSkip(${i})`}):''}</div>`}).join('')}</div></div>
+  <div class="panel" data-z="who">${label('Tour terminé')}<p class="small muted">Tu as fini ton tour. Les autres jouent encore : tu peux toujours être défié ou arnaqué.</p>
+    <div class="list">${G.players.map((q,i)=>{const d=simDone(q),on=isOnline(q.uid);return `<div class="item"><div class="av sm" style="--c:${q.color}">${q.avatar}</div><span class="bd"><b>${esc(q.name)}${q.uid===UID?' <span class="tag">toi</span>':''}</b><span class="small muted">${d?'a fini son tour':on?'joue encore…':'hors ligne'}</span></span>${!d&&!on&&ON.host?B('Passer',{v:'secondary',inline:1,on:`simSkip(${i})`}):''}</div>`}).join('')}</div></div>
   <div data-z="intel">${intelHTML(p,false)}</div>
   <div data-z="prep">${label('En attendant')}<div class="freebar">
     <button class="free" onclick="openMarket()"><span>📈</span>Bourse</button>
     <button class="free" onclick="openTrading()"><span>⚡</span>Positions</button>
     <button class="free" onclick="openImmo()"><span>🌴</span>Immobilier</button>
     <button class="free" onclick="openVC()"><span>🦄</span>Startups</button></div></div>
-  <div data-z="feed">${label('Ce qui se passe')}<div class="list">${feed.map(f=>`<div class="item"><span class="bd small">${f.t}</span></div>`).join('')}</div></div>`,'waitfree'+G.round)}
+  <div data-z="feed">${label('Ce qui se passe')}<div class="list">${feed.map(f=>`<div class="item"><span class="bd small">${f.t}</span></div>`).join('')}</div></div>
+  <div class="dock" data-z="dock"><button class="btn btn-secondary" disabled aria-live="polite">En attente de ${simDoneCount()}/${G.players.length}</button></div>`,'waitfree'+G.round)}
 function isMyTurn(){if(!ON)return true;if(!G)return false;if(G.screen==='free'){const m=me();return !!m&&!(m.t&&m.t.round===G.round&&m.t.done)}
   return !!(G.players[G.cur]&&G.players[G.cur].uid===UID)}
 function me(){return G&&ON?G.players.find(p=>p.uid===UID):null}
@@ -1152,7 +1202,7 @@ const RULES_BODY=`    <p>Chacun part avec la même somme. À ton tour, tu as <b>
     <p><b>Trading</b> : tes positions (hausse ou baisse, levier jusqu’à x10, stop-loss, objectif) restent ouvertes d’un tour à l’autre. Lis les signaux (tendance, valorisation, analystes, résultats trimestriels) : ils donnent un avantage, pas une certitude.</p>
     <p><b>Immobilier</b> : 7 villes américaines, chacune avec son niveau de prix, son rendement locatif et sa tendance, qui évoluent à chaque tour. Compare avant d’acheter : un studio à Detroit ne coûte que quelques milliers d’euros et rapporte beaucoup en loyers, une villa à New York compte surtout sur la hausse des prix. Un logement peut rester vide un tour.</p>
     <p><b>Casinos</b> : du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). Pour entrer dans le casino suivant, cumule dans le casino actuel des gains égaux à sa mise max. Les pertes ne comptent pas.</p>
-    <p><b>En ligne, deux phases par tour.</b> D’abord la <b>phase libre</b> : tout le monde joue en même temps ses actions personnelles (casino, Bourse, immobilier, entreprises, startups, enchère). Puis la <b>phase des coups</b>, chacun son tour sous les yeux de tous, avec les PA que tu as gardés : braquages et coups bas. Sur un seul téléphone, on joue chacun son tour comme avant.</p>
+    <p><b>En ligne, tout le monde joue en même temps.</b> Chacun joue son tour complet sur son téléphone, sans attendre les autres : casino, Bourse, immobilier, braquages, coups bas. Les coups bas tombent en direct chez la victime, et un duel au poker s’affiche sur les deux écrans. Quand tu as fini, touche « Finir mon tour » : la manche se ferme quand tout le monde a fini. Sur un seul téléphone, on joue chacun son tour.</p>
     <p><b>Personnage et objectif secret</b> : chacun reçoit un personnage (un talent, un défaut) et un objectif secret. Objectif réussi à la fin : +15 % de patrimoine.</p>
     <p><b>Enchère de la manche</b> : un lot par tour (un bien saisi, une collection d’art). Offre secrète, gratuite en PA ; la plus haute gagne, les autres sont remboursés.</p>
     <p><b>Rumeurs</b> : l’événement de fin de manche est annoncé à l’avance… et la rumeur dit vrai environ 7 fois sur 10.</p>
@@ -1376,6 +1426,8 @@ function applyState(m){
   G=m.G;
   if(keep){const i=G.players.findIndex(q=>q.uid===UID);if(i>=0&&(keep.v||0)>=(G.players[i].v||0))G.players[i]=keep}
   bindLocal();
+  /* Coups reçus via l'hôte (si le message direct s'est perdu) */
+  if(simFree()){const mine=(G.hits||[]).filter(h=>{const q=G.players[h.pid];return q&&q.uid===UID&&!(q.hitIds||[]).includes(h.id)});mine.forEach(h=>applyHit(G.players[h.pid],h))}
   if(prevScreen!==G.screen+G.round)window.scrollTo(0,0);
   const fresh=(G.feed||[]).filter(f=>f.id>lastFeed&&f.by!==UID);
   fresh.slice(-1).forEach(f=>toast(f.t.replace(/<[^>]+>/g,'')));
@@ -1399,14 +1451,8 @@ function onJoin(m){
 function onLeave(m){if(!ON.host||!ON.lobby||ON.lobby.started)return;ON.lobby.players=ON.lobby.players.filter(p=>p.uid!==m.uid);pubLobby();render()}
 function onMsg(m){
   if(m.to!==UID)return;
-  if(m.type==='duelReq'){
-    showCards([{k:'DÉFI',e:'🎲',t:`${m.fromAv} ${m.fromName} te défie aux dés !`,d:`Mise : <b>${fmt(m.stake)}</b>. Le plus gros lancer rafle tout. Si tu refuses, tu lui verses ${fmt(m.stake*.1)}.`,
-      btns:[{l:'J’accepte le duel',cls:'',fn:`duelAnswer('${m.id}','${m.from}',1)`},{l:'Je me dégonfle',cls:'ghost',fn:`duelAnswer('${m.id}','${m.from}',0)`}]}]);
-    sfx.big();haptic('turn');
-  }
-  if(m.type==='duelRes'&&dt.reqId&&m.id===dt.reqId){clearTimeout(dt.timer);dt.reqId=null;m.acc?duelGo():duelRefuse()}
+  if(m.type==='hit'&&G&&m.gameId===G.gameId&&m.round===G.round&&simFree()){ON.presence[m.from]=Date.now();applyOp(m.op);scheduleRender()}
 }
-function duelAnswer(id,to,acc){closeOv();pub('msg',{to,from:UID,type:'duelRes',id,acc:!!acc});toast(acc?'Duel accepté : les dés roulent.':'Tu as refusé le duel.')}
 /* lobby */
 function renderLobby(){
   if(!ON||!ON.lobby){APP.view='home';return renderHome()}
@@ -1565,7 +1611,7 @@ function renderTurn(){
   const apMsg=G.inCasino&&G.casinoLeft>0?`Au casino : encore ${G.casinoLeft} partie${G.casinoLeft>1?'s':''}`:G.ap>0?`${G.ap} point${G.ap>1?'s':''} d’action restant${G.ap>1?'s':''}`:'Plus de PA : gère tes finances ou termine';
   const meta=[p.net?NET[p.net].n:'Citoyen modèle','Réputation '+rep(p)];if(p.shield>=G.round)meta.push('avocat à l’année');
   paint(`
-  <div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds}${G.mode==='sim'?(G.screen==='free'?' · phase libre':' · phase des coups'):''}</span>
+  <div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds}</span>
     ${topActs(1)}</div>
   <div class="hero" style="--c:${p.color}" data-z="hero">
     <div class="who"><div class="av" style="--c:${p.color}">${p.avatar}</div><div><b>${esc(p.name)}</b><div class="meta">${meta.join(' · ')}</div></div></div>
@@ -1577,8 +1623,8 @@ function renderTurn(){
   <div data-z="intel">${intelHTML(p,true)}</div>
   <div data-z="opps">${opps.length?`${label('Opportunités du tour')}<div class="opps">${opps.map(oppHTML).join('')}</div>`:''}</div>
   <div data-z="tiles">${label('Actions')}
-  <div class="tiles">${MAIN.map(t=>{const live=t.k==='casino'&&G.inCasino&&G.casinoLeft>0;const minAp=t.k==='heist'||t.k==='biz'||t.k==='traf'?1:t.ap;const coupK=t.k==='heist'||t.k==='dirty';
-    if(G.mode==='sim'&&(G.screen==='free'?coupK:!coupK))return `<button class="tile ${t.dark?'dark':''} used" onclick="toast('${G.screen==='free'?'Ça se joue pendant la phase des coups, après la phase libre. Garde des PA !':'Pendant la phase des coups : seulement braquages et coups bas.'}',1)" aria-label="${t.n}, ${G.screen==='free'?'phase des coups':'phase libre terminée'}">${t.dark?'<span class="ill">Illégal</span>':''}<span class="c">${G.screen==='free'?'Plus tard':'Fini'}</span><span class="e">${t.e}</span><span class="n">${t.n}</span><span class="s">${G.screen==='free'?'Phase des coups':'Phase libre'}</span></button>`;if(t.k==='casino'&&G.pot>=1000)t={...t,s:'Cagnotte '+fmt(G.pot)};
+  <div class="tiles">${MAIN.map(t=>{const live=t.k==='casino'&&G.inCasino&&G.casinoLeft>0;const minAp=t.k==='heist'||t.k==='biz'||t.k==='traf'?1:t.ap;
+    if(t.k==='casino'&&G.pot>=1000)t={...t,s:'Cagnotte '+fmt(G.pot)};
     return `<button class="tile ${t.dark?'dark':''} ${!live&&G.ap<minAp?'used':''} ${live?'live':''}" onclick="${t.fn}" aria-label="${t.n}, ${t.s}, ${live?G.casinoLeft+' parties restantes':(t.cl||t.ap)+' PA'}${t.dark?', illégal':''}">${t.dark?'<span class="ill">Illégal</span>':''}<span class="c num">${live?G.casinoLeft+'/3':(t.cl||t.ap)+' PA'}</span><span class="e">${t.e}</span><span class="n">${t.n}</span><span class="s">${t.s}</span></button>`}).join('')}</div></div>
   <div data-z="free">${label('Gratuit')}
   <div class="freebar">
@@ -1587,7 +1633,7 @@ function renderTurn(){
     <button class="free ${p.dirty>0?'hot':''}" onclick="openLaunder()"><span>🧼</span>Blanchir</button>
     <button class="free" onclick="openAssets()"><span>💼</span>Biens</button>
   </div></div>
-  <div class="dock" data-z="dock">${G.screen==='free'?B(G.ap>0?`Finir ma phase libre (garder ${G.ap} PA)`:'Finir ma phase libre',{v:'primary',on:'endTurn()'}):G.acted?B('Terminer mon tour',{v:'primary',on:'confirmEnd()'}):B('Passer mon tour',{v:'secondary',on:'confirmEnd()'})}</div>`,'turn'+G.round+G.cur+G.screen);
+  <div class="dock" data-z="dock">${G.screen==='free'?B('Finir mon tour',{v:'primary',on:'endTurn()'}):G.acted?B('Terminer mon tour',{v:'primary',on:'confirmEnd()'}):B('Passer mon tour',{v:'secondary',on:'confirmEnd()'})}</div>`,'turn'+G.round+G.cur+G.screen);
 }
 function confirmEnd(){if(busy)return;if(!G.acted){openSheet('Passer ton tour ?',`<p class="muted">Tu n’as utilisé aucun point d’action.</p>
   <div class="sheet-foot stack">${B('Passer mon tour',{v:'primary',on:'endTurn()'})}${B('Continuer à jouer',{v:'secondary',on:'closeSheet()'})}</div>`);return}endTurn()}
@@ -2138,9 +2184,9 @@ function heistHTML(){const p=cur(),h=HEISTS[hs.t],ch=heistChance(),cut=TEAMS[hs.
   ${locked?`<div class="err">Il te faut ${h.rep} de réputation pour cette cible. Réussis d’abord des coups plus modestes.</div>`:`
   <div class="mt-3">${B(rb?'Cible déjà repérée':'Faire un repérage',{v:'secondary',on:'doRecon()',cost:rb?'+15 %':'1 PA · +15 %',why:rb?'Le bonus dure jusqu’au prochain tour':G.ap<1?'Plus de points d’action':''})}</div>
   <div class="sheet-foot">${B('Lancer le braquage',{v:'danger',on:'runHeist()',cost:fmt(cost)+' · 2 PA',why})}</div>`}`}
-function doRecon(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}const p=cur(),h=HEISTS[hs.t];if(rep(p)<h.rep||!useAP(1))return;p.recon={t:hs.t,until:G.round+1};p.heat=clamp(p.heat+2,0,100);
+function doRecon(){const p=cur(),h=HEISTS[hs.t];if(rep(p)<h.rep||!useAP(1))return;p.recon={t:hs.t,until:G.round+1};p.heat=clamp(p.heat+2,0,100);
   addFeed('fait des repérages discrets');sfx.tick();toast(`${h.n} repéré(e) : +15 % jusqu’au prochain tour`);after()}
-async function runHeist(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)return;
+async function runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)return;
   if(rep(p)<h.rep){toast(`Réputation ${h.rep} requise.`,1);return}
   if(!canPay(p,cost)||!useAP(2))return;
   const ch=heistChance();p.cash-=cost;busy=true;render();
@@ -2149,7 +2195,7 @@ async function runHeist(){if(simFree()){toast('Ça se joue pendant la phase des 
   for(const [e,t] of steps){const d=document.createElement('div');d.textContent=e+'  '+t;$('#hsteps').appendChild(d);tone(220,.15,'triangle',.06);haptic('step');await sleep(950)}
   const ok=Math.random()<ch;let html,hLoot=0;p.recon=null;
   if(ok){const loot=R(h.min,h.max)*APPS[hs.app][2]*(1-TEAMS[hs.team][2]);hLoot=loot;p.dirty+=loot;p.stats.crime+=loot;p.stats.heists++;p.rep=rep(p)+1;
-    G.sec=G.sec||HEISTS.map(()=>0);G.sec[hs.t]+=2;p.heat=clamp(p.heat+h.heat*APPS[hs.app][3],0,100);
+    shared({t:'sec',i:hs.t,d:2});p.heat=clamp(p.heat+h.heat*APPS[hs.app][3],0,100);
     html=`${resBox(1,`Braquage réussi<span class="big dirty">${fmt(loot,true)}</span>`)}<p class="muted small">Argent sale : pense à le blanchir. Réputation ${p.rep}. La cible renforce sa sécurité.</p>`;
     loot>100000?sfx.big():sfx.win();haptic('jackpot');popMoney(loot);if(loot>=20000)shared({t:'hl',item:{r:G.round,pid:p.id,t:`braque ${h.n.toLowerCase()}`,v:loot}})}
   else if(Math.random()<.2){p.heat=clamp(p.heat+h.heat*.6,0,100);html=`${resBox(-1,'Raté, mais tu t’enfuis les mains vides')}<p class="muted small">La préparation (<span class="num">${fmt(cost)}</span>) est perdue et les flics ont ton signalement.</p>`;sfx.lose()}
@@ -2196,59 +2242,108 @@ function openDirty(){if(!hasAP(1))return;
   const others=G.players.filter(o=>o.id!==cur().id);if(dt.target==null||dt.target===cur().id||!G.players[dt.target])dt.target=others[0].id;
   openSheet('Coups bas',dirtyHTML(),()=>setBody(dirtyHTML()))}
 function dirtyHTML(){const p=cur(),t=G.players[dt.target],others=G.players.filter(o=>o.id!==p.id);
-  const modes=[['duel','🎲','Duel de dés','Mise contre un pote : le plus gros lancer rafle tout. Refuser coûte 10 % de la mise.'],
+  const modes=[['duel','🎱','Duel au poker','Texas Hold’em à mise égale : la meilleure main rafle le pot. La partie s’affiche en direct sur vos deux écrans.'],
     ['scam','🃏','Arnaque',`${Math.round(Math.min(.85,(isMark(t)?.65:.5)+(chr(p)==='crook'?.2:0))*100)} % de chances de lui soutirer 8 à 20 % de son argent liquide (cash et actions). Si ça rate, tu lui dois un dédommagement.`],
     ['snitch','🐀','Balancer',`Pour ${fmt(snitchCost(t))}, tu donnes un tuyau anonyme à la police : sa jauge prend +35. Une fois par tour et par victime.`]];
   let foot='';
   if(dt.mode==='duel'){const mx=Math.max(0,Math.min(p.cash,t.cash));foot=`<h3 class="sec">Mise du duel</h3>${amt('duelAmt',mx,Math.min(2000,mx))}
     <div class="sheet-foot">${B('Défier '+esc(t.name),{v:'danger',on:'startDuel()',cost:'1 PA',why:whyNot(1,0,p)||(mx<=0?'Un de vous deux n’a plus de cash':'')})}</div>`}
   if(dt.mode==='scam')foot=`<div class="sheet-foot">${B('Arnaquer '+esc(t.name),{v:'danger',on:'doScam()',cost:'1 PA',why:whyNot(1,0,p)})}</div>`;
-  if(dt.mode==='snitch')foot=`<div class="sheet-foot">${B('Balancer '+esc(t.name),{v:'danger',on:'doSnitch()',cost:fmt(snitchCost(t))+' · 1 PA',why:(G.snitched&&G.snitched[t.id]===G.round)?'Déjà balancé ce tour-ci':whyNot(1,snitchCost(t),p)})}</div>`;
+  if(dt.mode==='snitch')foot=`<div class="sheet-foot">${B('Balancer '+esc(t.name),{v:'danger',on:'doSnitch()',cost:fmt(snitchCost(t))+' · 1 PA',why:snitched(t)?'Déjà balancé ce tour-ci':whyNot(1,snitchCost(t),p)})}</div>`;
   const markNote=isMark(t)?note(`${esc(t.name)} est <b>la cible du moment</b> (en tête ou vient de toucher le gros lot) : les coups bas contre lui coûtent moins cher et réussissent plus souvent.`,'mt-3'):'';
   return `<h3 class="sec">Le coup</h3><div class="list ill">${modes.map(([k,e,l,d])=>`<button class="item pick ${dt.mode===k?'sel':''}" aria-pressed="${dt.mode===k}" onclick="dt.mode='${k}';refreshSheet()"><span class="ic">${e}</span><span class="bd"><b>${l}</b><span class="small muted">${d}</span></span><span class="rt small muted">1 PA</span></button>`).join('')}</div>
   <h3 class="sec">Victime</h3><div class="seg">${others.map(o=>`<button class="${dt.target===o.id?'on':''}" aria-pressed="${dt.target===o.id}" onclick="dt.target=${o.id};refreshSheet()">${o.avatar} ${esc(o.name)}<small class="num">${blind(o)?'?':fmt(o.cash)}</small>${isMark(o)?'<small>cible</small>':''}</button>`).join('')}</div>${markNote}${foot}`}
-function startDuel(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}const p=cur(),t=G.players[dt.target],n=getAmt('duelAmt');if(n<=0){toast('Choisis une mise.',1);return}if(n>p.cash||n>t.cash){toast('La mise dépasse le cash de l’un de vous deux.',1);return}
-  if(!useAP(1))return;dt.stake=n;render();
-  $('#shTitle').textContent='Duel de dés';
-  if(ON&&t.uid!==UID){busy=true;dt.reqId=rid(6);
-    pub('msg',{to:t.uid,from:UID,type:'duelReq',id:dt.reqId,stake:n,fromName:p.name,fromAv:p.avatar});
-    $('#shBody').innerHTML=`<div class="duel-wait"><div class="av lg" style="--c:${t.color}">${t.avatar}</div>
-      <h2>Défi envoyé à ${esc(t.name)}</h2><p class="muted">Mise <b class="gold num">${fmt(n)}</b>. On attend sa réponse sur son téléphone.</p>${waitDots()}</div>`;
-    clearTimeout(dt.timer);dt.timer=setTimeout(()=>{if(!dt.reqId)return;dt.reqId=null;busy=false;G.ap+=1;G.acted=G.ap<AP_MAX;
-      $('#shBody').innerHTML=`${resBox(0,esc(t.name)+' n’a pas répondu. Ton point d’action t’est rendu.')}${B('Fermer',{v:'secondary',on:'closeSheet()'})}`;render()},45000);
-    return}
-  $('#shBody').innerHTML=`<div class="duel-wait"><div class="av lg" style="--c:${t.color}">${t.avatar}</div>
-    <h2>Passe le téléphone à ${esc(t.name)}</h2><p class="muted">${esc(p.name)} te défie aux dés pour <b class="gold num">${fmt(n)}</b>. Refuser te coûte <span class="num">${fmt(n*.1)}</span>, et la honte.</p></div>
-    <div class="sheet-foot stack">${B('J’accepte le duel',{v:'primary',on:'duelGo()'})}${B('Je me dégonfle',{v:'secondary',on:'duelRefuse()'})}</div>`;busy=true}
-function duelRefuse(){if(!dt.stake||dt.rolling)return;const p=cur(),t=G.players[dt.target],x=dt.stake*.1;dt.stake=0;t.cash-=x;p.cash+=x;busy=false;sfx.coin();
-  addFeed(`se dégonfle face au défi de ${esc(p.name)} et lui verse ${fmt(x)}`,t);
-  $('#shBody').innerHTML=`${resBox(1,esc(t.name)+' se dégonfle et te verse <span class="num">'+fmt(x)+'</span>')}${B('Fermer',{v:'secondary',on:'closeSheet()'})}`;save();render()}
-const DF=['⚀','⚁','⚂','⚃','⚄','⚅'];
-async function duelGo(){if(!dt.stake||dt.rolling)return;dt.rolling=true;const p=cur(),t=G.players[dt.target];
-  $('#shBody').innerHTML=`<div class="dice"><div class="die"><div class="f" id="d1">⚀⚀</div><div class="sum" id="s1">–</div><div class="who">${p.avatar} ${esc(p.name)}</div></div><div class="die"><div class="f" id="d2">⚀⚀</div><div class="sum" id="s2">–</div><div class="who">${t.avatar} ${esc(t.name)}</div></div></div><div id="dres"></div>`;
-  let a,b;do{for(let i=0;i<14;i++){$('#d1').textContent=pick(DF)+pick(DF);$('#d2').textContent=pick(DF)+pick(DF);sfx.tick();await sleep(70)}
-    const a1=RI(1,6),a2=RI(1,6),b1=RI(1,6),b2=RI(1,6);a=a1+a2;b=b1+b2;$('#d1').textContent=DF[a1-1]+DF[a2-1];$('#d2').textContent=DF[b1-1]+DF[b2-1];$('#s1').textContent=a;$('#s2').textContent=b;
-    if(a===b){$('#dres').innerHTML=resBox(0,'Égalité, on relance');await sleep(1100);$('#dres').innerHTML=''}}while(a===b);
-  const win=a>b,w=win?p:t,l=win?t:p;w.cash+=dt.stake;l.cash-=dt.stake;
-  addFeed(`remporte ${fmt(dt.stake)} au duel de dés contre ${esc(l.name)} (${Math.max(a,b)} à ${Math.min(a,b)})`,w);
-  $('#dres').innerHTML=`${resBox(1,`${w.avatar} ${esc(w.name)} rafle <span class="num">${fmt(dt.stake)}</span>`)}${B('Fermer',{v:'secondary',on:'closeSheet()'})}`;
-  dt.stake=0;dt.rolling=false;sfx.big();busy=false;save();render()}
-function doScam(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}if(!useAP(1))return;const p=cur(),t=G.players[dt.target];let html;
-  if(Math.random()<Math.min(.85,(isMark(t)?.65:.5)+(chr(p)==='crook'?.2:0))){const x=takeLiquid(t,liquid(t)*R(.08,.2));p.cash+=x;p.stats.scam+=x;p.stats.scams=(p.stats.scams||0)+1;
-    t.inbox.push({k:'Mauvaise nouvelle',e:'🃏',t:'Tu t’es fait arnaquer',d:`Un faux placement en or « garanti » : ${esc(p.name)} t’a eu en beauté.`,fx:fmt(-x)});
+function startDuel(){const p=cur(),t=G.players[dt.target],n=Math.floor(getAmt('duelAmt'));if(busy)return;if(n<=0){toast('Choisis une mise.',1);return}
+  if(n>p.cash||n>t.cash){toast('La mise dépasse le cash de l’un de vous deux.',1);return}
+  if(!useAP(1))return;
+  const deck=pkDeal(),r=pkResult(deck),d=r>0?n:r<0?-n:0;
+  p.cash+=d;
+  const show={id:rid(8),a:pkSeat(p),b:pkSeat(t),deck,stake:n};
+  hitPlayer(t,{cash:-d,show});
+  forceClose();save();render();
+  pokerShow(show,'a').then(()=>{const ha=pkName(pkEval(pkHand(deck,0)).s),hb=pkName(pkEval(pkHand(deck,1)).s);
+    if(!r)addFeed(`fait match nul au poker contre ${esc(t.name)} (${ha} partout)`,p);
+    else addFeed(`remporte ${fmt(n)} au poker contre ${esc((r>0?t:p).name)} (${r>0?ha:hb} contre ${r>0?hb:ha})`,r>0?p:t);
+    save();render()})}
+function doScam(){if(busy||!useAP(1))return;const p=cur(),t=G.players[dt.target];let html;
+  if(Math.random()<Math.min(.85,(isMark(t)?.65:.5)+(chr(p)==='crook'?.2:0))){const x=Math.round(liquid(t)*R(.08,.2));p.cash+=x;p.stats.scam+=x;p.stats.scams=(p.stats.scams||0)+1;
+    hitPlayer(t,{take:x,card:{k:'Mauvaise nouvelle',e:'🃏',t:'Tu t’es fait arnaquer',bad:1,d:`Un faux placement en or « garanti » : ${esc(p.name)} t’a eu en beauté.`,fx:fmt(-x)}});
     addFeed(`arnaque ${esc(t.name)} et lui soutire ${fmt(x)}`);
     html=resBox(1,`Arnaque réussie<span class="big">${fmt(x,true)}</span>`);sfx.win();popMoney(x)}
-  else{const x=takeLiquid(p,Math.max(1000,liquid(p)*.05));t.cash+=x;p.heat=clamp(p.heat+(chr(p)==='crook'?20:10),0,100);
-    t.inbox.push({k:'Bonne nouvelle',e:'🕵️',t:'Tentative d’arnaque déjouée',d:`${esc(p.name)} a essayé de t’arnaquer. Raté : il te verse un dédommagement.`,fx:fmt(x,true)});
+  else{const x=takeLiquid(p,Math.max(1000,liquid(p)*.05));p.heat=clamp(p.heat+(chr(p)==='crook'?20:10),0,100);
+    hitPlayer(t,{cash:x,card:{k:'Bonne nouvelle',e:'🕵️',t:'Tentative d’arnaque déjouée',d:`${esc(p.name)} a essayé de t’arnaquer. Raté : il te verse un dédommagement.`,fx:fmt(x,true)}});
     addFeed(`tente d’arnaquer ${esc(t.name)}, raté : il doit le dédommager`);
     html=resBox(-1,`${esc(t.name)} a flairé l’arnaque. Tu lui dois <span class="num">${fmt(x)}</span>.`);sfx.lose();shake()}
   $('#shBody').innerHTML=html+B('Fermer',{v:'secondary',on:'closeSheet()'});save();render()}
-/* Balancer : 2 % du patrimoine de la victime (3 000 € minimum), moitié prix contre la cible du moment. */
+/* Balancer : 2 % du patrimoine de la victime (3 000 € minimum), moitié prix contre la cible du moment. Une fois par tour et par victime. */
 function snitchCost(t){return niceRound(Math.max(3000,netWorth(t)*.02)*(isMark(t)?.5:1))}
-function doSnitch(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}const p=cur(),t=G.players[dt.target],c=snitchCost(t);G.snitched=G.snitched||{};if(G.snitched[t.id]===G.round){toast('Déjà balancé ce tour-ci.',1);return}
-  if(!canPay(p,c)||!useAP(1))return;p.cash-=c;G.snitched[t.id]=G.round;t.heat=clamp(t.heat+35,0,100);addFeed('Un tuyau anonyme vient d’arriver au commissariat : quelqu’un a été balancé.',null);
-  t.inbox.push({k:'Police',e:'🐀',t:'Quelqu’un t’a balancé',bad:1,d:'Un tuyau anonyme est arrivé au commissariat. Qui parmi tes « amis » a fait ça ?',fx:'Police +35'});
+function snitched(t){const p=cur();return t.snR===G.round||!!(p&&p.snd&&p.snd[t.id]===G.round)}
+function doSnitch(){const p=cur(),t=G.players[dt.target],c=snitchCost(t);if(snitched(t)){toast('Déjà balancé ce tour-ci.',1);return}
+  if(!canPay(p,c)||!useAP(1))return;p.cash-=c;p.snd=p.snd||{};p.snd[t.id]=G.round;
+  hitPlayer(t,{heat:35,snR:G.round,card:{k:'Police',e:'🐀',t:'Quelqu’un t’a balancé',bad:1,d:'Un tuyau anonyme est arrivé au commissariat. Qui parmi tes « amis » a fait ça ?',fx:'Police +35'}});
+  addFeed('Un tuyau anonyme vient d’arriver au commissariat : quelqu’un a été balancé.',null);
   $('#shBody').innerHTML=`${resBox(1,`C’est fait. ${esc(t.name)} ne saura jamais que c’était toi, sauf si tu craques.`)}${B('Fermer',{v:'secondary',on:'closeSheet()'})}`;sfx.coin();save();render()}
+/* ================= POKER (duel) =================
+   Texas Hold'em à deux : 2 cartes fermées chacun, puis le flop (3), le turn, la river. La meilleure main de 5 cartes
+   parmi 7 gagne. Le donneur tire les 9 cartes et calcule le résultat ; l'adversaire reçoit le même paquet et voit la
+   même partie en direct. Cartes : 4 × rang + couleur (rang 0 = 2 … 12 = As). */
+const $$=q=>[...document.querySelectorAll(q)];
+const PK_S='♠♥♦♣',PK_RL=['2','3','4','5','6','7','8','9','10','V','D','R','A'];
+const PK_N=['2','3','4','5','6','7','8','9','10','Valet','Dame','Roi','As'],PK_P=['2','3','4','5','6','7','8','9','10','Valets','Dames','Rois','As'];
+function pkDeal(){const d=Array.from({length:52},(_,i)=>i);for(let i=51;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}return d.slice(0,9)}
+/* main du joueur k (0 = donneur, 1 = adversaire) avec les n premières cartes du tableau */
+function pkHand(deck,k,n=5){return [deck[2*k],deck[2*k+1],...deck.slice(4,4+n)]}
+/* Note d'une main : [catégorie, départages…]. 8 quinte flush, 7 carré, 6 full, 5 couleur, 4 quinte, 3 brelan, 2 double paire, 1 paire, 0 hauteur. */
+function pkScore(cs){const rs=cs.map(c=>c>>2).sort((a,b)=>b-a),cnt={};rs.forEach(r=>cnt[r]=(cnt[r]||0)+1);
+  const g=Object.keys(cnt).map(Number).sort((a,b)=>cnt[b]-cnt[a]||b-a),c0=cnt[g[0]],c1=cnt[g[1]]||0;
+  if(cs.length===5){const fl=cs.every(c=>(c&3)===(cs[0]&3));let st=-1;
+    if(g.length===5){if(rs[0]-rs[4]===4)st=rs[0];else if(rs[0]===12&&rs[1]===3)st=3}
+    if(st>=0&&fl)return [8,st];if(c0===4)return [7,...g];if(c0===3&&c1===2)return [6,...g];if(fl)return [5,...rs];if(st>=0)return [4,st]}
+  if(c0===4)return [7,...g];if(c0===3&&c1>=2)return [6,...g];
+  if(c0===3)return [3,...g];if(c0===2&&c1===2)return [2,...g];if(c0===2)return [1,...g];return [0,...rs]}
+function pkCmp(a,b){for(let i=0;i<Math.max(a.length,b.length);i++){const d=(a[i]||0)-(b[i]||0);if(d)return d}return 0}
+/* Meilleure combinaison de 5 cartes parmi celles connues (2 à 7) ; renvoie la note et les cartes qui la forment. */
+function pkEval(cs){if(cs.length<=5)return {s:pkScore(cs),cards:cs.slice()};let best=null;
+  const k=cs.length,pick5=(st,acc)=>{if(acc.length===5){const sc=pkScore(acc);if(!best||pkCmp(sc,best.s)>0)best={s:sc,cards:acc.slice()};return}
+    for(let i=st;i<=k-(5-acc.length);i++){acc.push(cs[i]);pick5(i+1,acc);acc.pop()}};pick5(0,[]);return best}
+function pkResult(deck){return Math.sign(pkCmp(pkEval(pkHand(deck,0)).s,pkEval(pkHand(deck,1)).s))}
+const pkDe=r=>r===12?'d’As':'de '+PK_P[r];
+function pkName(s){const[c,a,b]=s;return [
+  ()=>'Hauteur '+PK_N[a],()=>'Paire '+pkDe(a),()=>`Double paire, ${PK_P[a]} et ${PK_P[b]}`,()=>'Brelan '+pkDe(a),
+  ()=>'Quinte hauteur '+PK_N[a],()=>'Couleur hauteur '+PK_N[a],()=>`Full aux ${PK_P[a]} par les ${PK_P[b]}`,()=>'Carré '+pkDe(a),
+  ()=>a===12?'Quinte flush royale':'Quinte flush hauteur '+PK_N[a]][c]()}
+function pkSeat(p){return {name:p.name,av:p.avatar,c:p.color}}
+function pkCard(c,cls){const r=c>>2,u=c&3,red=u===1||u===2;
+  return `<div class="pkc ${cls||''}" data-c="${c}"><div class="in"><div class="bk"></div><div class="fr${red?' red':''}"><span class="r">${PK_RL[r]}</span><span class="u">${PK_S[u]}</span></div></div></div>`}
+let pkRun=0;
+/* Affiche la partie. side : 'a' pour le donneur (ou le téléphone partagé), 'b' pour l'adversaire ; « moi » est en bas. */
+async function pokerShow(o,side){const run=++pkRun;ovOpener=document.activeElement;ovQueue=[];
+  const me=side==='b'?1:0,op=1-me,seats=[o.a,o.b],D=o.deck;
+  const seat=(k,id)=>`<div class="pk-seat" id="pkS${k}" style="--c:${seats[k].c}"><div class="av sm" style="--c:${seats[k].c}">${seats[k].av}</div>
+    <div class="who"><b>${esc(seats[k].name)}</b><span class="hand" id="pkH${k}">…</span></div><div class="pk-cards">${pkCard(D[2*k],'deal')}${pkCard(D[2*k+1],'deal')}</div></div>`;
+  $('#ovWrap').innerHTML=`<div class="ov pkov"><div class="pk" id="pk" role="dialog" aria-modal="true" aria-label="Duel au poker">
+    <div class="pk-head"><span class="pk-t">Texas Hold’em</span><span class="pk-pot">Pot <b class="num">${fmt(o.stake*2)}</b></span></div>
+    ${seat(op)}<div class="pk-board" id="pkB">${D.slice(4).map(c=>pkCard(c,'slot')).join('')}</div>${seat(me)}
+    <div class="pk-res" id="pkR" aria-live="polite"></div><div class="pk-foot" id="pkF"></div></div></div>`;
+  document.body.classList.add('paused');haptic('turn');
+  const alive=()=>pkRun===run&&!!$('#pk'),flip=el=>{if(el){el.classList.add('up');sfx.card()}};
+  const label=n=>[0,1].forEach(k=>{const h=$('#pkH'+k);if(h)h.textContent=pkName(pkEval(pkHand(D,k,n)).s)});
+  const board=async(from,to)=>{for(let i=from;i<to;i++){const c=$$('#pkB .pkc')[i];if(c){c.classList.remove('slot');c.classList.add('deal');await sleep(120);flip(c)}await sleep(160)}};
+  await sleep(650);if(!alive())return;
+  for(const k of [op,me]){$$('#pkS'+k+' .pkc').forEach(flip);await sleep(260)}
+  label(0);await sleep(1100);if(!alive())return;
+  await board(0,3);label(3);await sleep(1300);if(!alive())return;
+  await board(3,4);label(4);await sleep(1100);if(!alive())return;
+  await board(4,5);label(5);await sleep(700);if(!alive())return;
+  const ev=[pkEval(pkHand(D,0)),pkEval(pkHand(D,1))],r=Math.sign(pkCmp(ev[0].s,ev[1].s)),w=r>0?0:r<0?1:-1;
+  $$('#pk .pkc').forEach(el=>el.classList.add('dim'));
+  (w>=0?ev[w].cards:ev[0].cards.concat(ev[1].cards)).forEach(c=>$$(`#pk .pkc[data-c="${c}"]`).forEach(el=>{el.classList.remove('dim');el.classList.add('hi')}));
+  if(w>=0){$('#pkS'+w).classList.add('win');$('#pkS'+(1-w)).classList.add('lose')}
+  const mine=w===me;
+  $('#pkR').innerHTML=w<0?`<b>Égalité</b><span>Chacun reprend sa mise.</span>`:`<b class="${ON?(mine?'pos':'neg'):''}">${esc(seats[w].name)} rafle le pot</b><span class="num">${fmt(o.stake,true)}</span>`;
+  $('#pkF').innerHTML=B('Fermer',{v:'primary',on:'pkRun++;closeOv()'});
+  if(w<0)sfx.tick();else if(side==='a'&&!ON||mine){sfx.big();haptic('jackpot');popMoney(o.stake)}else{sfx.lose();haptic('lose')}
+  setTimeout(()=>{const b=$('#pkF .btn');b&&b.focus({preventScroll:true})},60)}
 /* ================= BANK ================= */
 function maxBorrow(p){return Math.max(0,Math.floor(grossAssets(p)*.6+5000-p.debt))}
 function lawyerCost(p){return Math.round(Math.max(2000,netWorth(p)*.04))}
@@ -2283,7 +2378,7 @@ function assetsHTML(id){const p=G.players[id],mine=G.screen==='turn'&&id===cur()
 /* ================= RANKING / MENU ================= */
 function ranked(){return G.players.slice().sort((a,b)=>netWorth(b)-netWorth(a))}
 /* Dernière manche à l'aveugle : pendant les tours de la dernière manche, on ne voit plus la fortune des autres. */
-function blindRound(){return !!G&&G.round>=G.maxRounds&&(G.screen==='turn'||G.screen==='pass')}
+function blindRound(){return !!G&&G.round>=G.maxRounds&&(G.screen==='turn'||G.screen==='pass'||G.screen==='free')}
 function viewerP(){return ON?me():cur()}
 function blind(q){return blindRound()&&q!==viewerP()}
 function rankingHTML(){if(blindRound()){return `${note('<b>Dernière manche à l’aveugle.</b> Les fortunes sont cachées jusqu’au journal final : personne ne sait s’il est déjà battu. Tout peut encore basculer.')}<div class="list mt-3">${G.players.map(p=>`<div class="item"><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}</b><span class="small muted">${p===viewerP()?'toi · '+fmt(netWorth(p)):'fortune cachée'}${p.jail?' · en prison':''}</span></span></div>`).join('')}</div>`}

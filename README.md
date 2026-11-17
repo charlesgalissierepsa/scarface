@@ -5,8 +5,9 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
 
 ## Modes de jeu
 - **En ligne** : un joueur crée un salon, les autres le rejoignent avec le code à 4 caractères
-  (ou le lien partagé). Chacun joue sur son téléphone, en **mode hybride** : une phase libre où tout le
-  monde joue en même temps, puis une phase des coups (braquages, coups bas) chacun son tour.
+  (ou le lien partagé). Chacun joue sur son téléphone, et **tout le monde joue son tour en même temps** :
+  braquages et coups bas compris. Les coups bas tombent en direct chez la victime. Quand on a fini, « Finir mon
+  tour » affiche « En attente de x/x » ; la manche se ferme quand tout le monde a fini.
 - **Sur un seul téléphone** : on se passe le téléphone à tour de rôle.
 
 ## Les règles en bref
@@ -34,6 +35,8 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
   suivant en cumulant, dans le casino actuel, des gains égaux à sa mise max. Les pertes ne comptent pas.
 - **Après la partie** : revanche en un clic, ligue entre potes (classement cumulé sur le téléphone) et carte de fin
   à partager dans le groupe.
+- **Duel au poker** (coup bas) : une main de Texas Hold'em à mise égale, affichée en direct sur les deux écrans ;
+  la meilleure main de 5 cartes parmi 7 rafle le pot.
 - **Argent sale** (braquages, trafic) : compté à 50 % dans le patrimoine, il attire la police et il est saisi en
   cas d'arrestation. On le blanchit via ses commerces (10 % de frais) ou chez le blanchisseur (30 %).
 - Le plus gros **patrimoine net** à la fin gagne.
