@@ -885,16 +885,18 @@ const LEGENDS=[
  ['Un vrai Basquiat au fond d’un vide-grenier, vendu comme une croûte.','déniche un vrai Basquiat au vide-grenier'],
  ['Un ticket de loterie gagnant oublié dans une veste de seconde main.','tombe sur un ticket gagnant oublié'],
  ['Les plans d’un trésor de pirate, authentifiés par un expert.','met la main sur un trésor de pirate']];
-/* Personnages : un talent et un défaut, tirés au hasard en début de partie (tous différents). */
+/* Associés du tour : un talent et un défaut. Chaque joueur en reçoit un nouveau à chaque tour (tous différents, jamais le même deux tours de suite si possible). */
 const CHARS=[
  {k:'banker',e:'🏦',n:'Le Banquier',t:'Emprunte à 2 % par tour au lieu de 4 %.',f:'Trop propre sur lui pour braquer quoi que ce soit.'},
- {k:'godfather',e:'🎩',n:'Le Parrain',t:'Démarre avec un petit réseau de trafic.',f:'Toujours surveillé : +3 de police à chaque fin de tour.'},
+ {k:'godfather',e:'🎩',n:'Le Parrain',t:'Te monte un petit réseau de trafic si tu n’en as pas.',f:'Toujours surveillé : +3 de police à chaque fin de tour.'},
  {k:'crook',e:'🃏',n:'L’Escroc',t:'Ses arnaques réussissent 20 points plus souvent.',f:'Quand une arnaque rate, la police prend +20 au lieu de +10.'},
  {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Les banques se méfient : ses emprunts coûtent 6 % par tour.'},
  {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2 et 5 positions ouvertes au lieu de 4.',f:'Aucune banque ne lui prête pour l’immobilier : pas d’achat à crédit.'},
  {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier de 2 % au lieu de 7 %.',f:'Ses entreprises lui coûtent 20 % plus cher à créer et développer.'},
 ];
 const chr=p=>p&&p.chr||'';
+function dealPartners(ps){let cs;for(let k=0;k<12;k++){cs=CHARS.slice().sort(()=>Math.random()-.5);if(ps.every((p,i)=>p.chr!==cs[i%cs.length].k))break}
+  ps.forEach((p,i)=>{p.chr=cs[i%cs.length].k;if(p.chr==='godfather'&&!(p.net>0))p.net=1})}
 const chrDef=p=>CHARS.find(c=>c.k===chr(p));
 /* Objectifs secrets : un par joueur, révélé à la fin. Réussi = +15 % de patrimoine. */
 const OBJS=[
@@ -987,15 +989,15 @@ function grantAuction(r,add){if(!r)return;const {w,a}=r;
   else w.deals.push({name:'Collection d’art',pitch:'Achetée aux enchères',e:'🖼️',amt:a.v,mature:G.round+2,out:[[.25,.4,'était en partie fausse…'],[.5,1.2,'part au prix estimé : x1,2'],[.25,2.5,'contenait un chef-d’œuvre : x2,5 !']]});
   add(w,`🔨 Remporte l’enchère : ${noEmo(a.title)}`,0);addFeed(`remporte l’enchère de la manche : ${noEmo(a.title)}`,w)}
 /* ================= RUMEURS ================= */
-/* L'événement de la prochaine fin de manche est tiré à l'avance. Une rumeur l'annonce… 7 fois sur 10. */
+/* L'événement de la prochaine fin de manche est tiré à l'avance. Une rumeur l'annonce, mais elle peut se tromper. */
 function planEvent(){G.nextEv=Math.random()<.8?RI(0,EVENTS.length-1):-1;
   G.rumor=G.nextEv>=0&&Math.random()<.7?G.nextEv:RI(0,EVENTS.length-1)}
-function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span class="ic">${e.e}</span><span class="bd"><b>Rumeur : ${e.t.toLowerCase()}</b><span class="small muted">Pour la fin de cette manche. Les rumeurs disent vrai environ 7 fois sur 10.</span></span></div>`:''}
-/* Bloc « cette manche » de l'écran de tour : rumeur, enchère, personnage et objectif secret. */
+function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span class="ic">${e.e}</span><span class="bd"><b>Rumeur : ${e.t.toLowerCase()}</b><span class="small muted">Pour la fin de cette manche. Une rumeur peut être fausse.</span></span></div>`:''}
+/* Bloc « cette manche » de l'écran de tour : rumeur, enchère, associé du tour et objectif secret. */
 function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
   return `${label('Cette manche')}<div class="list">${rumorHTML()}
   ${a?`<${mine?'button':'div'} class="item${mine?'':' ro'}" ${mine?'onclick="openAuction()"':''}><span class="ic">🔨</span><span class="bd"><b>Enchère : ${noEmo(a.title)}</b><span class="small muted">Offre secrète, 0 PA · ${mb?'ton offre : <b class="gold num">'+fmt(mb)+'</b>':'minimum '+fmt(a.min)}</span></span>${mine?`<span class="rt muted">${icon('arrow')}</span>`:''}</${mine?'button':'div'}>`:''}
-  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>${cd.n}</b><span class="small muted">${cd.t} ${cd.f}</span></span></div>`:''}
+  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>Associé du tour : ${cd.n}</b><span class="small muted">${cd.t} ${cd.f}</span></span></div>`:''}
   ${od&&mine?`<div class="item"><span class="ic">🎯</span><span class="bd"><b>Objectif secret</b><span class="small muted">${od.t} Réussi : +15 % de patrimoine à la fin.${od.ok(p)?' <b class="pos">Atteint pour l’instant.</b>':''}</span></span></div>`:''}</div>`}
 
 /* ================= STATE ================= */
@@ -1203,9 +1205,10 @@ const RULES_BODY=`    <p>Chacun part avec la même somme. À ton tour, tu as <b>
     <p><b>Immobilier</b> : 7 villes américaines, chacune avec son niveau de prix, son rendement locatif et sa tendance, qui évoluent à chaque tour. Compare avant d’acheter : un studio à Detroit ne coûte que quelques milliers d’euros et rapporte beaucoup en loyers, une villa à New York compte surtout sur la hausse des prix. Un logement peut rester vide un tour.</p>
     <p><b>Casinos</b> : du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). Pour entrer dans le casino suivant, cumule dans le casino actuel des gains égaux à sa mise max. Les pertes ne comptent pas.</p>
     <p><b>En ligne, tout le monde joue en même temps.</b> Chacun joue son tour complet sur son téléphone, sans attendre les autres : casino, Bourse, immobilier, braquages, coups bas. Les coups bas tombent en direct chez la victime, et un duel au poker s’affiche sur les deux écrans. Quand tu as fini, touche « Finir mon tour » : la manche se ferme quand tout le monde a fini. Sur un seul téléphone, on joue chacun son tour.</p>
-    <p><b>Personnage et objectif secret</b> : chacun reçoit un personnage (un talent, un défaut) et un objectif secret. Objectif réussi à la fin : +15 % de patrimoine.</p>
+    <p><b>Associé du tour</b> : à chaque tour, tu fais équipe avec un nouvel associé (Banquier, Parrain, Escroc, Flambeur, Trader, Promoteur), qui t’apporte un talent et un défaut pour ce tour seulement.</p>
+    <p><b>Objectif secret</b> : chacun reçoit un objectif pour toute la partie. Réussi à la fin : +15 % de patrimoine.</p>
     <p><b>Enchère de la manche</b> : un lot par tour (un bien saisi, une collection d’art). Offre secrète, gratuite en PA ; la plus haute gagne, les autres sont remboursés.</p>
-    <p><b>Rumeurs</b> : l’événement de fin de manche est annoncé à l’avance… et la rumeur dit vrai environ 7 fois sur 10.</p>
+    <p><b>Rumeurs</b> : l’événement de fin de manche est annoncé à l’avance… mais une rumeur peut être fausse.</p>
     <p><b>Gros coups</b> : la machine à sous paie x500 sur trois 7, le grattage x10 000, et une <b>cagnotte commune</b> grossit avec les pertes de tout le monde au casino. Le dernier du classement peut tomber sur le <b>coup du siècle</b> (x8, une chance sur 4), et une opportunité légendaire tombe parfois (x10). Qui touche le gros lot devient la cible : police +10, coups bas moins chers contre lui.</p>
     <p><b>Le premier du classement</b> attire la police (+5 par manche) et les coups bas contre lui coûtent moins cher. <b>Dernière manche à l’aveugle</b> : les fortunes des autres sont cachées jusqu’au journal final.</p>
     <p><b>Startups</b> : équipe, traction et hype font le prix et les chances. Un audit révèle la vraie qualité. Suis les levées des bonnes, revends les autres.</p>
@@ -1242,9 +1245,9 @@ function buildGame(list,cash,rounds){
       rep:0,recon:null,shield:0,laund:0,pos:[],
       stats:{casino:0,trading:0,crime:0,jailTurns:0,biz:0,rent:0,scam:0,vc:0,laund:0,heists:0,scams:0},hist:[cash]}))});
 }
-/* Personnages, objectifs secrets, cagnotte, enchère et rumeur : posés une fois la partie construite. */
-function dealRoles(g){const cs=CHARS.slice().sort(()=>Math.random()-.5),os=OBJS.slice().sort(()=>Math.random()-.5);
-  g.players.forEach((p,i)=>{p.chr=cs[i%cs.length].k;p.obj=os[i%os.length].k;if(p.chr==='godfather')p.net=1});
+/* Associés du tour, objectifs secrets, cagnotte, enchère et rumeur : posés une fois la partie construite. */
+function dealRoles(g){const os=OBJS.slice().sort(()=>Math.random()-.5);
+  g.players.forEach((p,i)=>{p.obj=os[i%os.length].k});dealPartners(g.players);
   g.pot=0;g.highlights=[];const G0=G;G=g;try{g.auction=genAuction();planEvent()}finally{G=G0}return g}
 function newGame(){G=buildGame(setup.players,setup.cash,setup.rounds);G.gameId=rid(8);save();sfx.coin();haptic('start');render()}
 
@@ -2515,7 +2518,7 @@ function scoreObjectives(){if(G.objScored)return;G.objScored=true;G.players.forE
 function canAdvance(){return !ON||ON.host||!isOnline(ON.lobby&&ON.lobby.host)}
 function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){scoreObjectives();G.screen='end';save();render();haptic('jackpot');setTimeout(()=>sfx.big(),300);return}
   haptic('round');
-  G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';
+  G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';dealPartners(G.players);
   if(G.mode==='sim'){G.screen='free';G.opsSeen={};G.coupsQ=[]}save();render();window.scrollTo(0,0)}
 
 /* ================= END ================= */
@@ -2539,7 +2542,7 @@ function renderEnd(){const rk=ranked(),top=[rk[1],rk[0],rk[2]];
   <h2 class="winner" data-z="winner">${esc(rk[0].name)} règne sur la ville</h2>
   <div class="panel" data-z="chart">${chartSVG()}</div>
   <div data-z="rest">${rk.length>3?`${label('Le reste du banc')}<div class="list">${rk.slice(3).map((p,i)=>`<div class="item"><span class="rank num">${i+4}</span><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}</b></span><span class="rt num">${fmt(netWorth(p))}</span></div>`).join('')}</div>`:''}</div>
-  <div data-z="objs">${label('Les objectifs secrets')}<div class="list">${G.players.map(p=>{const o=objDef(p),c=chrDef(p);return o?`<div class="item"><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}${c?' · '+c.n:''}</b><span class="small muted">${o.t} ${p.objOk?`<b class="pos">Réussi : ${fmt(p.objBonus||0,true)}</b>`:'<span class="neg">Raté</span>'}</span></span></div>`:''}).join('')}</div></div>
+  <div data-z="objs">${label('Les objectifs secrets')}<div class="list">${G.players.map(p=>{const o=objDef(p);return o?`<div class="item"><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}</b><span class="small muted">${o.t} ${p.objOk?`<b class="pos">Réussi : ${fmt(p.objBonus||0,true)}</b>`:'<span class="neg">Raté</span>'}</span></span></div>`:''}).join('')}</div></div>
   <div data-z="awards">${aw.length?`${label('Les trophées')}<div class="list">${aw.map(a=>`<div class="item"><span class="ic">${a.e}</span><span class="bd"><b>${a.t}</b><span class="small muted">${a.p.avatar} ${esc(a.p.name)} · <span class="num">${a.v}</span></span></span></div>`).join('')}</div>`:''}</div>
   <div data-z="share" class="mt-4">${B(icon('share')+'Partager la carte de fin',{v:'secondary',on:'shareEndCard()'})}</div>
   <div class="dock" data-z="dock"><div class="row">${
@@ -2548,7 +2551,7 @@ function renderEnd(){const rk=ranked(),top=[rk[1],rk[0],rk[2]];
   saveLeague();
   setTimeout(()=>{const c=$('#chart');if(c)spreadChartLabels(c)},0)}
 /* ================= REVANCHE ================= */
-/* Mêmes joueurs, mêmes réglages, nouvelle partie (personnages et objectifs retirés au sort). */
+/* Mêmes joueurs, mêmes réglages, nouvelle partie (associés et objectifs retirés au sort). */
 function rematch(){if(!G)return;sfx.coin();
   if(ON){if(!ON.host)return;ON.lobby.started=false;startOnline();return}
   const list=G.players.map(q=>({name:q.name,av:q.avatar})),cash=G.players[0].hist[0],rounds=G.maxRounds;
