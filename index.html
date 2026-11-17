@@ -1092,7 +1092,7 @@ function render(){
   ({pass:renderPass,turn:renderTurn,recap:renderRecap,end:renderEnd})[s]();}
 /* En ligne, les états arrivent souvent : on regroupe les rendus dans une seule image. */
 let renderReq=0;
-function scheduleRender(){if(renderReq)return;renderReq=requestAnimationFrame(()=>{renderReq=0;render();if(G&&(!isMyTurn()||G.screen==='recap'))refreshSheet()})}
+function scheduleRender(){if(renderReq)return;renderReq=requestAnimationFrame(()=>{renderReq=0;render();const mr=$('#mBody[data-m="ranking"]');if(mr&&G)mr.innerHTML=rankingHTML();if(G&&(!isMyTurn()||G.screen==='recap'))refreshSheet()})}
 /* ================= SETUP ================= */
 function renderSetup(){
   const sv=loadSave();
@@ -2273,9 +2273,10 @@ function ranked(){return G.players.slice().sort((a,b)=>netWorth(b)-netWorth(a))}
 function blindRound(){return !!G&&G.round>=G.maxRounds&&(G.screen==='turn'||G.screen==='pass')}
 function viewerP(){return ON?me():cur()}
 function blind(q){return blindRound()&&q!==viewerP()}
-function openRanking(){if(blindRound()){openSheet('Classement',`${note('<b>Dernière manche à l’aveugle.</b> Les fortunes sont cachées jusqu’au journal final : personne ne sait s’il est déjà battu. Tout peut encore basculer.')}<div class="list mt-3">${G.players.map(p=>`<div class="item"><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}</b><span class="small muted">${p===viewerP()?'toi · '+fmt(netWorth(p)):'fortune cachée'}${p.jail?' · en prison':''}</span></span></div>`).join('')}</div>`);return}
-  openSheet('Classement',`<div class="list">${ranked().map((p,i)=>`<button class="item" onclick="openAssets(${p.id})"><span class="rank num">${i+1}</span><div class="av sm" style="--c:${p.color}">${p.avatar}</div>
-  <span class="bd"><b>${esc(p.name)}${p.jail?` <span class="tag r">En prison</span>`:''}${isMark(p)?` <span class="tag y">Cible</span>`:''}</b><span class="small muted">cash <span class="num">${fmt(p.cash)}</span>${p.dirty>0?` · sale <span class="dirty num">${fmt(p.dirty)}</span>`:''} · police <span class="num">${Math.round(p.heat)}</span> · réputation <span class="num">${rep(p)}</span></span></span><span class="rt"><b class="num gold">${fmt(netWorth(p))}</b></span></button>`).join('')}</div><p class="small muted mt-3">Touche un joueur pour voir son patrimoine.</p>`)}
+function rankingHTML(){if(blindRound()){return `${note('<b>Dernière manche à l’aveugle.</b> Les fortunes sont cachées jusqu’au journal final : personne ne sait s’il est déjà battu. Tout peut encore basculer.')}<div class="list mt-3">${G.players.map(p=>`<div class="item"><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}</b><span class="small muted">${p===viewerP()?'toi · '+fmt(netWorth(p)):'fortune cachée'}${p.jail?' · en prison':''}</span></span></div>`).join('')}</div>`}
+  return `<div class="list">${ranked().map((p,i)=>`<button class="item" onclick="closeOv();openAssets(${p.id})"><span class="rank num">${i+1}</span><div class="av sm" style="--c:${p.color}">${p.avatar}</div>
+  <span class="bd"><b>${esc(p.name)}${p.jail?` <span class="tag r">En prison</span>`:''}${isMark(p)?` <span class="tag y">Cible</span>`:''}</b><span class="small muted">cash <span class="num">${fmt(p.cash)}</span>${p.dirty>0?` · sale <span class="dirty num">${fmt(p.dirty)}</span>`:''} · police <span class="num">${Math.round(p.heat)}</span> · réputation <span class="num">${rep(p)}</span></span></span><span class="rt"><b class="num gold">${fmt(netWorth(p))}</b></span></button>`).join('')}</div><p class="small muted mt-3">Touche un joueur pour voir son patrimoine.</p>`}
+function openRanking(){openModal('ranking','Classement',rankingHTML())}
 /* Réglages partagés par l'accueil et le menu en partie. */
 function settingsHTML(){return `<div class="stack">
   ${B(icon(SOUND?'sound':'mute')+(SOUND?'Couper le son':'Activer le son'),{v:'secondary',on:"toggleSet('sound')"})}
@@ -2425,7 +2426,7 @@ function leagueTable(){const t={};getLeague().forEach(g=>{const n=g.pl.length;g.
   return Object.values(t).sort((a,b)=>b.pts-a.pts||b.w-a.w)}
 function openLeague(){const T=leagueTable(),games=getLeague().length;
   const parrain=T[0],pigeon=T.slice().sort((a,b)=>b.last-a.last)[0],flambeur=T.slice().sort((a,b)=>b.best-a.best)[0];
-  openSheet('Ligue entre potes',games?`${note(`<b class="num">${games}</b> partie${games>1?'s':''} jouée${games>1?'s':''} sur ce téléphone. 3 points au premier, 2 au deuxième, 1 au troisième.`)}
+  openModal('league','Ligue entre potes',games?`${note(`<b class="num">${games}</b> partie${games>1?'s':''} jouée${games>1?'s':''} sur ce téléphone. 3 points au premier, 2 au deuxième, 1 au troisième.`)}
   <div class="list mt-3">${[['👑','Parrain de la saison',parrain,parrain&&parrain.pts+' pts'],['🕊️','Pigeon du mois',pigeon&&pigeon.last?pigeon:null,pigeon&&pigeon.last+' fois dernier'],['💎','Plus grosse fortune',flambeur,flambeur&&fmt(flambeur.best)]].filter(x=>x[2]).map(([e,t,q,v])=>`<div class="item"><span class="ic">${e}</span><span class="bd"><b>${t}</b><span class="small muted">${q.a} ${esc(q.n)} · ${v}</span></span></div>`).join('')}</div>
   <h3 class="sec">Classement</h3><div class="list">${T.map((q,i)=>`<div class="item"><span class="rank num">${i+1}</span><span class="ic">${q.a}</span><span class="bd"><b>${esc(q.n)}</b><span class="small muted"><span class="num">${q.g}</span> partie${q.g>1?'s':''} · <span class="num">${q.w}</span> victoire${q.w>1?'s':''}</span></span><span class="rt"><b class="num gold">${q.pts} pts</b></span></div>`).join('')}</div>
   <div class="mt-4">${B('Remettre la ligue à zéro',{v:'text',on:"if(confirmReset())openLeague()"})}</div>`:note('Aucune partie terminée sur ce téléphone pour l’instant. Finis une partie pour ouvrir la ligue !'))}
