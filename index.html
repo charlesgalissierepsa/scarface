@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d0221">
-<title>Scarface — le jeu du fric</title>
+<title>Scarface — The world is yours</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Kaushan+Script&family=Figtree:wght@400;600;800&display=swap" rel="stylesheet">
@@ -79,15 +79,16 @@
   /* ---- Mouvement ---- */
   --dur-press:80ms; --dur-fast:120ms; --dur-base:200ms; --dur-slow:320ms;
   --ease-in:cubic-bezier(.2,.8,.2,1); --ease-out:cubic-bezier(.4,0,1,1);
-  --grid-cell:56px;
+  --grid-cell:56px; --grid-persp:260px; --grid-tilt:72deg;
 
   /* ---- Tailles propres à un composant ---- */
   --slant:8px; --slant-sm:4px; --stripes:8px; --pip-w:24px; --pip-h:10px; --choice-h:72px; --pill-h:28px; --free-h:64px;
-  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-h:90px;
+  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px;
   --wheel:144px; --card-w:50px; --card-h:72px; --reel-w:76px; --reel-h:86px; --ticket-h:150px; --chart-h:180px;
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
   /* ---- Boucles et animations de jeu (rythme propre, hors échelle de durées) ---- */
+  --loop-bar:1.6s; --foot-btn:136px; --dur-splash:400ms;
   --loop-grid:2.4s; --loop-pulse:2s; --loop-blink:1s; --stagger:150ms; --dur-flicker:600ms; --dur-pop:1.4s; --dur-shake:400ms; --dur-reel:100ms;
 
   /* ---- Icônes 3D : face en dégradé (a vers b), accent du pictogramme, tranche ---- */
@@ -107,7 +108,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
 body{background:var(--bg-scene);color:var(--ink);font:var(--fw-regular) var(--fs-md)/var(--lh-base) var(--font-body);overflow-x:hidden}
-body.locked{overflow:hidden}
+body.locked{overflow:hidden;position:fixed;left:0;right:0;top:var(--lock-y,0)}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;border-radius:var(--radius)}
 input{font:inherit;color:inherit;border-radius:var(--radius)}
 :focus-visible{outline:2px solid var(--neon-cyan);outline-offset:2px}
@@ -133,6 +134,7 @@ p{margin:0 0 var(--sp-3);max-width:var(--measure)}
 .mb-2{margin-bottom:var(--sp-2)}.mb-3{margin-bottom:var(--sp-3)}.mb-4{margin-bottom:var(--sp-4)}
 .row{display:flex;gap:var(--sp-3);align-items:center}
 .row.between{justify-content:space-between}
+.top.end{justify-content:space-between;margin-bottom:0}
 .row.end{align-items:flex-end}
 .row>.btn{flex:1}
 .stack{display:flex;flex-direction:column;gap:var(--sp-3)}
@@ -140,7 +142,7 @@ p{margin:0 0 var(--sp-3);max-width:var(--measure)}
 
 /* ===== Décor : un seul calque fixe ===== */
 /* Décor : les tailles et positions ci-dessous sont la géométrie de l'illustration (étoiles, rayures du soleil, perspective), pas des espacements d'interface. */
-#bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;contain:strict;
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;contain:layout paint;
   background:linear-gradient(180deg,var(--sky-1) 0%,var(--sky-2) 38%,var(--sky-3) 56%,var(--sky-4) 64%,var(--bg-scene) 64%)}
 #bg .stars{position:absolute;inset:0 0 40% 0;opacity:.6;
   background-image:radial-gradient(1.5px 1.5px at 12% 18%,var(--star) 50%,transparent 52%),radial-gradient(1px 1px at 28% 8%,var(--star) 50%,transparent 52%),radial-gradient(1.5px 1.5px at 44% 26%,var(--star) 50%,transparent 52%),
@@ -150,14 +152,20 @@ p{margin:0 0 var(--sp-3);max-width:var(--measure)}
   background:linear-gradient(180deg,var(--sun-1) 0%,var(--sun-2) 35%,var(--sun-3) 70%,var(--sun-4) 100%);
   -webkit-mask-image:linear-gradient(180deg,#000 48%,transparent 48%),repeating-linear-gradient(180deg,#000 0 9px,transparent 9px 14px);
   mask-image:linear-gradient(180deg,#000 48%,transparent 48%),repeating-linear-gradient(180deg,#000 0 9px,transparent 9px 14px)}
-#bg .city{position:absolute;left:0;right:0;bottom:35.8%;height:var(--city-h);width:100%;color:var(--city)}
-#bg .floor{position:absolute;left:0;right:0;top:64%;bottom:0;overflow:hidden;perspective:260px;perspective-origin:50% 0;background:var(--bg-scene)}
+/* Silhouette de la ville : proportions conservées (jamais recadrée), centrée sous le soleil, largeur plafonnée sur grand écran. */
+#bg .city{position:absolute;left:50%;bottom:35.8%;width:min(100%,var(--city-max));height:auto;aspect-ratio:400/90;transform:translateX(-50%);color:var(--city)}
+#bg .floor{position:absolute;left:0;right:0;top:64%;bottom:0;overflow:hidden;background:var(--bg-scene)}
 #bg .floor::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--neon-pink);z-index:1}
-#bg .plane{position:absolute;left:-60%;right:-60%;top:0;height:260%;transform:rotateX(72deg);transform-origin:50% 0;overflow:hidden}
-#bg .grid{position:absolute;left:0;right:0;top:calc(-1 * var(--grid-cell));bottom:0;will-change:transform;
+#bg .plane{position:absolute;inset:0}
+/* Inclinaison et défilement dans une seule transformation sur un seul élément : Safari iOS fige une animation
+   placée à l'intérieur d'un parent incliné en 3D qui coupe son contenu. */
+#bg .grid{position:absolute;left:-60%;right:-60%;top:0;height:260%;transform-origin:50% 0;will-change:transform;
+  transform:perspective(var(--grid-persp)) rotateX(var(--grid-tilt)) translateY(calc(-1 * var(--grid-cell)));
   background-image:linear-gradient(var(--grid-line) 2px,transparent 2px),linear-gradient(90deg,var(--grid-line) 2px,transparent 2px);
-  background-size:var(--grid-cell) var(--grid-cell);animation:gridrun var(--loop-grid) linear infinite}
-@keyframes gridrun{to{transform:translateY(var(--grid-cell))}}
+  background-size:var(--grid-cell) var(--grid-cell)}
+/* Le défilement est piloté en JavaScript (voir gridLoop) : Safari iOS n'anime pas toujours cette transformation en CSS. */
+/* Réglage « Animations du décor » coupé : tout le décor s'immobilise. */
+body.still #bg *,body.still .logo,body.still .bigav::after{animation:none!important}
 #bg .scrim{position:absolute;inset:0;background:var(--bg-scrim);opacity:0;transition:opacity var(--dur-slow) var(--ease-in)}
 body.dim #bg .scrim{opacity:1}
 body.paused #bg *,body.away #bg *,body.paused .logo,body.away .bigav::after,body.paused .bigav::after,body.away .waiting i{animation-play-state:paused}
@@ -295,7 +303,7 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 /* ===== Feuilles ===== */
 .sheet{position:fixed;inset:0;z-index:50;pointer-events:none;visibility:hidden;transition:visibility 0s linear var(--dur-base)}
 .sheet .bg{position:absolute;inset:0;background:var(--bg-scrim);opacity:0;transition:opacity var(--dur-base) var(--ease-out)}
-.sheet .panel2{position:absolute;left:0;right:0;bottom:0;max-width:var(--sheet-w);margin:0 auto;max-height:var(--sheet-max);display:flex;flex-direction:column;
+.sheet .panel2{position:absolute;left:0;right:0;bottom:var(--kb,0px);max-width:var(--sheet-w);margin:0 auto;max-height:min(var(--sheet-max),calc(var(--vvh,100dvh) - var(--sp-4)));display:flex;flex-direction:column;
   background:var(--surface-2);border-top:1px solid var(--line);transform:translateY(105%);transition:transform var(--dur-base) var(--ease-out)}
 .sheet.open{pointer-events:auto;visibility:visible;transition:visibility 0s}
 .sheet.open .bg{opacity:1;transition:opacity var(--dur-slow) var(--ease-in)}
@@ -504,6 +512,28 @@ canvas#trc{width:100%;height:var(--chart-h);background:var(--surface-3);border:v
 .fate .e,.ev-e{display:flex;justify-content:center}
 .ev-e{justify-content:flex-start}
 
+/* ===== Chargement ===== */
+.lbar{position:relative;width:100%;max-width:var(--narrow);height:3px;background:var(--line);overflow:hidden}
+.lbar::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,var(--neon-pink),var(--neon-cyan),transparent);animation:sweep var(--loop-bar) var(--ease-in) infinite}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+#splash{position:fixed;inset:0;z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-6);padding:var(--sp-6);background:var(--bg-scene);transition:opacity var(--dur-splash) var(--ease-out)}
+#splash.gone{opacity:0;pointer-events:none}
+#splash .logo{margin-top:0}
+#splash p{color:var(--ink-muted);font-size:var(--fs-sm);margin:0}
+
+/* ===== Pied de l'accueil et fenêtre des règles ===== */
+.foot-btns{display:flex;justify-content:center;flex-wrap:wrap;gap:var(--sp-3);margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:var(--border)}
+.foot-btns .btn{min-width:var(--foot-btn)}
+.modal{position:relative;width:100%;max-width:var(--dock-w);max-height:84dvh;display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--neon-cyan);animation:card-in var(--dur-slow) var(--ease-in)}
+.modal::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--stripes);
+  background:linear-gradient(180deg,var(--stripe-1) 0 2px,transparent 2px 3px,var(--stripe-2) 3px 5px,transparent 5px 6px,var(--stripe-3) 6px 8px)}
+.modal-head{flex:none;display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);padding:var(--sp-6) var(--sp-4) var(--sp-2)}
+.modal-head h2{font-size:var(--fs-lg)}
+.modal-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 var(--sp-4) var(--sp-4)}
+.modal-body p{color:var(--ink-muted);font-size:var(--fs-sm)}
+.modal-body b{color:var(--ink)}
+.modal-foot{flex:none;padding:var(--sp-3) var(--sp-4);border-top:var(--border)}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:opacity var(--dur-fast) linear!important}
   .sheet .panel2,.sheet.open .panel2{transition:opacity var(--dur-fast) linear!important}
@@ -511,8 +541,9 @@ canvas#trc{width:100%;height:var(--chart-h);background:var(--surface-3);border:v
 </style>
 </head>
 <body>
+<div id="splash" role="status" aria-label="Chargement du jeu"><div class="logo">SCARFACE</div><div class="lbar" aria-hidden="true"></div><p>Chargement</p></div>
 <div id="bg" aria-hidden="true"><div class="stars"></div><div class="sun"></div>
-<svg class="city" viewBox="0 0 400 90" preserveAspectRatio="xMidYMax slice"><g fill="currentColor">
+<svg class="city" viewBox="0 0 400 90" preserveAspectRatio="xMidYMax meet"><g fill="currentColor">
 <rect x="0" y="62" width="22" height="28"/><rect x="24" y="48" width="16" height="42"/><rect x="42" y="58" width="20" height="32"/><rect x="250" y="40" width="18" height="50"/><rect x="270" y="54" width="26" height="36"/><rect x="298" y="30" width="14" height="60"/><rect x="314" y="50" width="22" height="40"/><rect x="338" y="60" width="18" height="30"/><rect x="358" y="44" width="16" height="46"/><rect x="376" y="64" width="24" height="26"/>
 <path d="M88 90c2-22 6-40 14-58l3 1c-7 18-10 36-11 57z"/><path d="M103 32c-10-6-22-6-30 2 9-3 19-2 27 2-9 1-17 6-21 14 7-6 16-10 25-11-4 6-6 13-5 20 2-7 6-13 11-17 3 5 9 9 15 10-4-5-7-10-8-15 7 1 14 4 19 9-3-7-10-12-18-14 7-2 15-1 21 3-6-7-16-10-25-8 2-5 7-9 13-11-8-1-15 3-20 9-2-3-3-5-7-6z"/>
 <path d="M196 90c-1-26-6-46-15-64l3-1c9 18 14 39 15 65z"/><path d="M182 26c-9-6-21-7-30 0 9-2 18 0 26 4-9 0-17 5-22 12 8-5 17-8 26-8-5 6-7 12-7 19 3-7 7-12 13-16 2 6 7 10 13 12-3-5-6-11-6-16 7 2 13 6 17 11-2-8-9-13-16-16 7-1 15 1 20 5-5-7-14-11-23-10 3-5 8-8 14-10-8-1-16 2-21 8-1-2-2-4-4-5z"/>
@@ -543,7 +574,7 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 
 /* ================= UI : icônes, boutons, encadrés ================= */
 /* Icônes d'interface : trait de 2 px, extrémités carrées, grille de 20 px, couleur héritée. */
-const ICONS={close:'M5 5l10 10M15 5L5 15',back:'M11 4l-6 6 6 6M5 10h11',menu:'M3 5h14M3 10h14M3 15h14',
+const ICONS={gear:'M10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM10 2v3M10 15v3M2 10h3M15 10h3M4.3 4.3l2.1 2.1M13.6 13.6l2.1 2.1M4.3 15.7l2.1-2.1M13.6 6.4l2.1-2.1',close:'M5 5l10 10M15 5L5 15',back:'M11 4l-6 6 6 6M5 10h11',menu:'M3 5h14M3 10h14M3 15h14',
   trophy:'M6 3h8v5a4 4 0 0 1-8 0zM6 5H3v2a3 3 0 0 0 3 3M14 5h3v2a3 3 0 0 1-3 3M10 12v3M6 17h8',
   lock:'M5 9h10v8H5zM7 9V6a3 3 0 0 1 6 0v3',copy:'M7 7h10v10H7zM13 7V3H3v10h4',share:'M10 13V3M6 7l4-4 4 4M4 11v6h12v-6',
   sound:'M3 8h3l4-4v12l-4-4H3zM13 7a4 4 0 0 1 0 6M15 4a8 8 0 0 1 0 12',mute:'M3 8h3l4-4v12l-4-4H3zM13 8l4 4M17 8l-4 4',
@@ -637,12 +668,24 @@ const sfx={
   siren:()=>{for(let i=0;i<4;i++){tone(700,.22,'sawtooth',.04,i*.44);tone(950,.22,'sawtooth',.04,i*.44+.22)}},
   card:()=>tone(300,.05,'triangle',.06)
 };
-function buzz(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+/* Vibrations : un petit vocabulaire cohérent, réservé aux moments qui comptent.
+   Android : motifs rythmés (API Vibration). iPhone : Safari ne sait pas vibrer ; depuis iOS 18, basculer un
+   interrupteur natif produit un tic haptique, utilisé en repli (un tic, ou deux pour les grands moments). */
+const HAPTIC={action:[12],confirm:[18,40,18],start:[25,60,25,60,70],turn:[40,70,40,70,120],round:[30,50,60],
+  win:[20,40,40],jackpot:[30,40,30,40,30,40,120],lose:[70],error:[45,30,45],arrest:[200,100,200,100,400],unlock:[20,40,20,40,80],step:[25]};
+let HAPTICS=true;try{HAPTICS=localStorage.getItem('sf_haptics')!=='0'}catch(e){}
+const iosTick=(()=>{if('vibrate' in navigator)return null;try{const l=document.createElement('label'),i=document.createElement('input');
+  i.type='checkbox';i.setAttribute('switch','');i.tabIndex=-1;l.className='sr';l.setAttribute('aria-hidden','true');l.appendChild(i);document.body.appendChild(l);
+  return ()=>{try{l.click()}catch(e){}}}catch(e){return null}})();
+const canHaptic=('vibrate' in navigator)||!!iosTick;
+function haptic(name){if(!HAPTICS)return;const p=HAPTIC[name]||HAPTIC.action;
+  try{if(navigator.vibrate){navigator.vibrate(p);return}if(iosTick){iosTick();if(p.length>3)setTimeout(iosTick,p[0]+p[1])}}catch(e){}}
+function buzz(){haptic('action')}
 /* Toasts : une seule file, deux visibles au plus, pas de doublon consécutif, jamais d'emoji en tête. */
 let toastLast='';
 function toast(m,bad){m=stripEmo(m);const tw=$('#toast');if(m===toastLast&&tw.children.length)return;toastLast=m;
   while(tw.children.length>=2)tw.firstChild.remove();
-  const d=document.createElement('div');d.className='t'+(bad?' bad':'');d.textContent=m;tw.appendChild(d);if(bad)buzz(60);
+  const d=document.createElement('div');d.className='t'+(bad?' bad':'');d.textContent=m;tw.appendChild(d);if(bad)haptic('error');
   setTimeout(()=>{d.classList.add('out');setTimeout(()=>{d.remove();if(!tw.children.length)toastLast=''},150)},2600)}
 function popMoney(n){const d=document.createElement('div');d.className='pop '+(n>=0?'up':'down');d.textContent=fmt(n,true);document.body.appendChild(d);setTimeout(()=>d.remove(),1500)}
 function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
@@ -666,19 +709,6 @@ const ASSETS=[
  {sym:'BTC',tk:'BTC',name:'Bitcoin',e:'🪙',price:31000,vol:.32,drift:.03,crypto:1,desc:'La première des cryptomonnaies. Très volatile.'},
  {sym:'MOON',tk:'SLR',name:'Solaris Coin',e:'💠',price:.42,vol:.65,drift:.02,crypto:1,desc:'Petite cryptomonnaie spéculative. Peut faire x10 comme −90 %.'},
 ];
-const PROPS=[
- {n:'Place de parking',c:'Lyon 3e',e:'🚗',p:7000,r:380},
- {n:'Chambre de bonne',c:'Paris 18e',e:'🛏️',p:14000,r:720},
- {n:'Studio étudiant',c:'Lille',e:'🏢',p:28000,r:1450},
- {n:'T3 avec balcon',c:'Bordeaux',e:'🏡',p:65000,r:3300},
- {n:'Maison avec piscine',c:'Montpellier',e:'🏊',p:160000,r:8000},
- {n:'Chalet',c:'Chamonix',e:'🏔️',p:300000,r:15500},
- {n:'Immeuble de rapport',c:'Marseille',e:'🏬',p:650000,r:34000},
- {n:'Villa pieds dans l’eau',c:'Saint-Tropez',e:'🌴',p:1500000,r:76000},
- {n:'Château viticole',c:'Saint-Émilion',e:'🏰',p:3200000,r:165000},
- {n:'Hôtel particulier',c:'Paris 7e',e:'🗼',p:7000000,r:350000},
- {n:'Île privée',c:'Golfe du Morbihan',e:'🏝️',p:15000000,r:720000},
-];
 const BIZ=[
  {k:'truck',e:'🌮',n:'Food truck',cost:8000,min:600,max:2400,fail:.03,names:['Ocean Drive Food','Le Comptoir Mobile','Street Kitchen']},
  {k:'coif',e:'💇',n:'Salon de coiffure',cost:20000,min:1200,max:4200,fail:.03,names:['Studio Élégance','Salon Riviera','Atelier Marin']},
@@ -692,19 +722,19 @@ const BIZ=[
 ];
 /* Braquages : chances basses, coût de préparation payé d'avance, réputation requise (= braquages réussis), butin en argent sale. */
 const HEISTS=[
- {e:'🏪',n:'Épicerie du coin',ch:.62,min:600,max:3000,prep:200,rep:0,heat:12,jail:1,fl:'Le gérant te reconnaît : tu viens tous les jours acheter des chewing-gums.'},
- {e:'⛽',n:'Station-service',ch:.52,min:2000,max:9000,prep:600,rep:0,heat:16,jail:1,fl:'La caméra a filmé ta plaque. Et ta permanente.'},
- {e:'🚚',n:'Fourgon blindé',ch:.4,min:15000,max:60000,prep:3000,rep:1,heat:25,jail:2,fl:'Le fourgon était vide. C’était un piège.'},
- {e:'💎',n:'Bijouterie de luxe',ch:.3,min:50000,max:200000,prep:10000,rep:2,heat:32,jail:2,fl:'L’alarme silencieuse. Le GIGN t’attendait dehors.'},
- {e:'🏦',n:'Banque centrale',ch:.2,min:250000,max:1000000,prep:50000,rep:4,heat:42,jail:3,fl:'Ton chauffeur a calé au feu rouge. Devant le commissariat.'},
- {e:'🎲',n:'Casino de la Riviera',ch:.12,min:700000,max:2800000,prep:150000,rep:6,heat:55,jail:3,fl:'Le croupier était un agent d’Interpol.'},
+ {e:'🏪',n:'Épicerie du coin',ch:.77,min:600,max:3000,prep:200,rep:0,heat:12,jail:1,fl:'Le gérant te reconnaît : tu viens tous les jours acheter des chewing-gums.'},
+ {e:'⛽',n:'Station-service',ch:.67,min:2000,max:9000,prep:600,rep:0,heat:16,jail:1,fl:'La caméra a filmé ta plaque. Et ta permanente.'},
+ {e:'🚚',n:'Fourgon blindé',ch:.55,min:15000,max:60000,prep:3000,rep:1,heat:25,jail:2,fl:'Le fourgon était vide. C’était un piège.'},
+ {e:'💎',n:'Bijouterie de luxe',ch:.45,min:50000,max:200000,prep:10000,rep:1,heat:32,jail:2,fl:'L’alarme silencieuse. Le GIGN t’attendait dehors.'},
+ {e:'🏦',n:'Banque centrale',ch:.35,min:250000,max:1000000,prep:50000,rep:2,heat:42,jail:3,fl:'Ton chauffeur a calé au feu rouge. Devant le commissariat.'},
+ {e:'🎲',n:'Casino de la Riviera',ch:.27,min:700000,max:2800000,prep:150000,rep:3,heat:55,jail:3,fl:'Le croupier était un agent d’Interpol.'},
 ];
 const NET=[
  null,
- {n:'Petit dealer de quartier',cost:5000,min:2000,max:6000,heat:9},
- {n:'Réseau de quartier',cost:35000,min:10000,max:26000,heat:13},
- {n:'Plaque tournante',cost:180000,min:45000,max:120000,heat:17},
- {n:'Cartel international',cost:900000,min:220000,max:650000,heat:23},
+ {n:'Petit dealer de quartier',cost:5000,min:1000,max:3000,heat:12},
+ {n:'Réseau de quartier',cost:35000,min:5000,max:13000,heat:14},
+ {n:'Plaque tournante',cost:180000,min:22000,max:60000,heat:17},
+ {n:'Cartel international',cost:900000,min:110000,max:320000,heat:23},
 ];
 const JOBS=[
  ['🛵','Livreur à vélo sous la pluie','Tu as livré 47 burgers et un tacos 3 viandes à un ministre.'],
@@ -738,7 +768,7 @@ const EVENTS=[
  {e:'💻',t:'SCANDALE COMPTABLE CHEZ CELTIS',d:'Les auditeurs découvrent des revenus gonflés. Le titre décroche.',f:m=>{m.stock.NEO=-.4}},
  {e:'💉',t:'GENOVIA OBTIENT SON AUTORISATION',d:'Son traitement phare est approuvé par les autorités sanitaires.',f:m=>{m.stock.BIO=.85}},
  {e:'💠',t:'RUÉE SUR LE SOLARIS COIN',d:'Une grande plateforme le référence. Les petits porteurs se ruent dessus.',f:m=>{m.stock.MOON=2}},
- {e:'💸',t:'CONTRÔLE FISCAL GÉNÉRAL',d:'Bercy envoie ses meilleurs éléments. 8 % du cash de chacun est prélevé.',f:(m,add)=>G.players.forEach(p=>{if(p.cash>0){const x=p.cash*.08;p.cash-=x;add(p,'🧾 Contrôle fiscal',-x)}})},
+ {e:'💸',t:'CONTRÔLE FISCAL GÉNÉRAL',d:'Bercy envoie ses meilleurs éléments. 8 % du cash et des actions de chacun sont prélevés.',f:(m,add)=>G.players.forEach(p=>{const x=takeLiquid(p,liquid(p)*.08);if(x>0)add(p,'🧾 Contrôle fiscal',-x)})},
  {e:'🚔',t:'OPÉRATION COUP DE POING',d:'La police renforce ses effectifs : tous les suspects sont davantage surveillés.',f:()=>G.players.forEach(p=>{if(p.heat>0)p.heat=clamp(p.heat+20,0,100)})},
  {e:'🎁',t:'PRIME DU GOUVERNEMENT',d:'Chèque exceptionnel de 2 000 € pour tout le monde.',f:(m,add)=>G.players.forEach(p=>{p.cash+=2000;add(p,'🎁 Prime gouvernementale',2000)})},
  {e:'📈',t:'CROISSANCE RECORD',d:'L’économie tourne à plein régime : revenus des entreprises x1,5.',f:m=>{m.bizMult=1.5;m.all=.05}},
@@ -749,6 +779,11 @@ const EVENTS=[
  {e:'🏖️',t:'ÉTÉ CANICULAIRE',d:'Les touristes se ruent sur les locations : loyers x2 ce tour-ci.',f:m=>{m.rentMult=2}},
  {e:'🚁',t:'DESCENTE DES STUPS',d:'Hélicos, chiens renifleurs, vedettes rapides : 25 % de l’argent sale de chacun est saisi.',f:(m,add)=>G.players.forEach(p=>{if(p.dirty>0){const x=p.dirty*.25;p.dirty-=x;add(p,'🚁 Saisie des stups (argent sale)',0,-x)}})},
  {e:'🏝️',t:'PARADIS FISCAL À LA MODE',d:'Les banques offshore ouvrent grand leurs portes : la capacité de blanchiment de tes commerces double ce tour-ci.',f:()=>{G.laundBoost=2}},
+ {e:'🌴',t:'MIAMI S’ARRACHE',d:'Les célébrités achètent tout ce qui a vue sur l’océan : les prix bondissent.',f:m=>{m.city.miami=.15}},
+ {e:'🏬',t:'CHICAGO ACCUEILLE LES ÉTUDIANTS',d:'Les universités affichent complet : les loyers grimpent à Chicago.',f:m=>{m.cityYld.chicago=1.25}},
+ {e:'🎰',t:'UN CASINO GÉANT OUVRE À VEGAS',d:'Des milliers d’employés à loger : prix et loyers en hausse.',f:m=>{m.city.vegas=.1;m.cityYld.vegas=1.15}},
+ {e:'🎬',t:'HOLLYWOOD EN PLEIN BOOM',d:'Les studios tournent à plein régime : Los Angeles attire les investisseurs.',f:m=>{m.city.la=.12}},
+ {e:'🗼',t:'NEW YORK : LOYERS ENCADRÉS',d:'La ville plafonne les loyers à Manhattan.',f:m=>{m.cityYld.ny=.8}},
  {e:'🕵️',t:'NOUVEAU PROCUREUR INCORRUPTIBLE',d:'Il a juré de nettoyer la ville. Tout le monde prend +12 de recherche.',f:()=>G.players.forEach(p=>{p.heat=clamp(p.heat+12,0,100)})},
 ];
 const DESTIN=[
@@ -762,9 +797,9 @@ const DESTIN=[
  {e:'🦷',t:'Dent cassée sur une olive',d:'Le dentiste te propose une couronne en or. Tu acceptes.',f:p=>gain(p,-1200)},
  {e:'👀',t:'Ta voisine parle trop',d:'Elle a dit à la police que tu rentres tard avec des sacs de sport.',f:p=>heatFx(p,15)},
  {e:'👮',t:'Un pote d’enfance devenu flic',d:'Il « égare » ton dossier au commissariat.',f:p=>heatFx(p,-25)},
- {e:'📞',t:'Faux conseiller bancaire',d:'« Bonjour, c’est votre banque, il y a un souci sur votre compte… »',f:p=>gain(p,-Math.min(Math.max(p.cash,0)*.1,8000))},
- {e:'🏹',t:'Robin des Bois',d:'Un justicier masqué vole 5 % du cash du joueur le plus riche et te l’offre.',f:robin},
- {e:'🧾',t:'Redressement fiscal',d:'Tu avais déclaré ton jet-ski comme « matériel de bureau ».',f:p=>gain(p,-Math.max(500,Math.max(p.cash,0)*.07))},
+ {e:'📞',t:'Faux conseiller bancaire',d:'« Bonjour, c’est votre banque, il y a un souci sur votre compte… »',f:p=>fmt(-takeLiquid(p,Math.min(liquid(p)*.1,8000)),true)},
+ {e:'🏹',t:'Robin des Bois',d:'Un justicier masqué vole 5 % de l’argent liquide (cash et actions) du joueur le plus riche et te l’offre.',f:robin},
+ {e:'🧾',t:'Redressement fiscal',d:'Tu avais déclaré ton jet-ski comme « matériel de bureau ».',f:p=>fmt(-takeLiquid(p,Math.max(500,liquid(p)*.07)),true)},
  {e:'🎂',t:'C’est ton anniversaire !',d:'Chaque joueur te donne 1 000 €. Sans discuter.',f:bday},
  {e:'🛥️',t:'Rencontre avec un oligarque',d:'Il trouve tes blagues hilarantes et te fait un virement « pour le plaisir ».',f:p=>gain(p,RI(15,60)*1000)},
  {e:'🍀',t:'Trèfle à quatre feuilles',d:'Tu le trouves dans un pré. Tu le revends sur Leboncoin.',f:p=>gain(p,777)},
@@ -772,33 +807,66 @@ const DESTIN=[
  {e:'🧳',t:'Valise oubliée dans un taxi',d:'Pleine de billets. Personne ne la réclame. Mais quelqu’un t’a vu la prendre…',f:p=>{p.heat=clamp(p.heat+10,0,100);return gain(p,RI(5,30)*1000)+' · 🚨 +10'}},
  {e:'🎤',t:'Passage à la télé',d:'Tu gagnes un jeu télévisé grâce à une question sur les escargots.',f:p=>gain(p,RI(5,40)*1000)},
  {e:'🚗',t:'Ta voiture finit à la fourrière',d:'Garée « deux minutes » devant la boulangerie.',f:p=>gain(p,-350)},
- {e:'📼',t:'Cassette compromettante',d:'Un indic a une vidéo de toi. Tu paies pour qu’elle disparaisse.',f:p=>p.heat>=20?gain(p,-Math.max(1000,Math.max(p.cash,0)*.06)):'Il n’y avait rien dessus. Ouf.'},
+ {e:'📼',t:'Cassette compromettante',d:'Un indic a une vidéo de toi. Tu paies pour qu’elle disparaisse.',f:p=>p.heat>=20?fmt(-takeLiquid(p,Math.max(1000,liquid(p)*.06)),true):'Il n’y avait rien dessus. Ouf.'},
  {e:'🛼',t:'Champion de roller disco',d:'Tu gagnes le concours de la patinoire. Les sponsors adorent ton short.',f:p=>gain(p,RI(2,8)*1000)},
 ];
 
 /* Opportunités : 3 tirées au hasard à chaque tour, 1 point d'action chacune. u = unité d'échelle selon la richesse du joueur. */
+const LEGENDS=[
+ ['Des lingots d’or murés dans la cave d’un immeuble à vendre.','trouve des lingots dans une cave'],
+ ['Un vrai Basquiat au fond d’un vide-grenier, vendu comme une croûte.','déniche un vrai Basquiat au vide-grenier'],
+ ['Un ticket de loterie gagnant oublié dans une veste de seconde main.','tombe sur un ticket gagnant oublié'],
+ ['Les plans d’un trésor de pirate, authentifiés par un expert.','met la main sur un trésor de pirate']];
+/* Personnages : un talent et un défaut, tirés au hasard en début de partie (tous différents). */
+const CHARS=[
+ {k:'banker',e:'🏦',n:'Le Banquier',t:'Emprunte à 2 % par tour au lieu de 4 %.',f:'Trop propre sur lui pour braquer quoi que ce soit.'},
+ {k:'godfather',e:'🎩',n:'Le Parrain',t:'Démarre avec un petit réseau de trafic.',f:'Toujours surveillé : +3 de police à chaque fin de tour.'},
+ {k:'crook',e:'🃏',n:'L’Escroc',t:'Ses arnaques réussissent 20 points plus souvent.',f:'Quand une arnaque rate, la police prend +20 au lieu de +10.'},
+ {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Les banques se méfient : ses emprunts coûtent 6 % par tour.'},
+ {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2 et 5 positions ouvertes au lieu de 4.',f:'Aucune banque ne lui prête pour l’immobilier : pas d’achat à crédit.'},
+ {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier de 2 % au lieu de 7 %.',f:'Ses entreprises lui coûtent 20 % plus cher à créer et développer.'},
+];
+const chr=p=>p&&p.chr||'';
+const chrDef=p=>CHARS.find(c=>c.k===chr(p));
+/* Objectifs secrets : un par joueur, révélé à la fin. Réussi = +15 % de patrimoine. */
+const OBJS=[
+ {k:'immo4',t:'Posséder au moins 4 biens immobiliers à la fin.',ok:p=>myProps(p).length>=4},
+ {k:'biz3',t:'Posséder 3 entreprises à la fin.',ok:p=>p.biz.length>=3},
+ {k:'clean',t:'Finir avec moins de 10 de police et sans argent sale.',ok:p=>p.heat<10&&!(p.dirty>0)},
+ {k:'nodebt',t:'Finir sans aucune dette.',ok:p=>p.debt<1&&!p.shark},
+ {k:'casino',t:'Débloquer le Golden Riviera (4e casino).',ok:p=>casLvl(p)>=3},
+ {k:'heist2',t:'Réussir 2 braquages.',ok:p=>(p.stats.heists||0)>=2},
+ {k:'trader',t:'Gagner au moins 50 000 € en trading sur la partie.',ok:p=>p.stats.trading>=50000},
+ {k:'scam2',t:'Réussir 2 arnaques.',ok:p=>(p.stats.scams||0)>=2},
+];
+const OBJ_BONUS=.15;
+const objDef=p=>OBJS.find(o=>o.k===p.obj);
 const OPPS=[
  {k:'yacht',e:'🛥️',t:'Yacht saisi aux enchères',d:'Les douanes bradent un yacht. Revente dans 2 tours : perte, x1,5 ou x2,5.',c:u=>u*1.5,
    go:(p,o)=>{p.deals.push({name:'Yacht saisi',pitch:'Revente aux enchères',e:'🛥️',amt:o.cost,mature:G.round+2,out:[[.25,.6,'se revend mal…'],[.5,1.5,'trouve preneur : x1,5'],[.25,2.5,'part chez une star du disco : x2,5 !']]});return 'Revente prévue au tour '+(G.round+2)}},
  {k:'tip',e:'📞',t:'Tuyau d’initié',roll:()=>({sym:pick(ASSETS).sym}),d:o=>`Un trader bavard jure que ${ASSETS.find(a=>a.sym===o.sym).name} va s’envoler au prochain tour. Achète en Bourse ensuite ! 🚨 +8`,c:u=>u*.25,
-   go:(p,o)=>{G.bias=G.bias||{};G.bias[o.sym]=(G.bias[o.sym]||0)+(Math.random()<.7?R(.08,.25):-.12);p.heat=clamp(p.heat+8,0,100);return 'Info notée. À toi de jouer en Bourse.'}},
+   go:(p,o)=>{G.bias=G.bias||{};shared({t:'bias',sym:o.sym,v:Math.random()<.7?R(.08,.25):-.12});p.heat=clamp(p.heat+8,0,100);return 'Info notée. À toi de jouer en Bourse.'}},
  {k:'cop',e:'👮',t:'Commissaire corrompu',need:p=>p.heat>=15,d:'Une enveloppe et ton dossier s’allège de 35. Sauf si c’est un piège (15 %).',c:u=>u*.6,
    go:p=>{if(Math.random()<.85){p.heat=clamp(p.heat-35,0,100);return '😇 Recherche −35'}p.heat=clamp(p.heat+20,0,100);return '🚨 C’était un piège ! Recherche +20'}},
  {k:'truck',e:'📼',t:'Cargaison tombée du camion',d:'Des magnétoscopes « sans facture ». Tu paies en propre, tu revends en liquide sale (x1,5 à x2,4). 🚨 +10',c:u=>u*.8,
    go:(p,o)=>{const x=o.cost*R(1.5,2.4);p.dirty+=x;p.heat=clamp(p.heat+10,0,100);p.stats.crime+=x-o.cost;return fmt(x,true)+' d’argent sale'}},
- {k:'fore',e:'🏚️',t:'Saisie immobilière',roll:p=>{const free=G.props.filter(x=>x.owner==null);if(!free.length)return null;const tgt=netWorth(p)*.6;const x=free.slice().sort((a,b)=>Math.abs(Math.log(propVal(a)/tgt))-Math.abs(Math.log(propVal(b)/tgt)))[0];return {pid:x.id}},
-   d:o=>{const x=G.props[o.pid];return `${x.e} ${x.n} (${x.c}) bradé à 65 % de sa valeur. Sans frais de notaire.`},c:(u,o)=>propVal(G.props[o.pid])*.65,
-   ok:o=>G.props[o.pid].owner==null,go:(p,o)=>{const x=G.props[o.pid];x.owner=p.id;return '🔑 '+x.n+' est à toi'}},
+ {k:'fore',e:'🏚️',t:'Saisie immobilière',roll:p=>{const tgt=Math.max(20000,avgWorth()*.6),c=pick(CITIES).k;const t=RTYPES.slice().sort((a,b)=>Math.abs(Math.log(rprice(c,a.k)/tgt))-Math.abs(Math.log(rprice(c,b.k)/tgt)))[0].k;return {c,t}},
+   d:o=>`${rdef(o.t).n} à ${cdef(o.c).n} bradé à 80 % de sa valeur. Sans frais d’acquisition.`,c:(u,o)=>rprice(o.c,o.t)*.8,
+   go:(p,o)=>{p.re=p.re||[];p.re.push({id:rid(5),c:o.c,t:o.t,paid:rprice(o.c,o.t)});return '🔑 '+rdef(o.t).n+' à '+cdef(o.c).n+' est à toi'}},
  {k:'poker',e:'♠️',t:'Poker clandestin',d:'Une table enfumée dans l’arrière-salle d’un club. 45 % de chances de repartir avec x2,2… et la police passe parfois.',c:u=>u*.5,
    go:(p,o)=>{let s;if(Math.random()<.45){const w=o.cost*2.2;p.cash+=w;p.stats.casino+=w-o.cost;s=fmt(w-o.cost,true)}else{p.stats.casino-=o.cost;s='Tout perdu : '+fmt(-o.cost)}if(Math.random()<.12){p.heat=clamp(p.heat+15,0,100);s+=' · 🚨 descente de police +15'}return s}},
- {k:'contract',e:'🏗️',t:'Marché public truqué',need:p=>p.biz.length>0,d:'Un élu promet un gros contrat à ta boîte contre une enveloppe. Au prochain tour : x3 (70 %) ou scandale. 🚨 +6',c:u=>u,
-   go:(p,o)=>{p.heat=clamp(p.heat+6,0,100);p.deals.push({name:'Contrat public',pitch:'Enveloppe à un élu',e:'🏗️',amt:o.cost,mature:G.round+1,out:[[.7,3,': le contrat tombe, x3 !'],[.3,0,': scandale, l’élu est arrêté. Enveloppe perdue.']]});return 'Réponse au prochain tour'}},
+ {k:'contract',e:'🏗️',t:'Marché public truqué',need:p=>p.biz.length>0,d:'Un élu promet un gros contrat à ta boîte contre une enveloppe. Au prochain tour : x3 (60 %) ou scandale. 🚨 +6',c:u=>u,
+   go:(p,o)=>{p.heat=clamp(p.heat+6,0,100);p.deals.push({name:'Contrat public',pitch:'Enveloppe à un élu',e:'🏗️',amt:o.cost,mature:G.round+1,out:[[.6,3,': le contrat tombe, x3 !'],[.4,0,': scandale, l’élu est arrêté. Enveloppe perdue.']]});return 'Réponse au prochain tour'}},
  {k:'paint',e:'🖼️',t:'Toile de maître « empruntée »',d:'Un receleur te propose une œuvre volée. Revente discrète dans 2 tours : faux, x1,8 ou x3. 🚨 +12',c:u=>u*1.2,
    go:(p,o)=>{p.heat=clamp(p.heat+12,0,100);p.deals.push({name:'Toile volée',pitch:'Chez un receleur',e:'🖼️',amt:o.cost,mature:G.round+2,out:[[.2,0,'était un faux !'],[.5,1.8,'part chez un collectionneur : x1,8'],[.3,3,'finit dans un musée privé : x3 !']]});return 'Revente prévue au tour '+(G.round+2)}},
  {k:'guard',e:'🕶️',t:'Avocat à l’année',need:p=>!(p.shield>=G.round),d:'Un ténor du barreau sous contrat : pendant 3 tours, tes risques d’arrestation sont divisés par deux.',c:u=>u*.7,
    go:p=>{p.shield=G.round+3;return 'Protégé jusqu’au tour '+(G.round+3)}},
- {k:'shark',e:'🦈',t:'Usurier',d:'Du cash tout de suite, sans questions. Tu devras rembourser 1,6 fois la somme (ajouté à ta dette).',c:()=>0,gain:u=>u*2,
-   go:(p,o)=>{p.cash+=o.gain;p.debt+=o.gain*1.6;return fmt(o.gain,true)+' · dette +'+fmt(o.gain*1.6)}},
+ {k:'shark',e:'🦈',t:'Usurier',need:p=>!p.shark,d:'Du cash tout de suite, sans intérêts. Il revient se servir dans 3 tours : s’il ne trouve pas la somme, le reste passe en dette avec 50 % de pénalité.',c:()=>0,gain:u=>u*2,
+   go:(p,o)=>{p.cash+=o.gain;p.shark={amt:o.gain,due:G.round+3};return fmt(o.gain,true)+' · à rendre au tour '+(G.round+3)}},
+ {k:'century',e:'💼',t:'Le coup du siècle',need:()=>false,roll:p=>({cap:Math.max(1000,netWorth(p)*.2)}),d:'Réservé au dernier du classement. Une chance sur 4 de multiplier ta mise par 8. Sinon, tout est perdu.',c:(u,o)=>Math.min(o.cap,Math.max(1000,u*1.5)),
+   go:(p,o)=>{if(Math.random()<.25){const w=o.cost*8;p.cash+=w;bigWin(p,w-o.cost,'réussit le coup du siècle');return fmt(w-o.cost,true)+' !'}return 'Raté. '+fmt(-o.cost)}},
+ {k:'legend',e:'👑',t:'Opportunité légendaire',need:()=>false,roll:()=>({v:RI(0,LEGENDS.length-1)}),d:o=>LEGENDS[o.v][0]+' Elle vaut 10 fois son prix, tout de suite.',c:u=>u*.5,
+   go:(p,o)=>{const w=o.cost*10;p.cash+=w;bigWin(p,w-o.cost,LEGENDS[o.v][1]);return fmt(w-o.cost,true)}},
  {k:'mule',e:'🧳',t:'Passeur de fonds',need:p=>p.dirty>=2000,d:'Il fait passer ton argent sale en Suisse pour 8 % de frais seulement (jusqu’à 4 unités).',c:()=>0,
    go:(p,o)=>{const n=Math.min(p.dirty,o.u*4),f=n*.08;p.dirty-=n;p.cash+=n-f;p.stats.laund+=n;return fmt(n-f,true)+' blanchis'}},
  {k:'buyout',e:'🤝',t:'Offre de rachat',need:p=>p.biz.length>0,roll:p=>{const i=RI(0,p.biz.length-1),b=p.biz[i];return {bn:b.name,offer:Math.round(bizVal(b)*R(1.3,1.8))}},
@@ -808,45 +876,184 @@ const OPPS=[
    go:(p,o)=>{p.heat=clamp(p.heat+5,0,100);if(Math.random()<.7){const w=o.cost*2.5;p.cash+=w;p.stats.casino+=w-o.cost;return fmt(w-o.cost,true)}p.stats.casino-=o.cost;return 'Il a gagné… '+fmt(-o.cost)}},
 ];
 function niceRound(x){if(x<=0)return 0;const m=Math.pow(10,Math.floor(Math.log10(x))-1);return Math.round(x/m)*m}
-function oppUnit(p){return niceRound(clamp(netWorth(p)*.12,2000,3e6))}
+/* Taille des opportunités : sur le patrimoine MOYEN des joueurs, pour que le premier ne reçoive pas des coups 10 fois plus gros. */
+function avgWorth(){return G.players.reduce((s,q)=>s+netWorth(q),0)/G.players.length}
+function oppUnit(p){return niceRound(clamp(avgWorth()*.12,2000,3e6))}
+/* Le premier du classement, ou celui qui vient de toucher un jackpot : la cible de la manche. */
+function leader(){return G.players.length>1?ranked()[0]:null}
+function isMark(t){return !!t&&(t===leader()||(t.mark||0)>=G.round)}
 function genOpps(p){const u=oppUnit(p),pool=OPPS.filter(o=>!o.need||o.need(p)),out=[];
-  while(out.length<3&&pool.length){const d=pool.splice(Math.floor(Math.random()*pool.length),1)[0];const r=d.roll?d.roll(p):{};if(r===null)continue;
-    const o={id:rid(5),k:d.k,u,...r};o.cost=niceRound(d.c(u,o));if(d.gain)o.gain=niceRound(d.gain(u));out.push(o)}
+  const mk=d=>{const r=d.roll?d.roll(p):{};if(r===null)return null;const o={id:rid(5),k:d.k,u,...r};o.cost=niceRound(d.c(u,o));if(d.gain)o.gain=niceRound(d.gain(u));return o};
+  /* Le dernier du classement a une chance sur deux de se voir proposer le coup du siècle. */
+  if(G.players.length>1&&ranked().at(-1)===p&&Math.random()<.5){const o=mk(oppDef('century'));if(o)out.push(o)}
+  /* 2 % : une opportunité légendaire, la même taille pour tout le monde. */
+  if(Math.random()<.02){const o=mk(oppDef('legend'));if(o)out.push(o)}
+  while(out.length<3&&pool.length){const d=pool.splice(Math.floor(Math.random()*pool.length),1)[0];const o=mk(d);if(o)out.push(o)}
   return out}
+
+/* ================= ENCHÈRE DE LA MANCHE =================
+   Un lot par manche. Chacun dépose une offre secrète pendant son tour (gratuit, 0 PA) : la somme est bloquée.
+   En fin de manche, la plus haute offre l'emporte et paie son prix ; les autres sont remboursés. */
+function genAuction(){const avg=Math.max(20000,avgWorth()),id=rid(5);
+  if(Math.random()<.6){const c=pick(CITIES).k,tgt=avg*.5,t=RTYPES.slice().sort((a,b)=>Math.abs(Math.log(rprice(c,a.k)/tgt))-Math.abs(Math.log(rprice(c,b.k)/tgt)))[0].k,v=rprice(c,t);
+    return {id,kind:'prop',c,t,v,min:niceRound(v*.3),title:`${rdef(t).e} ${rdef(t).n} à ${cdef(c).n}`,d:`Saisi par la banque et vendu aux enchères. Valeur du marché : environ ${fmt(v)}.`}}
+  const v=niceRound(avg*R(.25,.45));
+  return {id,kind:'art',v,min:niceRound(v*.3),title:'🖼️ Collection d’un oligarque en fuite',d:`Estimée ${fmt(v)} par la maison d’enchères. Revente dans 2 tours : faux (x0,4), estimation juste (x1,2) ou chef-d’œuvre (x2,5).`}}
+function myBid(p){return p.bid&&G.auction&&p.bid.id===G.auction.id?p.bid.amt:0}
+function openAuction(){const p=cur(),a=G.auction;if(!a)return;const mb=myBid(p);
+  openSheet('Enchère de la manche',`<p><b>${a.title}</b></p><p class="small muted">${a.d}</p>
+  ${note('Offre <b>secrète</b>, gratuite en points d’action. La somme est bloquée jusqu’à la fin de la manche : la plus haute offre gagne et paie son prix, les autres sont remboursés.')}
+  <div class="kv mt-3"><span>Mise minimum</span><b class="num">${fmt(a.min)}</b></div>${mb?`<div class="kv"><span>Ton offre actuelle</span><b class="gold num">${fmt(mb)}</b></div>`:''}
+  <h3 class="sec">Ton offre</h3>${amt('bidAmt',Math.max(0,p.cash+mb),Math.max(a.min,mb||a.min))}
+  <div class="sheet-foot stack">${B(mb?'Modifier mon offre':'Déposer mon offre',{v:'primary',on:'placeBid()'})}${mb?B('Retirer mon offre',{v:'secondary',on:'placeBid(0)'}):''}</div>`)}
+function placeBid(zero){const p=cur(),a=G.auction;if(!a||!isMyTurn()||!(G.screen==='turn'||G.screen==='free'))return;const old=myBid(p),n=zero===0?0:getAmt('bidAmt');
+  if(n&&n<a.min){toast('L’offre minimum est de '+fmt(a.min),1);return}
+  if(n>p.cash+old+.5){toast('Pas assez de cash pour cette offre.',1);return}
+  p.cash+=old;p.bid=n?{id:a.id,amt:n}:null;p.cash-=n;sfx.coin();toast(n?'Offre déposée : '+fmt(n):'Offre retirée');forceClose();save();render()}
+function resolveAuction(add){const a=G.auction;if(!a)return;const bids=G.players.filter(q=>myBid(q)>0).sort((x,y)=>myBid(y)-myBid(x));
+  const w=bids[0];G.players.forEach(q=>{const b=myBid(q);if(b&&q!==w){q.cash+=b;add(q,'🔨 Enchère perdue, offre remboursée',0)}q.bid=null});
+  if(!w)return null;const price=bids[0]&&myBid(bids[0])||0;
+  return {w,a};}
+function grantAuction(r,add){if(!r)return;const {w,a}=r;
+  if(a.kind==='prop'){w.re=w.re||[];w.re.push({id:rid(5),c:a.c,t:a.t,paid:a.v})}
+  else w.deals.push({name:'Collection d’art',pitch:'Achetée aux enchères',e:'🖼️',amt:a.v,mature:G.round+2,out:[[.25,.4,'était en partie fausse…'],[.5,1.2,'part au prix estimé : x1,2'],[.25,2.5,'contenait un chef-d’œuvre : x2,5 !']]});
+  add(w,`🔨 Remporte l’enchère : ${noEmo(a.title)}`,0);addFeed(`remporte l’enchère de la manche : ${noEmo(a.title)}`,w)}
+/* ================= RUMEURS ================= */
+/* L'événement de la prochaine fin de manche est tiré à l'avance. Une rumeur l'annonce… 7 fois sur 10. */
+function planEvent(){G.nextEv=Math.random()<.8?RI(0,EVENTS.length-1):-1;
+  G.rumor=G.nextEv>=0&&Math.random()<.7?G.nextEv:RI(0,EVENTS.length-1)}
+function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span class="ic">${e.e}</span><span class="bd"><b>Rumeur : ${e.t.toLowerCase()}</b><span class="small muted">Pour la fin de cette manche. Les rumeurs disent vrai environ 7 fois sur 10.</span></span></div>`:''}
+/* Bloc « cette manche » de l'écran de tour : rumeur, enchère, personnage et objectif secret. */
+function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
+  return `${label('Cette manche')}<div class="list">${rumorHTML()}
+  ${a?`<${mine?'button':'div'} class="item${mine?'':' ro'}" ${mine?'onclick="openAuction()"':''}><span class="ic">🔨</span><span class="bd"><b>Enchère : ${noEmo(a.title)}</b><span class="small muted">Offre secrète, 0 PA · ${mb?'ton offre : <b class="gold num">'+fmt(mb)+'</b>':'minimum '+fmt(a.min)}</span></span>${mine?`<span class="rt muted">${icon('arrow')}</span>`:''}</${mine?'button':'div'}>`:''}
+  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>${cd.n}</b><span class="small muted">${cd.t} ${cd.f}</span></span></div>`:''}
+  ${od&&mine?`<div class="item"><span class="ic">🎯</span><span class="bd"><b>Objectif secret</b><span class="small muted">${od.t} Réussi : +15 % de patrimoine à la fin.${od.ok(p)?' <b class="pos">Atteint pour l’instant.</b>':''}</span></span></div>`:''}</div>`}
 
 /* ================= STATE ================= */
 let G=null, busy=false, sheetFn=null;
 let setup={players:[{name:'',av:'🦈'},{name:'',av:'🐺'},{name:'',av:'🦊'}],cash:10000,rounds:12};
 
 let APP={view:'home',err:'',joinCode:''};
-function save(){if(!G)return;if(ON){G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;pubState();return}try{localStorage.setItem('sf_save',JSON.stringify(G))}catch(e){}}
-function addFeed(txt,p){if(!G)return;if(p===undefined)p=cur();G.feedId=(G.feedId||0)+1;G.feed=G.feed||[];
-  G.feed.push({id:G.feedId,t:p?`<b>${esc(p.name)}</b> ${txt}`:txt,av:p?p.avatar:'📰',c:p?p.color:'var(--line)',by:UID,r:G.round});if(G.feed.length>30)G.feed.shift()}
-function isMyTurn(){return !ON||(G&&G.players[G.cur]&&G.players[G.cur].uid===UID)}
+function save(){if(!G)return;if(ON){if(simFree()){const m=me();if(m)m.v=(m.v||0)+1;if(ON.host){G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;simCheck();pubStateSoon()}else pubMe();return}
+    G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;pubState();return}try{localStorage.setItem('sf_save',JSON.stringify(G))}catch(e){}}
+function addFeed(txt,p){if(!G)return;if(p===undefined)p=cur();G.feed=G.feed||[];
+  /* En phase libre, plusieurs téléphones écrivent en même temps : identifiant fondé sur l'heure, fusionné par l'hôte. */
+  const id=simFree()?Date.now()*100+RI(0,99):(G.feedId||0)+1;
+  shared({t:'feed',item:{id,t:p?`<b>${esc(p.name)}</b> ${txt}`:txt,av:p?p.avatar:'📰',c:p?p.color:'var(--line)',by:UID,r:G.round}})}
+/* ================= MODE HYBRIDE EN LIGNE =================
+   Phase libre : tout le monde joue en même temps ses actions personnelles (casino, Bourse, immobilier, entreprises,
+   startups, banque, enchère). Chaque téléphone est seul maître de sa propre fiche et l'envoie à l'hôte, qui fusionne
+   et rediffuse. Ce qui touche aux données communes passe par de petites opérations (journal, cagnotte, tuyaux).
+   Phase des coups : chacun son tour, avec les PA gardés, pour les braquages et les coups bas, sous les yeux de tous. */
+function simFree(){return !!(ON&&G&&G.mode==='sim'&&G.screen==='free')}
+function simStarted(){const m=me();return !!(m&&m.t&&m.t.round===G.round)}
+function applyOp(op){if(op.t==='feed'){if(!G.feed.some(f=>f.id===op.item.id)){G.feed.push(op.item);G.feed.sort((a,b)=>a.id-b.id);while(G.feed.length>30)G.feed.shift()}G.feedId=Math.max(G.feedId||0,op.item.id)}
+  else if(op.t==='pot')G.pot=Math.max(0,(G.pot||0)+op.d);
+  else if(op.t==='bias'){G.bias=G.bias||{};G.bias[op.sym]=(G.bias[op.sym]||0)+op.v}
+  else if(op.t==='hl')(G.highlights=G.highlights||[]).push(op.item)}
+function shared(op){op.id=op.id||rid(8);op.r=G.round;applyOp(op);if(simFree()){G.opsSeen=G.opsSeen||{};G.opsSeen[op.id]=1;if(!ON.host)(ON.ops=ON.ops||[]).push(op)}}
+/* Les variables du tour (PA, casino, avocat, opportunités) : dans ma fiche en phase libre, communes sinon. */
+const LOCALS=['ap','acted','inCasino','casinoLeft','lawyer','opps'];
+function bindLocal(){if(!G||G.mode!=='sim')return;G._loc=G._loc||{ap:AP_MAX,acted:false,inCasino:false,casinoLeft:3,lawyer:false,opps:[]};
+  LOCALS.forEach(k=>{if(Object.getOwnPropertyDescriptor(G,k)&&!Object.getOwnPropertyDescriptor(G,k).get){G._loc[k]=G[k];delete G[k]}
+    Object.defineProperty(G,k,{configurable:true,enumerable:false,get(){const t=G.screen==='free'&&ON?(me()||{}).t:G._loc;return t?t[k]:undefined},
+      set(v){const t=G.screen==='free'&&ON?(me()||{}).t:G._loc;if(t)t[k]=v}})})}
+function pubMe(){if(!ON||!G)return;const m=me();if(!m)return;ON.ops=(ON.ops||[]).filter(o=>o.r===G.round);
+  pub('msg',{type:'me',from:UID,gameId:G.gameId,round:G.round,P:m,ops:ON.ops})}
+let pubSoonT=0;
+function pubStateSoon(){clearTimeout(pubSoonT);pubSoonT=setTimeout(()=>{if(ON&&G)pubState()},250)}
+/* Hôte : reçoit la fiche d'un joueur pendant la phase libre. */
+function onMe(m){if(!ON||!ON.host||!G||m.gameId!==G.gameId||m.round!==G.round||G.screen!=='free')return;
+  const i=G.players.findIndex(q=>q.uid===m.from);if(i<0)return;
+  if((m.P.v||0)>(G.players[i].v||0))G.players[i]=m.P;
+  G.opsSeen=G.opsSeen||{};(m.ops||[]).forEach(op=>{if(!G.opsSeen[op.id]){G.opsSeen[op.id]=1;applyOp(op)}});
+  G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;simCheck();pubStateSoon();scheduleRender()}
+/* Hôte : quand tout le monde a fini la phase libre, on passe à la phase des coups (ou directement au journal). */
+function simDone(q){return !!(q.t&&q.t.round===G.round&&q.t.done)}
+function simCheck(){if(!ON||!ON.host||!G||G.screen!=='free')return;if(!G.players.every(simDone))return;
+  const n=G.players.length,start=(G.round-1)%n;
+  G.coupsQ=Array.from({length:n},(_,k)=>(start+k)%n).filter(i=>{const q=G.players[i];return (q.t.apLeft||0)>0&&!(q.jail>0)});
+  G.turnCount=0;
+  if(!G.coupsQ.length){addFeed('Personne ne tente de coup ce tour-ci.',null);endRound()}
+  else{G.cur=G.coupsQ[0];G.screen='pass';addFeed('⚔️ Phase des coups : chacun son tour, sous les yeux de tous.',null)}
+  G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;pubState();scheduleRender()}
+/* Hôte : un joueur absent pendant la phase libre est marqué « fini ». */
+function simSkip(i){if(!ON||!ON.host||G.screen!=='free')return;const q=G.players[i];if(!q||isOnline(q.uid))return;
+  q.t={round:G.round,ap:0,apLeft:0,done:true,opps:[],acted:false,inCasino:false,casinoLeft:0,lawyer:false};addFeed('est absent : sa phase libre est passée.',q);
+  G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;simCheck();pubState();render()}
+/* Début de ma phase libre : carte Destin, police, opportunités (comme un début de tour, mais pour moi seul). */
+function simStart(){if(!simFree()||simStarted())return;const p=me();if(!p)return;sfx.coin();haptic('turn');
+  p.t={round:G.round,ap:AP_MAX,acted:false,inCasino:false,casinoLeft:3,lawyer:false,opps:[],done:false};bj=null;scratch=null;
+  const cards=[];p.inbox.forEach(m=>cards.push(m));p.inbox=[];
+  if(p.jail>0)cards.push(jailCard(p));
+  else if(p.heat>=25&&Math.random()<arrestRisk(p)){cards.push(arrest(p,'Les flics débarquent chez toi à 6 h du matin.'));cards.push(jailCard(p))}
+  else if(Math.random()<.42){const d=pick(DESTIN.filter(x=>x.f!==robin&&x.f!==bday));const fx=d.f(p);cards.push({k:'CARTE DESTIN',e:d.e,t:d.t,d:d.d,fx});addFeed(`pioche une carte Destin ${d.e} « ${d.t} » : ${fx}`)}
+  p.t.opps=p.jail>0?[]:genOpps(p);
+  save();render();if(cards.length)showCards(cards)}
+/* Fin de ma phase libre : les PA restants sont gardés pour la phase des coups. */
+function simEnd(){if(!simFree()||!simStarted())return;const p=me();busy=false;forceClose();closeOv();haptic('confirm');
+  if(bj&&!bj.over){p.cash-=bj.bet;p.stats.casino-=bj.bet;bj=null}
+  if(scratch&&!scratch.open){const won=scratch.price*scratch.m;scratch.open=true;if(won>0)casinoResult(won,1,won-scratch.price)}
+  scratch=null;p.t.apLeft=p.jail>0?0:p.t.ap;p.t.done=true;save();render();window.scrollTo(0,0)}
+function renderFree(){const p=me();if(!p)return renderSpectate();
+  if(!simStarted())return paint(`<div class="pass" style="--c:${p.color}" data-z="pass">
+    <span class="pill num">Tour ${G.round} / ${G.maxRounds} · phase libre</span>
+    <div class="bigav">${p.avatar}</div>
+    <div><div class="who-lbl">Tout le monde joue en même temps</div><h1>À toi, ${esc(p.name)} !</h1></div>
+    <p class="muted small center">Casino, Bourse, immobilier, entreprises, startups, enchère : joue sans attendre les autres. Garde des points d’action pour la phase des coups (braquages et coups bas), qui se joue ensuite chacun son tour.</p>
+    ${p.jail>0?`<span class="tag r">${icon('lock')}&nbsp;En prison</span>`:''}
+    <div class="btnwrap">${B('Jouer ma phase libre',{v:'primary',on:'simStart()',intro:1})}</div>
+    ${B(icon('trophy')+'Classement',{v:'text',inline:1,on:'openRanking()'})}</div>`,'free'+G.round);
+  if(!p.t.done)return renderTurn();
+  return renderWaitFree()}
+function renderWaitFree(){const p=me(),feed=(G.feed||[]).slice().reverse().slice(0,10);
+  paint(`<div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds} · ${ON.code}</span>
+    <div class="row">${iconBtn('trophy','Classement','openRanking()')}${iconBtn('menu','Menu','openMenu()')}</div></div>
+  <div class="panel" data-z="who">${label('Phase libre')}<p class="small muted">Tu as fini. Tu gardes <b class="num">${p.t.apLeft||0} PA</b> pour la phase des coups.</p>
+    <div class="list">${G.players.map((q,i)=>{const d=simDone(q),on=isOnline(q.uid);return `<div class="item"><div class="av sm" style="--c:${q.color}">${q.avatar}</div><span class="bd"><b>${esc(q.name)}${q.uid===UID?' <span class="tag">toi</span>':''}</b><span class="small muted">${d?'a terminé':on?'joue encore…':'hors ligne'}</span></span>${!d&&!on&&ON.host?B('Passer',{v:'secondary',inline:1,on:`simSkip(${i})`}):''}</div>`}).join('')}</div></div>
+  <div data-z="intel">${intelHTML(p,false)}</div>
+  <div data-z="prep">${label('En attendant')}<div class="freebar">
+    <button class="free" onclick="openMarket()"><span>📈</span>Bourse</button>
+    <button class="free" onclick="openTrading()"><span>⚡</span>Positions</button>
+    <button class="free" onclick="openImmo()"><span>🌴</span>Immobilier</button>
+    <button class="free" onclick="openVC()"><span>🦄</span>Startups</button></div></div>
+  <div data-z="feed">${label('Ce qui se passe')}<div class="list">${feed.map(f=>`<div class="item"><span class="bd small">${f.t}</span></div>`).join('')}</div></div>`,'waitfree'+G.round)}
+function isMyTurn(){if(!ON)return true;if(!G)return false;if(G.screen==='free'){const m=me();return !!m&&!(m.t&&m.t.round===G.round&&m.t.done)}
+  return !!(G.players[G.cur]&&G.players[G.cur].uid===UID)}
 function me(){return G&&ON?G.players.find(p=>p.uid===UID):null}
 function loadSave(){try{const s=localStorage.getItem('sf_save');return s?JSON.parse(s):null}catch(e){return null}}
 function clearSave(){try{localStorage.removeItem('sf_save')}catch(e){}}
 
-const cur=()=>G.players[G.cur];
+/* Pendant la phase libre (en ligne), chacun joue pour lui-même en même temps : « le joueur courant », c'est moi. */
+const cur=()=>ON&&G.screen==='free'?me():G.players[G.cur];
 const asset=s=>G.assets.find(a=>a.sym===s);
 const bizDef=k=>BIZ.find(b=>b.k===k);
-const propVal=pr=>pr.p*G.reIndex;
-const propRent=pr=>pr.r*G.reIndex;
 const bizMult=l=>1+.6*(l-1);
-const bizVal=b=>bizDef(b.k).cost*(.8+.6*(b.lvl-1));
+/* Valeur d'une boîte : la moitié de son prix + 3 tours de revenu moyen. Une boîte qui rapporte vaut plus qu'une boîte qui coûte. */
+const bizVal=b=>{const d=bizDef(b.k);return Math.max(d.cost*.3,d.cost*.5+3*(d.min+d.max)/2*bizMult(b.lvl))};
 function stockVal(p){let v=0;for(const s in p.stocks)v+=p.stocks[s]*asset(s).price;return v}
-function myProps(p){return G.props.filter(x=>x.owner===p.id)}
-function propsVal(p){return myProps(p).reduce((a,x)=>a+propVal(x),0)}
+function myProps(p){return p.re||[]}
+function propsVal(p){return myProps(p).reduce((a,x)=>a+rprice(x.c,x.t),0)}
 function bizTotal(p){return p.biz.reduce((a,b)=>a+bizVal(b),0)}
 function dealsVal(p){return p.deals.reduce((a,d)=>a+(d.kind==="vc"?d.value:d.amt),0)}
 function grossAssets(p){return Math.max(0,p.cash)+posTotal(p)+stockVal(p)+propsVal(p)+bizTotal(p)+dealsVal(p)}
 /* L'argent sale ne compte que pour moitié tant qu'il n'est pas blanchi. */
 const DIRTY_VALUE=.5;
-function netWorth(p){return p.cash+(p.dirty||0)*DIRTY_VALUE+posTotal(p)+stockVal(p)+propsVal(p)+bizTotal(p)+dealsVal(p)-p.debt}
+function netWorth(p){return (G&&G.auction?myBid(p):0)+p.cash+(p.dirty||0)*DIRTY_VALUE+posTotal(p)+stockVal(p)+propsVal(p)+bizTotal(p)+dealsVal(p)-p.debt-(p.shark?p.shark.amt:0)}
 function gain(p,n){p.cash+=n;return fmt(n,true)}
+/* Gros coup de chance : tout le monde l'apprend, la police s'intéresse au gagnant et il devient la cible de la manche suivante. */
+function bigWin(p,amount,txt){p.mark=G.round+1;p.heat=clamp(p.heat+10,0,100);shared({t:'hl',item:{r:G.round,pid:p.id,t:txt,v:amount}});
+  addFeed(`💥 ${txt} (${fmt(amount,true)}) : toute la ville en parle`,p);setTimeout(()=>{sfx.big();confetti(220);haptic('jackpot')},300)}
+/* Argent « saisissable » : cash + Bourse. Garder zéro cash ne protège plus des amendes, impôts et arnaques. */
+function liquid(p){return Math.max(0,p.cash)+stockVal(p)}
+/* Prend x : d'abord le cash, puis vend des actions au prorata. Renvoie ce qui a été pris. */
+function takeLiquid(p,x){x=Math.min(Math.max(0,x),liquid(p));let left=x;const c=Math.min(Math.max(0,p.cash),left);p.cash-=c;left-=c;
+  const sv=stockVal(p);if(left>0&&sv>0){const f=Math.min(1,left/sv);for(const s in p.stocks){p.stocks[s]*=(1-f);if(p.cost&&p.cost[s])p.cost[s]*=(1-f);if(p.stocks[s]*asset(s).price<1){delete p.stocks[s];if(p.cost)delete p.cost[s]}}left=0}
+  return x}
 function heatFx(p,n){p.heat=clamp(p.heat+n,0,100);return (n>0?'🚨 Recherche +':'😇 Recherche −')+Math.abs(n)}
-function robin(p){const others=G.players.filter(o=>o!==p);if(!others.length)return '';const rich=others.reduce((a,b)=>b.cash>a.cash?b:a);
-  const x=Math.max(0,rich.cash*.05);rich.cash-=x;p.cash+=x;return `${fmt(x,true)} pris à ${esc(rich.name)}`}
+function robin(p){const others=G.players.filter(o=>o!==p);if(!others.length)return '';const rich=others.reduce((a,b)=>netWorth(b)>netWorth(a)?b:a);
+  const x=takeLiquid(rich,liquid(rich)*.05);p.cash+=x;return `${fmt(x,true)} pris à ${esc(rich.name)}`}
 function bday(p){let t=0;G.players.forEach(o=>{if(o!==p){o.cash-=1000;t+=1000}});p.cash+=t;return fmt(t,true)}
 function heatLabel(h){return h<10?'Inconnu des services':h<30?'Fiché':h<55?'Sous surveillance':h<80?'Recherché activement':'Ennemi public n°1'}
 /* Points d'action : 3 par tour, chaque action en coûte 1 à 3. */
@@ -854,7 +1061,7 @@ const AP_MAX=3;
 function apTxt(n){return n+' PA'}
 function noAP(n){toast(G.ap>0?`Il te reste ${G.ap} point${G.ap>1?'s':''} d’action, il en faut ${n}.`:'Plus de points d’action ce tour-ci.',1)}
 function hasAP(n){if(G.ap<n){noAP(n);return false}return true}
-function useAP(n){if(!hasAP(n))return false;G.ap-=n;G.acted=true;return true}
+function useAP(n){if(!hasAP(n))return false;G.ap-=n;G.acted=true;haptic('action');return true}
 function rep(p){return p.rep||0}
 function canPay(p,n){if(n<=0){toast('Choisis un montant.',1);return false}if(n>p.cash+.5){toast('Pas assez de cash. Passe par la banque ou vends des actifs.',1);return false}return true}
 
@@ -875,6 +1082,7 @@ function render(){
   document.body.classList.toggle('dim',!!G||APP.view!=='home');
   if(!G){({home:renderHome,local:renderSetup,join:renderJoin,lobby:renderLobby,connecting:renderConnecting})[APP.view]();return}
   const s=G.screen;
+  if(s==='free')return renderFree();
   if(ON&&(s==='pass'||s==='turn')){if(!isMyTurn())return renderSpectate();if(s==='pass')return renderMyTurn()}
   ({pass:renderPass,turn:renderTurn,recap:renderRecap,end:renderEnd})[s]();}
 /* En ligne, les états arrivent souvent : on regroupe les rendus dans une seule image. */
@@ -897,38 +1105,58 @@ function renderSetup(){
   <div class="seg">${[[5000,'5 000 €','Galère'],[10000,'10 000 €','Classique'],[50000,'50 000 €','Fils à papa']].map(([v,l,s])=>`<button class="${setup.cash===v?'on':''}" aria-pressed="${setup.cash===v}" onclick="setup.cash=${v};renderSetup()">${l}<small>${s}</small></button>`).join('')}</div></div>
   <div data-z="rounds">${label('Durée de la partie')}
   <div class="seg">${[[8,'8 tours','~30 min'],[12,'12 tours','~45 min'],[20,'20 tours','La soirée']].map(([v,l,s])=>`<button class="${setup.rounds===v?'on':''}" aria-pressed="${setup.rounds===v}" onclick="setup.rounds=${v};renderSetup()">${l}<small>${s}</small></button>`).join('')}</div></div>
-  <div data-z="rules">${RULES}</div>
+  <div data-z="rules">${FOOT_BTNS}</div>
   <div class="dock" data-z="dock">${B('Lancer la partie',{v:'primary',on:'newGame()'})}</div>`,'setup');
 }
-const RULES=`<details class="rules"><summary>Les règles en 1 minute</summary>
-    <p>Chacun part avec la même somme. À ton tour, tu as <b>3 points d’action (PA)</b>. Chaque action en coûte : casino, trading, immobilier, startup, boulot ou coup bas = 1 PA ; créer une entreprise ou monter un réseau = 2 PA ; un braquage = <b>3 PA, tout ton tour</b>.</p>
+const RULES_BODY=`    <p>Chacun part avec la même somme. À ton tour, tu as <b>3 points d’action (PA)</b>. Chaque action en coûte : casino, trading, immobilier, startup, boulot ou coup bas = 1 PA ; créer une entreprise ou monter un réseau = 2 PA ; un braquage = <b>2 PA</b>.</p>
     <p>À chaque tour, <b>3 opportunités</b> tombent : yacht saisi, tuyau d’initié, commissaire corrompu. À toi de choisir ce qui vaut tes PA.</p>
     <p>La Bourse, la banque, le blanchiment et la vente de tes biens sont <b>gratuits</b>.</p>
     <p><b>Trading</b> : tes positions (hausse ou baisse, levier jusqu’à x10, stop-loss, objectif) restent ouvertes d’un tour à l’autre. Lis les signaux (tendance, valorisation, analystes, résultats trimestriels) : ils donnent un avantage, pas une certitude.</p>
+    <p><b>Immobilier</b> : 5 villes américaines, chacune avec son niveau de prix, son rendement locatif et sa tendance, qui évoluent à chaque tour. Compare avant d’acheter : un studio à Chicago rapporte beaucoup en loyers, une villa à New York compte surtout sur la hausse des prix. Un logement peut rester vide un tour.</p>
     <p><b>Casinos</b> : du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). Pour entrer dans le casino suivant, cumule dans le casino actuel des gains égaux à sa mise max. Les pertes ne comptent pas.</p>
-    <p>Pendant le tour des autres, consulte la Bourse, tes positions, les startups et l’immobilier pour préparer ton coup.</p>
+    <p><b>En ligne, deux phases par tour.</b> D’abord la <b>phase libre</b> : tout le monde joue en même temps ses actions personnelles (casino, Bourse, immobilier, entreprises, startups, enchère). Puis la <b>phase des coups</b>, chacun son tour sous les yeux de tous, avec les PA que tu as gardés : braquages et coups bas. Sur un seul téléphone, on joue chacun son tour comme avant.</p>
+    <p><b>Personnage et objectif secret</b> : chacun reçoit un personnage (un talent, un défaut) et un objectif secret. Objectif réussi à la fin : +15 % de patrimoine.</p>
+    <p><b>Enchère de la manche</b> : un lot par tour (un bien saisi, une collection d’art). Offre secrète, gratuite en PA ; la plus haute gagne, les autres sont remboursés.</p>
+    <p><b>Rumeurs</b> : l’événement de fin de manche est annoncé à l’avance… et la rumeur dit vrai environ 7 fois sur 10.</p>
+    <p><b>Gros coups</b> : la machine à sous paie x500 sur trois 7, le grattage x10 000, et une <b>cagnotte commune</b> grossit avec les pertes de tout le monde au casino. Le dernier du classement peut tomber sur le <b>coup du siècle</b> (x8, une chance sur 4), et une opportunité légendaire tombe parfois (x10). Qui touche le gros lot devient la cible : police +10, coups bas moins chers contre lui.</p>
+    <p><b>Le premier du classement</b> attire la police (+5 par manche) et les coups bas contre lui coûtent moins cher. <b>Dernière manche à l’aveugle</b> : les fortunes des autres sont cachées jusqu’au journal final.</p>
     <p><b>Startups</b> : équipe, traction et hype font le prix et les chances. Un audit révèle la vraie qualité. Suis les levées des bonnes, revends les autres.</p>
     <p>Les braquages et le trafic rapportent de l’<b>argent sale</b> : il ne compte que pour moitié dans ton patrimoine, il attire la police et il est saisi si tu te fais arrêter. Blanchis-le via tes commerces (10 % de frais) ou chez le blanchisseur (30 %).</p>
     <p>Les grosses cibles demandent de la <b>réputation</b> (braquages réussis) et une préparation payée d’avance. Un repérage (1 PA) augmente tes chances au tour suivant.</p>
     <p>La <b>jauge de police</b> monte avec le crime : plus elle est haute, plus tu risques l’arrestation au début de ton tour.</p>
-    <p>À la fin, le plus gros <b>patrimoine net</b> gagne.</p>
-  </details>`;
+    <p>À la fin, le plus gros <b>patrimoine net</b> gagne.</p>`;
+/* Pied de l'accueil et de la configuration : deux boutons explicites, centrés. */
+const FOOT_BTNS=`<div class="foot-btns">${B('Règles',{v:'secondary',inline:1,on:'openRules()'})}${B('Ligue',{v:'secondary',inline:1,on:'openLeague()'})}${B('Réglages',{v:'secondary',inline:1,on:'openSettings()'})}</div>`;
+/* Règles : fenêtre au centre de l'écran (pas une feuille qui monte, pas un bloc qui se déplie). */
+function openRules(){ovOpener=document.activeElement;ovQueue=[];
+  $('#ovWrap').innerHTML=`<div class="ov" onclick="if(event.target===this)closeOv()"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="rulesT">
+    <div class="modal-head"><h2 id="rulesT">Les règles</h2>${iconBtn('close','Fermer les règles','closeOv()')}</div>
+    <div class="modal-body">${RULES_BODY}</div>
+    <div class="modal-foot">${B('Fermer',{v:'primary',on:'closeOv()'})}</div></div></div>`;
+  document.body.classList.add('paused');setTimeout(()=>{const b=$('#ovWrap .modal .iconbtn');b&&b.focus({preventScroll:true})},60)}
 function cycleAv(i){const used=setup.players.map(p=>p.av);let k=AVATARS.indexOf(setup.players[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));setup.players[i].av=AVATARS[k];sfx.tick();renderSetup()}
 function addPlayer(){const used=setup.players.map(p=>p.av);setup.players.push({name:'',av:AVATARS.find(a=>!used.includes(a))});renderSetup();setTimeout(()=>{const el=$('#pn'+(setup.players.length-1));el&&el.focus()},50)}
 function rmPlayer(i){setup.players.splice(i,1);renderSetup()}
-function migrate(g){if(!g)return g;g.assets.forEach(a=>{if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;if(a.rating==null)a.rating=0});(g.offers||[]).forEach(o=>{if(!o.aud)o.aud=[];if(o.team==null){o.team=o.trac=o.tracVis=3;o.q=.5;o.sec=0}});g.players.forEach(p=>{p.pos=p.pos||[]});return g}
+function migrate(g){if(!g)return g;if(g.pot==null){g.pot=0;g.highlights=g.highlights||[]}if(!g.cities){g.cities=initCities();const CMAP={paris:'ny','saint-tropez':'miami','morbihan':'miami',chamonix:'la',lyon:'chicago',bordeaux:'la','émilion':'la',montpellier:'miami',marseille:'vegas',lille:'chicago'};
+  g.players.forEach(p=>{p.re=p.re||[]});(g.props||[]).forEach(x=>{if(x.owner==null||!g.players[x.owner])return;const lc=(x.c||'').toLowerCase(),key=Object.keys(CMAP).find(k=>lc.includes(k));const ck=key?CMAP[key]:'chicago';
+    const t=RTYPES.slice().sort((a,b)=>Math.abs(Math.log(a.base*cdef(ck).lvl/x.p))-Math.abs(Math.log(b.base*cdef(ck).lvl/x.p)))[0].k;g.players[x.owner].re.push({id:Math.random().toString(36).slice(2,7),c:ck,t,paid:x.p})});delete g.props}
+  g.players.forEach(p=>{p.re=p.re||[]});g.assets.forEach(a=>{if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;if(a.rating==null)a.rating=0});(g.offers||[]).forEach(o=>{if(!o.aud)o.aud=[];if(o.team==null){o.team=o.trac=o.tracVis=3;o.q=.5;o.sec=0}});g.players.forEach(p=>{p.pos=p.pos||[]});return g}
 function resume(){G=migrate(loadSave());if(!G)return;if(G.screen==='turn')G.screen='pass',G.resumeTurn=true;render()}
 
 function buildGame(list,cash,rounds){
-  return {screen:'pass',round:1,maxRounds:rounds,cur:0,turnCount:0,reIndex:1,acted:false,ap:AP_MAX,inCasino:false,casinoLeft:3,lawyer:false,feed:[],feedId:0,seq:0,
+  return dealRoles({screen:'pass',round:1,maxRounds:rounds,cur:0,turnCount:0,reIndex:1,acted:false,ap:AP_MAX,inCasino:false,casinoLeft:3,lawyer:false,feed:[],feedId:0,seq:0,
     assets:(()=>{const as=initAssets(),pool=as.filter(a=>!adef(a.sym).crypto);for(let i=0;i<2;i++)pool.splice(Math.floor(Math.random()*pool.length),1)[0].earn=true;return as})(),
-    props:PROPS.map((x,i)=>({...x,id:i,owner:null})),
+    cities:initCities(),
     offers:genOffers(),recap:null,opps:[],sec:HEISTS.map(()=>0),bias:{},laundBoost:1,
     players:list.map((s,i)=>({id:i,uid:s.uid||null,name:(s.name||'').trim()||'Joueur '+(i+1),avatar:s.av,color:COLORS[i],cash,dirty:0,debt:0,stocks:{},cost:{},biz:[],deals:[],heat:0,jail:0,net:0,inbox:[],
       rep:0,recon:null,shield:0,laund:0,pos:[],
-      stats:{casino:0,trading:0,crime:0,jailTurns:0,biz:0,rent:0,scam:0,vc:0,laund:0,heists:0},hist:[cash]}))};
+      stats:{casino:0,trading:0,crime:0,jailTurns:0,biz:0,rent:0,scam:0,vc:0,laund:0,heists:0,scams:0},hist:[cash]}))});
 }
-function newGame(){G=buildGame(setup.players,setup.cash,setup.rounds);save();sfx.coin();render()}
+/* Personnages, objectifs secrets, cagnotte, enchère et rumeur : posés une fois la partie construite. */
+function dealRoles(g){const cs=CHARS.slice().sort(()=>Math.random()-.5),os=OBJS.slice().sort(()=>Math.random()-.5);
+  g.players.forEach((p,i)=>{p.chr=cs[i%cs.length].k;p.obj=os[i%os.length].k;if(p.chr==='godfather')p.net=1});
+  g.pot=0;g.highlights=[];const G0=G;G=g;try{g.auction=genAuction();planEvent()}finally{G=G0}return g}
+function newGame(){G=buildGame(setup.players,setup.cash,setup.rounds);G.gameId=rid(8);save();sfx.coin();haptic('start');render()}
 
 /* ================= HOME ================= */
 let profile={name:'',av:pick(AVATARS)};
@@ -943,7 +1171,7 @@ function renderHome(){
   const ses=getSession();
   const choice=(main,on,t,s)=>`<button class="choice${main?' main':''}" onclick="${on}"><span><b>${t}</b><span>${s}</span></span>${icon('arrow')}</button>`;
   paint(`
-  <div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">le jeu du fric entre potes</span></div>
+  <div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">The world is yours</span></div>
   <div data-z="profile">${label('Ton profil')}
   <div class="prow"><button class="av" style="--c:var(--cash)" onclick="saveProfile();profile.av=AVATARS[(AVATARS.indexOf(profile.av)+1)%AVATARS.length];sfx.tick();renderHome()" aria-label="Changer d’avatar">${profile.av}</button>
     <input id="myName" maxlength="14" placeholder="Ton pseudo" aria-label="Ton pseudo" value="${esc(profile.name)}" oninput="profile.name=this.value"></div></div>
@@ -955,7 +1183,7 @@ function renderHome(){
     ${choice(0,"saveProfile();APP.view='local';render()",'Jouer sur un seul téléphone','On se passe le téléphone à tour de rôle.')}
   </div>
   <div data-z="err">${APP.err?`<div class="err" role="alert">${APP.err}</div>`:''}</div>
-  <div data-z="rules">${RULES}</div>`,'home');
+  <div data-z="rules">${FOOT_BTNS}</div>`,'home');
   flickLogo();
 }
 function renderJoin(){
@@ -966,7 +1194,10 @@ function renderJoin(){
   <div class="mt-4">${B('Entrer dans le salon',{v:'primary',on:"joinRoom($('#codeIn').value)"})}</div></div>`,'join');
   setTimeout(()=>{const e=$('#codeIn');e&&!APP.joinCode&&e.focus()},50);
 }
-function renderConnecting(){paint(`<div class="pass" data-z="conn">${waitDots()}<h1 role="status">${APP.connMsg||'Connexion…'}</h1>
+/* Indicateur de chargement : une barre néon à balayage. */
+function loadBar(){return `<div class="lbar" aria-hidden="true"></div>`}
+function renderConnecting(){paint(`<div class="pass" data-z="conn"><h1 role="status">${APP.connMsg||'Connexion…'}</h1>
+  ${loadBar()}<p class="muted small">Recherche du relais le plus rapide</p>
   ${B('Annuler',{v:'text',inline:1,on:'abortConnect()'})}</div>`,'conn')}
 /* ================= ONLINE (MQTT) ================= */
 const BROKERS=['wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/mqtt'];
@@ -1024,10 +1255,10 @@ function newON(client,broker,code,subscribed){
 /* Après une coupure (téléphone en veille, réseau mobile), on republie ce qu'on est le seul à connaître :
    le salon pour l'hôte, et l'état de la partie si c'est nous qui l'avons modifié en dernier. Sans ça, une fin de
    tour envoyée pendant la coupure était perdue et la partie restait bloquée sur « … est en train de jouer ». */
-function resync(){if(!ON)return;if(ON.host&&ON.lobby&&!ON.lobby.closed)pubLobby();if(G&&ON.lastSeq===G.seq)pubState()}
+function resync(){if(!ON)return;if(simFree()&&!ON.host)pubMe();if(ON.host&&ON.lobby&&!ON.lobby.closed)pubLobby();if(G&&ON.lastSeq===G.seq)pubState()}
 function persistSession(){try{localStorage.setItem('sf_online',JSON.stringify({code:ON.code,broker:ON.broker}))}catch(e){}}
 function abortConnect(){connAbort=true;if(ON&&ON.lobby){leaveOnline(false)}else{APP.view='home';render()}}
-function startPing(){clearInterval(pingTimer);const f=()=>{if(ON)pub('ping',{uid:UID},false,0)};f();pingTimer=setInterval(()=>{f();if(!G&&APP.view==='lobby')renderLobby();else if(G&&ON&&!isMyTurn()&&(G.screen==='pass'||G.screen==='turn'))renderSpectate();else if(G&&ON&&G.screen==='recap')renderRecap()},4000)}
+function startPing(){clearInterval(pingTimer);const f=()=>{if(ON)pub('ping',{uid:UID},false,0)};f();pingTimer=setInterval(()=>{f();if(!G&&APP.view==='lobby')renderLobby();else if(G&&ON&&G.screen==='free'&&!isMyTurn())render();else if(G&&ON&&!isMyTurn()&&(G.screen==='pass'||G.screen==='turn'))renderSpectate();else if(G&&ON&&G.screen==='recap')renderRecap()},4000)}
 
 async function createRoom(){
   saveProfile();if(!profile.name){APP.err='Choisis d’abord un pseudo.';renderHome();return}
@@ -1045,7 +1276,8 @@ async function joinRoom(code){
   if(code.length!==4){APP.err='Le code fait 4 caractères.';APP.view='join';render();return}
   connAbort=false;APP.err='';APP.view='connecting';APP.connMsg='Recherche du salon '+code+'…';render();
   const ses=getSession();const order=ses&&ses.code===code&&ses.broker?[ses.broker,...BROKERS.filter(b=>b!==ses.broker)]:BROKERS;
-  const found=await findRoom(order,code,7000);
+  /* L’invité attend plus longtemps que l’hôte (8 s) : il doit pouvoir atteindre le relais, même lent, où le salon a été ouvert. */
+  const found=await findRoom(order,code,12000);
   if(connAbort){if(found)try{found.client.end(true)}catch(e){}return}
   if(found){found.client.removeListener('message',found.h);newON(found.client,found.broker,code,true);
     found.buf.forEach(([t,pl])=>{if(ON)onMessage(t,pl)})}
@@ -1066,7 +1298,7 @@ function leaveOnline(forget){
     const c=ON.client;setTimeout(()=>{try{c.end(true)}catch(e){}},400)}
   ON=null;G=null;clearInterval(pingTimer);busy=false;forceClose();closeOv();
   if(forget){try{localStorage.removeItem('sf_online')}catch(e){}}
-  APP.view='home';document.title='Scarface — le jeu du fric';render()}
+  APP.view='home';document.title='Scarface — The world is yours';render()}
 
 function onMessage(topic,payload){
   if(!ON)return;const s=topic.split('/').pop();const str=payload.toString();if(!str)return;
@@ -1076,7 +1308,7 @@ function onMessage(topic,payload){
   if(s==='state')return onState(m);
   if(s==='join')return onJoin(m);
   if(s==='leave')return onLeave(m);
-  if(s==='msg')return onMsg(m);
+  if(s==='msg'){if(m.type==='me')return onMe(m);return onMsg(m)}
 }
 function onLobby(L){
   if(ON.host&&ON.lobby&&L.host===UID&&!L.closed)return;
@@ -1099,17 +1331,20 @@ function applyState(m){
   const lastFeed=same?(G.feedId||0):(m.G.feedId||0);
   const wasMine=same&&isMyTurn()&&G.screen!=='recap'&&G.screen!=='end';
   const prevScreen=same?G.screen+G.round:'';
+  /* Phase libre : ma propre fiche est plus à jour chez moi que chez l'hôte. */
+  const keep=same&&G.screen==='free'&&m.G.screen==='free'&&m.G.round===G.round?me():null;
   G=m.G;
+  if(keep){const i=G.players.findIndex(q=>q.uid===UID);if(i>=0&&(keep.v||0)>=(G.players[i].v||0))G.players[i]=keep}
+  bindLocal();
   if(prevScreen!==G.screen+G.round)window.scrollTo(0,0);
   const fresh=(G.feed||[]).filter(f=>f.id>lastFeed&&f.by!==UID);
   fresh.slice(-1).forEach(f=>toast(f.t.replace(/<[^>]+>/g,'')));
   if(fresh.length)sfx.tick();
-  const mineNow=isMyTurn()&&(G.screen==='pass'||G.screen==='turn');
+  const mineNow=isMyTurn()&&(G.screen==='pass'||G.screen==='turn'||G.screen==='free');
   if(wasMine&&!mineNow){busy=false;forceClose();closeOv()}
   /* La feuille de consultation ouverte pendant l'attente cachait le bouton « Jouer mon tour » et le journal du tour. */
   if((mineNow&&!wasMine)||(same&&prevScreen!==G.screen+G.round&&(G.screen==='recap'||G.screen==='end')))forceClose();
-  if(mineNow&&!wasMine&&G.screen==='pass'){sfx.big();buzz([120,60,120]);document.title='À toi de jouer ! · Scarface'}
-  if(G.screen==='end'&&(!same||m.G.screen!=='end'))setTimeout(()=>confetti(160),300);
+  if(mineNow&&!wasMine&&(G.screen==='pass'||G.screen==='free')){sfx.big();haptic('turn');document.title='À toi de jouer ! · Scarface'}
   scheduleRender();
 }
 function onJoin(m){
@@ -1119,7 +1354,7 @@ function onJoin(m){
   if(L.started||L.players.length>=6)return;
   let av=m.av;if(L.players.some(p=>p.av===av))av=AVATARS.find(a=>!L.players.some(p=>p.av===a));
   L.players.push({uid:m.uid,name:(m.name||'Joueur').slice(0,14),av});ON.presence[m.uid]=Date.now();
-  pubLobby();sfx.coin();render();
+  pubLobby();sfx.coin();haptic('action');render();
 }
 function onLeave(m){if(!ON.host||!ON.lobby||ON.lobby.started)return;ON.lobby.players=ON.lobby.players.filter(p=>p.uid!==m.uid);pubLobby();render()}
 function onMsg(m){
@@ -1127,7 +1362,7 @@ function onMsg(m){
   if(m.type==='duelReq'){
     showCards([{k:'DÉFI',e:'🎲',t:`${m.fromAv} ${m.fromName} te défie aux dés !`,d:`Mise : <b>${fmt(m.stake)}</b>. Le plus gros lancer rafle tout. Si tu refuses, tu lui verses ${fmt(m.stake*.1)}.`,
       btns:[{l:'J’accepte le duel',cls:'',fn:`duelAnswer('${m.id}','${m.from}',1)`},{l:'Je me dégonfle',cls:'ghost',fn:`duelAnswer('${m.id}','${m.from}',0)`}]}]);
-    sfx.big();buzz([200,80,200]);
+    sfx.big();haptic('turn');
   }
   if(m.type==='duelRes'&&dt.reqId&&m.id===dt.reqId){clearTimeout(dt.timer);dt.reqId=null;m.acc?duelGo():duelRefuse()}
 }
@@ -1162,8 +1397,9 @@ function startOnline(){
   if(!ON.host)return;const L=ON.lobby;if(L.players.length<2)return;
   L.gameId=rid(8);L.started=true;
   G=buildGame(L.players.map(p=>({uid:p.uid,name:p.name,av:p.av})),L.settings.cash,L.settings.rounds);G.gameId=L.gameId;
+  G.mode='sim';G.screen='free';bindLocal();
   addFeed('🎲 La partie commence ! '+G.players.map(p=>p.avatar).join(' '),null);
-  pubLobby();save();sfx.big();render();
+  pubLobby();save();sfx.big();haptic('start');render();
 }
 function backToLobby(){if(!ON||!ON.host)return;ON.lobby.started=false;ON.lobby.gameId=null;pub('state','',true);pubLobby();G=null;APP.view='lobby';render()}
 
@@ -1178,15 +1414,15 @@ function passScreen(p,lead,name,btn){return `<div class="pass" style="--c:${p.co
 function renderMyTurn(){const p=cur();document.title='À toi de jouer ! · Scarface';
   paint(passScreen(p,'C’est ton tour,',esc(p.name)+' !','Jouer mon tour'),'pass'+G.round+G.cur)}
 function renderSpectate(){
-  document.title='Scarface — le jeu du fric';
+  document.title='Scarface — The world is yours';
   const a=cur(),mp=me(),on=isOnline(a.uid),feed=(G.feed||[]).slice().reverse().slice(0,14);
   paint(`
   <div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds} · ${ON.code}</span>
     <div class="row">${iconBtn('trophy','Classement','openRanking()')}${iconBtn('menu','Menu','openMenu()')}</div></div>
   <div class="hero" style="--c:${a.color}" data-z="hero">
     <div class="who"><div class="av" style="--c:${a.color}">${a.avatar}</div><div><b>${esc(a.name)}</b><div class="meta"><span class="dot ${on?'':'off'}"></span> ${on?(G.screen==='turn'?'est en train de jouer':'va jouer'):'est hors ligne'} ${on?waitDots():''}</div></div></div>
-    <div class="cash num ${a.cash<0?'neg':''}">${fmt(a.cash)}</div>
-    <div class="sub"><span>Patrimoine net <b class="num">${fmt(netWorth(a))}</b></span><span>Police <b class="num">${Math.round(a.heat)}/100</b></span></div>
+    <div class="cash num ${a.cash<0?'neg':''}">${blind(a)?'???':fmt(a.cash)}</div>
+    <div class="sub"><span>Patrimoine net <b class="num">${blind(a)?'caché':fmt(netWorth(a))}</b></span><span>Police <b class="num">${Math.round(a.heat)}/100</b></span></div>
   </div>
   <div data-z="skip">${ON.host&&!on?`<div class="err">${esc(a.name)} semble déconnecté.<div class="mt-2">${B('Passer son tour',{v:'secondary',on:'hostSkip()'})}</div></div>`:''}</div>
   <div data-z="me">${mp?`${label('Toi')}<button class="item" onclick="openAssets(${mp.id})"><div class="av sm" style="--c:${mp.color}">${mp.avatar}</div>
@@ -1208,8 +1444,11 @@ function renderPass(){const p=cur();paint(passScreen(p,'Passe le téléphone à'
 /* ================= TURN START ================= */
 function startTurn(){
   if(!G||G.screen!=='pass'||!isMyTurn())return;
-  const p=cur();sfx.coin();
+  const p=cur();sfx.coin();haptic('turn');
   if(G.resumeTurn){G.resumeTurn=false;G.screen='turn';render();return}
+  if(G.mode==='sim'){/* phase des coups : les PA gardés, pas de nouvelle carte ni d'opportunité */
+    G.acted=false;G.ap=(p.t&&p.t.apLeft)||0;G.inCasino=false;G.casinoLeft=0;G.lawyer=!!(p.t&&p.t.lawyer);G.opps=[];bj=null;
+    const cards=p.inbox.slice();p.inbox=[];G.screen='turn';save();render();if(cards.length)showCards(cards);return}
   G.acted=false;G.ap=AP_MAX;G.inCasino=false;G.casinoLeft=3;G.lawyer=false;bj=null;
   const cards=[];
   p.inbox.forEach(m=>cards.push(m));p.inbox=[];
@@ -1225,12 +1464,12 @@ function startTurn(){
 }
 function arrestRisk(p){if(p.heat<25)return 0;let r=(p.heat-20)/150;if(p.shield>=G.round)r*=.5;return r}
 function arrest(p,why){
-  const fine=Math.max(0,p.cash)*.25;p.cash-=fine;
+  const fine=takeLiquid(p,liquid(p)*.25);
   let lost='';if(p.net){lost=' Ton réseau est démantelé.';p.net=0}
   if(p.dirty>0){lost+=` Ton argent sale (${fmt(p.dirty)}) est saisi.`;p.dirty=0}
   p.recon=null;
   const t=RI(1,2)+(p.heat>70?1:0);p.jail=t;p.heat=15;addFeed(`se fait arrêter par la police 🚔 (${t} tour${t>1?'s':''} de prison)`,p);
-  setTimeout(()=>{sfx.siren();buzz([200,100,200,100,400])},200);
+  setTimeout(()=>{sfx.siren();haptic('arrest')},200);
   return {k:'POLICE',e:'🚔',t:'ARRESTATION !',bad:1,d:`${why}${lost} Tu prends ${t} tour${t>1?'s':''} de prison.`,fx:fmt(-fine)+' d’amende'};
 }
 function bailCost(p){return Math.round(Math.max(5000,netWorth(p)*.1)*p.jail)}
@@ -1238,7 +1477,7 @@ function jailCard(p){const bail=bailCost(p);
   return {k:'Prison',e:'🔒',t:'Tu es derrière les barreaux',bad:1,d:`Encore ${p.jail} tour${p.jail>1?'s':''} à purger. Ton avocat peut payer ta caution.`,
     btns:[{l:'Payer la caution',cost:fmt(bail),v:'primary',why:p.cash<bail?`Il te manque ${fmt(bail-p.cash)}`:'',fn:'payBail()'},{l:'Purger ma peine',cost:'passe le tour',v:'secondary',fn:'serveJail()'}]}}
 function payBail(){const p=cur(),b=bailCost(p);if(p.cash<b)return;p.cash-=b;p.jail=0;addFeed(`paie sa caution (${fmt(b)}) et sort de prison`);closeOv();sfx.coin();toast('Libéré sous caution. Fais-toi discret…');save();render()}
-function serveJail(){const p=cur();if(!G||G.screen!=='turn'||!(p.jail>0))return;p.jail--;p.stats.jailTurns++;addFeed('purge sa peine en prison 🔒');closeOv();endTurn()}
+function serveJail(){const p=cur();if(!G||!(G.screen==='turn'||G.screen==='free')||!(p.jail>0))return;p.jail--;p.stats.jailTurns++;addFeed('purge sa peine en prison 🔒');closeOv();endTurn()}
 
 /* overlay cards */
 let ovQueue=[],ovOpener=null;
@@ -1254,7 +1493,7 @@ function nextCard(){const c=ovQueue.shift();if(!c){closeOv();return}sfx.card();
   </div></div>`;
   document.body.classList.add('paused');
   setTimeout(()=>{const b=$('#ovWrap .btn:not([disabled])');b&&b.focus({preventScroll:true})},60);
-  if(fxCls==='pos'){sfx.win()}else if(fxCls==='neg'){sfx.lose()}
+  if(fxCls==='pos'){sfx.win();haptic('win')}else if(fxCls==='neg'){sfx.lose();haptic('lose')}
   render();
 }
 function closeOv(){$('#ovWrap').innerHTML='';ovQueue=[];if(!$('#sheet').classList.contains('open'))document.body.classList.remove('paused');
@@ -1263,11 +1502,11 @@ function closeOv(){$('#ovWrap').innerHTML='';ovQueue=[];if(!$('#sheet').classLis
 const MAIN=[
  {k:'casino',e:'🎰',n:'Casino',s:'3 parties',ap:1,fn:'openCasino()'},
  {k:'trade',e:'⚡',n:'Trading',s:'Long, short, levier',ap:1,fn:'openTrading()'},
- {k:'immo',e:'🌴',n:'Immobilier',s:'Acheter, louer',ap:1,fn:'openImmo()'},
+ {k:'immo',e:'🌴',n:'Immobilier',s:'5 villes',ap:1,fn:'openImmo()'},
  {k:'biz',e:'🏢',n:'Entreprise',s:'Créer 2 · Dév. 1',ap:1,fn:'openBiz()'},
  {k:'vc',e:'🦄',n:'Startups',s:'Non cotées',ap:1,fn:'openVC()'},
  {k:'job',e:'🧑‍🍳',n:'Boulot',s:'Argent propre',ap:1,fn:'openJob()'},
- {k:'heist',e:'🔫',n:'Braquage',s:'Tout ton tour',ap:3,cl:'1–3',fn:'openHeist()',dark:1},
+ {k:'heist',e:'🔫',n:'Braquage',s:'Le gros coup',ap:2,cl:'1–2',fn:'openHeist()',dark:1},
  {k:'traf',e:'💊',n:'Trafic',s:'Réseau illégal',ap:2,fn:'openTraffic()',dark:1},
  {k:'dirty',e:'😈',n:'Coups bas',s:'Contre tes potes',ap:1,fn:'openDirty()',dark:1},
 ];
@@ -1287,7 +1526,7 @@ function renderTurn(){
   const apMsg=G.inCasino&&G.casinoLeft>0?`Au casino : encore ${G.casinoLeft} partie${G.casinoLeft>1?'s':''}`:G.ap>0?`${G.ap} point${G.ap>1?'s':''} d’action restant${G.ap>1?'s':''}`:'Plus de PA : gère tes finances ou termine';
   const meta=[p.net?NET[p.net].n:'Citoyen modèle','Réputation '+rep(p)];if(p.shield>=G.round)meta.push('avocat à l’année');
   paint(`
-  <div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds}</span>
+  <div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds}${G.mode==='sim'?(G.screen==='free'?' · phase libre':' · phase des coups'):''}</span>
     <div class="row">${iconBtn('trophy','Classement','openRanking()')}${iconBtn('menu','Menu','openMenu()')}</div></div>
   <div class="hero" style="--c:${p.color}" data-z="hero">
     <div class="who"><div class="av" style="--c:${p.color}">${p.avatar}</div><div><b>${esc(p.name)}</b><div class="meta">${meta.join(' · ')}</div></div></div>
@@ -1296,9 +1535,11 @@ function renderTurn(){
     <div class="heat"><div class="lbl"><span>Police : ${heatLabel(p.heat)}</span><span class="num">${Math.round(p.heat)}/100</span></div><div class="bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p.heat)}" aria-label="Jauge de police"><i style="width:${p.heat}%"></i></div></div>
   </div>
   <div class="ap" data-z="ap"><div class="pips" aria-hidden="true">${Array.from({length:AP_MAX},(_,i)=>`<i class="${i<G.ap?'on':''}"></i>`).join('')}</div><span role="status">${apMsg}</span></div>
+  <div data-z="intel">${intelHTML(p,true)}</div>
   <div data-z="opps">${opps.length?`${label('Opportunités du tour')}<div class="opps">${opps.map(oppHTML).join('')}</div>`:''}</div>
   <div data-z="tiles">${label('Actions')}
-  <div class="tiles">${MAIN.map(t=>{const live=t.k==='casino'&&G.inCasino&&G.casinoLeft>0;const minAp=t.k==='heist'||t.k==='biz'||t.k==='traf'?1:t.ap;
+  <div class="tiles">${MAIN.map(t=>{const live=t.k==='casino'&&G.inCasino&&G.casinoLeft>0;const minAp=t.k==='heist'||t.k==='biz'||t.k==='traf'?1:t.ap;const coupK=t.k==='heist'||t.k==='dirty';
+    if(G.mode==='sim'&&(G.screen==='free'?coupK:!coupK))return `<button class="tile ${t.dark?'dark':''} used" onclick="toast('${G.screen==='free'?'Ça se joue pendant la phase des coups, après la phase libre. Garde des PA !':'Pendant la phase des coups : seulement braquages et coups bas.'}',1)" aria-label="${t.n}, ${G.screen==='free'?'phase des coups':'phase libre terminée'}">${t.dark?'<span class="ill">Illégal</span>':''}<span class="c">${G.screen==='free'?'Plus tard':'Fini'}</span><span class="e">${t.e}</span><span class="n">${t.n}</span><span class="s">${G.screen==='free'?'Phase des coups':'Phase libre'}</span></button>`;if(t.k==='casino'&&G.pot>=1000)t={...t,s:'Cagnotte '+fmt(G.pot)};
     return `<button class="tile ${t.dark?'dark':''} ${!live&&G.ap<minAp?'used':''} ${live?'live':''}" onclick="${t.fn}" aria-label="${t.n}, ${t.s}, ${live?G.casinoLeft+' parties restantes':(t.cl||t.ap)+' PA'}${t.dark?', illégal':''}">${t.dark?'<span class="ill">Illégal</span>':''}<span class="c num">${live?G.casinoLeft+'/3':(t.cl||t.ap)+' PA'}</span><span class="e">${t.e}</span><span class="n">${t.n}</span><span class="s">${t.s}</span></button>`}).join('')}</div></div>
   <div data-z="free">${label('Gratuit')}
   <div class="freebar">
@@ -1307,30 +1548,44 @@ function renderTurn(){
     <button class="free ${p.dirty>0?'hot':''}" onclick="openLaunder()"><span>🧼</span>Blanchir</button>
     <button class="free" onclick="openAssets()"><span>💼</span>Biens</button>
   </div></div>
-  <div class="dock" data-z="dock">${G.acted?B('Terminer mon tour',{v:'primary',on:'confirmEnd()'}):B('Passer mon tour',{v:'secondary',on:'confirmEnd()'})}</div>`,'turn'+G.round+G.cur);
+  <div class="dock" data-z="dock">${G.screen==='free'?B(G.ap>0?`Finir ma phase libre (garder ${G.ap} PA)`:'Finir ma phase libre',{v:'primary',on:'endTurn()'}):G.acted?B('Terminer mon tour',{v:'primary',on:'confirmEnd()'}):B('Passer mon tour',{v:'secondary',on:'confirmEnd()'})}</div>`,'turn'+G.round+G.cur+G.screen);
 }
 function confirmEnd(){if(busy)return;if(!G.acted){openSheet('Passer ton tour ?',`<p class="muted">Tu n’as utilisé aucun point d’action.</p>
   <div class="sheet-foot stack">${B('Passer mon tour',{v:'primary',on:'endTurn()'})}${B('Continuer à jouer',{v:'secondary',on:'closeSheet()'})}</div>`);return}endTurn()}
 function endTurn(force){
+  if(G&&G.screen==='free')return simEnd();
   if(!G||(!force&&(G.screen!=='turn'||!isMyTurn())))return;
-  busy=false;forceClose();closeOv();
+  busy=false;forceClose();closeOv();haptic('confirm');
   if(bj&&!bj.over){const p=cur();p.cash-=bj.bet;p.stats.casino-=bj.bet;bj=null}
   if(scratch&&!scratch.open){const won=scratch.price*scratch.m;scratch.open=true;if(won>0)casinoResult(won,1,won-scratch.price)}
   scratch=null;
   G.turnCount++;
-  if(G.turnCount>=G.players.length){endRound()}
+  if(G.mode==='sim'){G.coupsQ=(G.coupsQ||[]).filter(i=>i!==G.cur);if(!G.coupsQ.length)endRound();else{G.cur=G.coupsQ[0];G.screen='pass'}}
+  else if(G.turnCount>=G.players.length){endRound()}
   else{G.cur=(G.cur+1)%G.players.length;G.screen='pass'}
   save();render();window.scrollTo(0,0);
 }
 
 /* ================= SHEET ================= */
+/* iPhone : Safari ignore overflow:hidden sur le body. Quand le clavier s'ouvrait dans une feuille, il faisait défiler
+   la page derrière, et ce décalage restait après la fermeture du clavier : les boutons ne répondaient plus là où on
+   les voyait, et il fallait recharger. On fige donc la page pendant qu'une feuille est ouverte, on remonte la feuille
+   au-dessus du clavier, et on remet la page en place quand le clavier se ferme. */
+let lockY=0;
+function lockPage(){const b=document.body;if(b.classList.contains('locked'))return;lockY=window.scrollY||0;b.style.setProperty('--lock-y',(-lockY)+'px');b.classList.add('locked')}
+function unlockPage(){const b=document.body;if(!b.classList.contains('locked'))return;b.classList.remove('locked');b.style.removeProperty('--lock-y');window.scrollTo(0,lockY)}
+(()=>{const vv=window.visualViewport;if(!vv)return;const r=document.documentElement;
+  const upd=()=>{r.style.setProperty('--kb',Math.max(0,Math.round(window.innerHeight-vv.height-vv.offsetTop))+'px');r.style.setProperty('--vvh',Math.round(vv.height)+'px')};
+  vv.addEventListener('resize',upd);vv.addEventListener('scroll',upd);upd()})();
+document.addEventListener('focusout',e=>{if(!e.target||!e.target.matches||!e.target.matches('input'))return;
+  setTimeout(()=>{const a=document.activeElement;if(a&&a.matches&&a.matches('input'))return;if(document.body.classList.contains('locked'))window.scrollTo(0,0)},80)});
 /* Feuille : en-tête fixe, corps qui défile, pied fixe. Un élément .sheet-foot rendu dans le corps est déplacé dans le pied. */
 let sheetOpener=null;
 function moveFoot(){const f=$('#shFoot'),s=$('#shBody .sheet-foot');f.innerHTML='';if(s)f.appendChild(s)}
 function openSheet(title,html,fn){const sh=$('#sheet'),was=sh.classList.contains('open');
   $('#shTitle').textContent=noEmo(title);setBody(html);sheetFn=fn||null;
   if(!was){sheetOpener=document.activeElement;sh.classList.add('open');sh.setAttribute('aria-hidden','false');$('#shBody').scrollTop=0;
-    document.body.classList.add('locked','paused');setTimeout(()=>{try{$('#shClose').focus({preventScroll:true})}catch(e){}},60)}
+    lockPage();document.body.classList.add('paused');setTimeout(()=>{try{$('#shClose').focus({preventScroll:true})}catch(e){}},60)}
   showActiveTabs()}
 /* Garde la position des listes horizontales quand la feuille se redessine ; à l'ouverture, montre l'onglet actif. */
 function showActiveTabs(){document.querySelectorAll('#shBody .tabs').forEach(t=>{const on=t.querySelector('.on');if(on&&(on.offsetLeft<t.scrollLeft||on.offsetLeft+on.offsetWidth>t.scrollLeft+t.clientWidth))t.scrollLeft=on.offsetLeft-12})}
@@ -1347,7 +1602,7 @@ function refreshSheet(){if(sheetFn&&$('#sheet').classList.contains('open')){cons
 function closeSheet(){if(busy)return;forceClose()}
 function forceClose(){const sh=$('#sheet');sheetFn=null;if(!sh.classList.contains('open'))return;
   sh.classList.remove('open','dragging');sh.setAttribute('aria-hidden','true');sh.style.removeProperty('--drag');
-  document.body.classList.remove('locked');if(!$('#ovWrap').children.length)document.body.classList.remove('paused');
+  unlockPage();if(!$('#ovWrap').children.length)document.body.classList.remove('paused');
   if(sheetOpener&&document.contains(sheetOpener)){try{sheetOpener.focus({preventScroll:true})}catch(e){}}sheetOpener=null}
 function after(){document.querySelectorAll('#sheet input[data-u]').forEach(e=>delete e.dataset.u);save();render();refreshSheet()}
 document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('#sheet input'))e.target.dataset.u='1'});
@@ -1361,7 +1616,7 @@ $('#shClose').innerHTML=icon('close');
   const up=()=>{if(y0==null)return;const v=dy/Math.max(1,performance.now()-t0);sh.classList.remove('dragging');y0=null;
     if(dy>80||v>.6)closeSheet();else sh.style.setProperty('--drag','0px')};
   ['shGrab','shHead'].forEach(id=>{const n=document.getElementById(id);n.addEventListener('pointerdown',down);n.addEventListener('pointermove',move);n.addEventListener('pointerup',up);n.addEventListener('pointercancel',up)})})();
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#ovWrap').children.length)return;closeSheet()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#ovWrap .modal')){closeOv();return}if($('#ovWrap').children.length)return;closeSheet()}});
 
 function amt(id,max,def){max=Math.max(0,Math.floor(max));
   const ch=[['+1k',1e3],['+10k',1e4],['+100k',1e5],['+1M',1e6]].filter(c=>c[1]<=Math.max(max,1000));
@@ -1398,28 +1653,36 @@ function casinoHTML(){const p=cur(),lv=casLvl(p),c=CASINOS[cSel],won=Math.max(0,
   return `<div class="casino-head">${nav(-1,'prev','Casino précédent',cSel>0&&!locked)}
     <div class="t"><b>${c.e} ${c.n}</b><span class="small muted">Mise max <span class="num gold">${fmt(c.max)}</span> · salle ${cSel+1}/${CASINOS.length}</span></div>
     ${cSel<lv?nav(1,'arrow','Casino suivant',!locked):cSel<CASINOS.length-1?`<span class="iconbtn" aria-label="Casino suivant verrouillé" role="img">${icon('lock')}</span>`:''}</div>
+  ${G.pot>=1000?`<div class="row between small mb-2"><span>Cagnotte commune</span><b class="gold num">${fmt(G.pot)}</b></div>`:''}
   ${note(`${c.d}${cSel===lv&&lv<CASINOS.length-1?` Pour entrer au <b>${CASINOS[lv+1].n}</b> : cumule ${fmt(c.max)} de gains ici (tu en es à <b class="num">${fmt(won)}</b>). Les pertes ne comptent pas.`:''}${locked?' Finis ta main avant de changer de salle.':''}`,'mb-3')}
   <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${cTab===k}" class="${cTab===k?'on':''}" onclick="if(!busy&&!(bj&&!bj.over)){cTab='${k}';lastRes='';refreshSheet()}">${l}</button>`).join('')}</div>
-  <div class="row between small muted mb-3"><span>${G.inCasino&&G.casinoLeft>0?`Parties restantes <b class="num gold">${G.casinoLeft}/3</b>`:`Entrée <b class="gold">1 PA = 3 parties</b>`}</span><span>Cash <b class="gold num">${fmt(p.cash)}</b></span></div>${body}`}
+  <div class="row between small muted mb-3"><span>${G.inCasino&&G.casinoLeft>0?`Parties restantes <b class="num gold">${G.casinoLeft}/${casGames(p)}</b>`:`Entrée <b class="gold">1 PA = ${casGames(p)} parties</b>`}</span><span>Cash <b class="gold num">${fmt(p.cash)}</b></span></div>${body}`}
+const casGames=p=>chr(p)==='gambler'?4:3;
 function casinoStart(bet){const p=cur();
   if(busy)return false;
   if(bet>CASINOS[cSel].max){toast(`Mise maximale ici : ${fmt(CASINOS[cSel].max)}. Débloque un casino plus huppé.`,1);return false}
   const open=G.inCasino&&G.casinoLeft>0;
   if(!open&&G.ap<1){toast(G.inCasino?'Le videur te raccompagne vers la sortie. Plus de PA pour revenir.':'Plus de points d’action.',1);return false}
   if(!canPay(p,bet))return false;
-  if(!open){useAP(1);G.inCasino=true;G.casinoLeft=3;toast('Nouvelle soirée au casino : 3 parties pour 1 PA')}
-  G.casinoLeft--;return true}
+  if(!open){useAP(1);G.inCasino=true;G.casinoLeft=casGames(p);toast(`Nouvelle soirée au casino : ${casGames(p)} parties pour 1 PA`)}
+  G.casinoLeft--;potRoll(p,bet);return true}
+/* Cagnotte commune : le casino y reverse 3 % des pertes (roulette, machine à sous, grattage). Chaque partie a une chance
+   de la remporter, 1 sur 150 à la mise maximale, proportionnelle à la mise. */
+const POT_SHARE=.03,POT_ODDS=150;
+function potFeed(loss){if(loss>0&&cTab!=='bj')shared({t:'pot',d:loss*POT_SHARE})}
+function potRoll(p,bet){if(!(G.pot>=1000))return;if(Math.random()<(bet/CASINOS[cSel].max)/POT_ODDS){const w=G.pot;shared({t:'pot',d:-w});p.cash+=w;p.stats.casino+=w;
+  bigWin(p,w,'rafle la cagnotte commune du casino');toast('JACKPOT ! Tu rafles la cagnotte : '+fmt(w));popMoney(w);G.potTaken=(G.potTaken||0)+w}}
 /* Raison pour laquelle on ne peut pas jouer une partie (affichée sous le bouton). */
 function casWhy(){const p=cur();if(!(G.inCasino&&G.casinoLeft>0)&&G.ap<1)return 'Plus de points d’action pour entrer';if(p.cash<=0)return 'Plus de cash à miser';return ''}
 /* Cumule les gains (jamais les pertes) dans le casino choisi et débloque le suivant dès que le cumul atteint sa mise max. */
 function casTrack(p,net,idx){if(idx==null)idx=cSel;if(!(net>0))return;p.casWin=p.casWin||[];p.casWin[idx]=Math.max(0,p.casWin[idx]||0)+net;
   const lv=casLvl(p);if(idx===lv&&lv<CASINOS.length-1&&p.casWin[lv]>=CASINOS[lv].max){p.casLvl=lv+1;const n=CASINOS[lv+1];
-    addFeed(`gagne son entrée au ${n.e} ${n.n}`,p);setTimeout(()=>{toast(`${n.n} débloqué : mise max ${fmt(n.max)}`);sfx.big()},700)}}
+    addFeed(`gagne son entrée au ${n.e} ${n.n}`,p);setTimeout(()=>{toast(`${n.n} débloqué : mise max ${fmt(n.max)}`);sfx.big();haptic('unlock')},700)}}
 const CGAME={roulette:'à la roulette',bj:'au blackjack',slots:'à la machine à sous',scratch:'au grattage'};
 /* gain : gain net de la partie pour le déblocage, si différent du montant crédité (grattage). */
-function casinoResult(net,silent,gain){const p=cur();p.cash+=net;p.stats.casino+=net;casTrack(p,gain==null?net:gain);
+function casinoResult(net,silent,gain){const p=cur();p.cash+=net;p.stats.casino+=net;casTrack(p,gain==null?net:gain);potFeed(-net);
   if(net&&!silent)addFeed(`${net>0?'gagne':'perd'} ${fmt(Math.abs(net))} ${CGAME[cTab]} (${CASINOS[cSel].n})`);
-  if(net>0){net>=50000?(sfx.big(),confetti()):sfx.win();popMoney(net);buzz(80)}else if(net<0){sfx.lose();buzz(150)}
+  if(net>0){net>=50000?(sfx.big(),confetti(),haptic('jackpot')):(sfx.win(),haptic('win'));popMoney(net)}else if(net<0){sfx.lose();haptic('lose')}
   save();render()}
 function resBox(win,html){return `<div class="result ${win>0?'w':win<0?'l':''}" role="status">${html}</div>`}
 /* roulette */
@@ -1470,12 +1733,12 @@ function bjFinish(){if(!bj||bj.over)return;const ps=hv(bj.p),ds=hv(bj.dl),nat=ps
   casinoResult(net);refreshSheet()}
 
 /* slots */
-const SYM=[['🍒',30,5],['🍋',25,8],['🔔',18,12],['🍀',12,20],['💎',8,40],['7️⃣',5,100]];
+const SYM=[['🍒',30,5],['🍋',25,8],['🔔',18,12],['🍀',12,20],['💎',8,40],['7️⃣',5,500]];
 let slotsLast=['🍒','💎','7️⃣'];
 function rollSym(){let t=Math.random()*98;for(const s of SYM){t-=s[1];if(t<=0)return s[0]}return '🍒'}
 function slotsHTML(){const p=cur();
   return `<div class="reels" aria-live="polite">${slotsLast.map((s,i)=>`<div class="reel" id="reel${i}">${s}</div>`).join('')}</div>
-  ${note('Trois identiques : 🍒 x5 · 🍋 x8 · 🔔 x12 · 🍀 x20 · 💎 x40 · 7️⃣ <b>x100</b>. Deux cerises : x2. Une autre paire : mise remboursée.')}
+  ${note('Trois identiques : 🍒 x5 · 🍋 x8 · 🔔 x12 · 🍀 x20 · 💎 x40 · 7️⃣ <b>x500</b>. Deux cerises : x1,5. Une autre paire : x0,5.')}
   <h3 class="sec">Ta mise</h3>${amt('slAmt',casMax(p),Math.min(500,casMax(p)))}
   <div id="cres">${lastRes}</div>
   <div class="sheet-foot">${B('Tirer le levier',{v:'primary',on:'spinSlots()',why:casWhy()})}</div>`}
@@ -1487,38 +1750,41 @@ async function spinSlots(){const bet=getAmt('slAmt');if(!casinoStart(bet))return
   clearInterval(iv);slotsLast=res;
   let mult=0;
   if(res[0]===res[1]&&res[1]===res[2])mult=SYM.find(s=>s[0]===res[0])[2];
-  else{const cnt={};res.forEach(s=>cnt[s]=(cnt[s]||0)+1);const pair=Object.keys(cnt).find(k=>cnt[k]===2);if(pair)mult=pair==='🍒'?2:1}
+  else{const cnt={};res.forEach(s=>cnt[s]=(cnt[s]||0)+1);const pair=Object.keys(cnt).find(k=>cnt[k]===2);if(pair)mult=pair==='🍒'?1.5:.5}
   const net=bet*mult-bet;
-  lastRes=resBox(net,`${mult>=20?'Jackpot ! ':''}${mult?(net?'gagné <span class="num">'+fmt(net,true)+'</span>':'mise remboursée'):'perdu'}`);
+  lastRes=resBox(net,`${mult>=20?'Jackpot ! ':''}${net>0?'gagné <span class="num">'+fmt(net,true)+'</span>':mult?'tu récupères <span class="num">'+fmt(bet*mult)+'</span>':'perdu'}`);
+  if(mult>=500)bigWin(cur(),net,'fait sauter la machine à sous : 7️⃣ 7️⃣ 7️⃣');
   busy=false;casinoResult(net);refreshSheet()}
 
 /* scratch */
 let scPrice=100;
 function scratchHTML(){
-  return `${note('Ticket « Millionnaire » : 1 chance sur 5 de doubler, 1 sur 40 de gagner x10, 1 sur 500 de gagner x100, et 1 sur 50 000 de toucher <b>x10 000</b>.')}
+  return `${note('Ticket « Millionnaire » : 1 chance sur 5 de gagner x1,5, 1 sur 40 de gagner x10, 1 sur 500 de gagner x100, et 1 sur 50 000 de toucher <b>x10 000</b>.')}
   ${scratch?`<div class="ticket"><div class="num">${scratch.label}</div><button class="cover ${scratch.open?'gone':''}" onclick="scratchOpen()">Gratte ici</button></div>${scratch.open?lastRes:''}`:'<div class="ticket">MILLIONNAIRE</div>'}
   <h3 class="sec">Prix du ticket</h3>
   <div class="seg">${scPrices().map(v=>`<button class="${scPrice===v?'on':''} num" aria-pressed="${scPrice===v}" onclick="scPrice=${v};refreshSheet()">${fmt(v)}</button>`).join('')}</div>
   <div class="sheet-foot">${B('Acheter un ticket',{v:'primary',on:'buyScratch()',why:scratch&&!scratch.open?'Gratte d’abord ton ticket':casWhy()})}</div>`}
 function scPrices(){const m=CASINOS[cSel].max,l=[.02,.1,.5,1].map(f=>Math.round(m*f));if(!l.includes(scPrice))scPrice=l[1];return l}
 function buyScratch(){if(!casinoStart(scPrice))return;const pp=cur();pp.cash-=scPrice;pp.stats.casino-=scPrice;const r=Math.random();let m=0;
-  if(r<1/50000)m=10000;else if(r<1/50000+1/500)m=100;else if(r<1/50000+1/500+1/40)m=10;else if(r<1/50000+1/500+1/40+1/5)m=2;
+  if(r<1/50000)m=10000;else if(r<1/50000+1/500)m=100;else if(r<1/50000+1/500+1/40)m=10;else if(r<1/50000+1/500+1/40+1/5)m=1.5;
   scratch={m,price:scPrice,open:false,label:m?fmt(scPrice*m):'PERDU'};lastRes='';sfx.card();save();render();refreshSheet()}
 function scratchOpen(){if(!scratch||scratch.open)return;scratch.open=true;const won=scratch.price*scratch.m,net=won-scratch.price;
   lastRes=resBox(net>0?1:net<0?-1:0,net>0?'gagné <span class="num">'+fmt(net,true)+'</span>':net===0?'ticket remboursé':'pas de chance');
   for(let i=0;i<6;i++)setTimeout(sfx.tick,i*90);
+  if(net<0)potFeed(-net);if(scratch.m>=10000)bigWin(cur(),net,'gratte le ticket à x10 000');
   setTimeout(()=>{if(won>0){casinoResult(won,1,net);addFeed(`${net>0?'gagne '+fmt(net):'récupère sa mise'} au grattage`)}else{addFeed(`perd ${fmt(scratch.price)} au grattage`);sfx.lose();save();render()}refreshSheet()},900);$('.ticket .cover').classList.add('gone')}
 /* ================= MARCHÉ : modèle ================= */
 /* Chaque actif a une phase cachée (haussière / neutre / baissière) qui dure en moyenne ~3 tours, une « juste valeur » vers laquelle
    le cours revient, et parfois des résultats trimestriels annoncés un tour à l'avance. Les signaux visibles sont bruités :
    bien lire le marché donne un avantage, jamais une certitude. */
-const REG_K=.35, REG_STAY=.7, MR_K=.18, ANALYST_OK=.62;
+const REG_K=.35, REG_STAY=.7, MR_K=.18, ANALYST_OK=.5;
 const adef=s=>ASSETS.find(x=>x.sym===s);
 function stepAsset(a,shock){const d=adef(a.sym);
   if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;
   let mu=d.drift+REG_K*d.vol*a.reg+MR_K*Math.log(a.fair/a.price),sd=d.vol*.6;
   if(a.earn){sd*=1.6;const s=a.reg||pick([-1,1]);mu+=(Math.random()<.6?s:-s)*d.vol*.6}
-  const L=Math.max(mu+sd*gauss()+(shock||0),Math.log(.15));
+  /* −sd²/2 : sans cette correction, un actif très volatil montait en moyenne de lui-même (+10 %/tour pour Solaris). */
+  const L=Math.max(mu-sd*sd/2+sd*gauss()+(shock||0),Math.log(.15));
   const N=12,w=[0];for(let i=1;i<=N;i++)w.push(w[i-1]+gauss());
   const st=d.vol*.35/Math.sqrt(N),path=w.map((x,i)=>Math.exp((x-w[N]*i/N)*st+L*i/N));
   const p0=a.price,np=Math.max(d.crypto?.0001:1,p0*Math.exp(L));
@@ -1548,16 +1814,17 @@ function signalsHTML(sym){const a=asset(sym),d=adef(sym),t=trendOf(a),v=valuatio
 const MKT_HELP=`<details class="rules"><summary>Comment lire le marché</summary>
   <p><b>Tendance</b> : les actifs traversent des phases haussières ou baissières qui durent souvent plusieurs tours, jusqu’à ce qu’elles se retournent.</p>
   <p><b>Valorisation</b> : un actif sous-évalué a tendance à remonter vers sa juste valeur, un actif surévalué à redescendre. L’estimation est approximative.</p>
-  <p><b>Analystes</b> : ils devinent la phase du prochain tour, et se trompent environ une fois sur trois.</p>
+  <p><b>Analystes</b> : ils devinent la phase du prochain tour, mais se trompent à peu près une fois sur deux : un indice parmi d’autres, jamais une certitude.</p>
   <p><b>Résultats trimestriels</b> : annoncés un tour à l’avance, ils provoquent de gros mouvements. Parfait pour parier, dangereux avec du levier.</p>
   <p>Quand plusieurs signaux vont dans le même sens, tes chances sont meilleures. Rien n’est jamais garanti.</p></details>`;
 /* ================= TRADING (positions qui durent) ================= */
-const LEVS=[1,2,3,5,10], OPEN_FEE=.004, FUND=.006, MAINT=.1, MAX_POS=4;
+const LEVS=[1,2,3,5,10], OPEN_FEE=.004, FUND=.015, MAINT=.1, MAX_POS=4;
 let tr={sym:'NEO',dir:1,lev:3,sl:.5,tp:0};
 function posPnl(o){return o.m*o.lev*o.dir*(asset(o.sym).price/o.entry-1)}
 function posVal(o){return Math.max(0,o.m+posPnl(o))}
 function posTotal(p){return (p.pos||[]).reduce((s,o)=>s+posVal(o),0)}
 function notional(p){return (p.pos||[]).reduce((s,o)=>s+o.m*o.lev,0)}
+const maxPos=p=>chr(p)==='trader'?5:MAX_POS;
 function tradeCap(p){return Math.max(20000,netWorth(p)*2)}
 function liqPrice(o){return o.entry*(1-(1-MAINT)*o.dir/o.lev)}
 function openTrading(s){if(s)tr.sym=s;openSheet('Trading',tradeHTML(),()=>setBody(tradeHTML()))}
@@ -1567,7 +1834,7 @@ function posHTML(o,mine){const a=asset(o.sym),d=adef(o.sym),v=posVal(o),g=v-o.m0
     <span class="small">Mise <span class="num">${fmt(o.m0)}</span> · valeur <b class="num">${fmt(v)}</b> <b class="num ${g>=0?'pos':'neg'}">${fmt(g,true)}</b></span>
     ${mine?`<div class="btns">${B('Clôturer la position',{v:'secondary',inline:1,on:`closePos('${o.id}')`,cost:fmt(v)})}</div>`:''}</span></div>`}
 /* Consultation pendant le tour des autres : le joueur en attente voit ses propres données, sans pouvoir agir. */
-function ro(){return !(G&&G.screen==='turn'&&isMyTurn())}
+function ro(){return !(G&&(G.screen==='turn'||(G.screen==='free'&&simStarted()))&&isMyTurn())}
 function viewer(){return ON&&!isMyTurn()?(me()||cur()):cur()}
 const RO_NOTE=note('<b>Mode consultation</b> : prépare ton prochain tour. Tu pourras agir quand ce sera à toi.','ro');
 function assetTabs(){return `<div class="tabs" role="tablist">${ASSETS.map(x=>`<button role="tab" aria-selected="${tr.sym===x.sym}" class="${tr.sym===x.sym?'on':''}" onclick="tr.sym='${x.sym}';refreshSheet()">${x.e} ${x.name}${asset(x.sym).earn?'<span class="tag p">Résultats</span>':''}</button>`).join('')}</div>`}
@@ -1595,15 +1862,15 @@ function tradeHTML(){if(ro()){const v=viewer(),ps=v.pos||[];
   <div class="sheet-foot">${B('Ouvrir la position',{v:'primary',on:'openPos()',cost:'1 PA',why})}</div>`}
 function openPos(){const p=cur(),a=asset(tr.sym),m=getAmt('trAmt');p.pos=p.pos||[];
   if(m<100){toast('Mise minimum : 100 €.',1);return}
-  if(p.pos.length>=MAX_POS){toast(`Maximum ${MAX_POS} positions ouvertes.`,1);return}
+  if(p.pos.length>=maxPos(p)){toast(`Maximum ${maxPos(p)} positions ouvertes.`,1);return}
   if(m*tr.lev>tradeCap(p)-notional(p)+1){toast('Position trop grosse pour ta capacité de trading.',1);return}
-  const fee=m*tr.lev*OPEN_FEE;if(!canPay(p,m+fee)||!useAP(1))return;
+  const fee=m*tr.lev*OPEN_FEE*(chr(p)==='trader'?.5:1);if(!canPay(p,m+fee)||!useAP(1))return;
   p.cash-=m+fee;p.stats.trading-=fee;
   p.pos.push({id:rid(5),sym:tr.sym,dir:tr.dir,lev:tr.lev,m,m0:m,entry:a.price,sl:tr.sl,tp:tr.tp,r:G.round});
   addFeed(`ouvre une position ${tr.dir>0?'à la hausse':'à la baisse'} x${tr.lev} sur ${adef(tr.sym).name}`);sfx.coin();toast('Position ouverte : '+fmt(m));after()}
 function closePos(id){const p=cur(),i=(p.pos||[]).findIndex(o=>o.id===id);if(i<0||busy)return;const o=p.pos[i],v=posVal(o),g=v-o.m0;
   p.cash+=v;p.stats.trading+=v-o.m0;p.pos.splice(i,1);
-  addFeed(`clôture sa position sur ${adef(o.sym).name} : ${fmt(g,true)}`);if(g>0){g>50000?(sfx.big(),confetti()):sfx.win();popMoney(g)}else sfx.lose();after()}
+  addFeed(`clôture sa position sur ${adef(o.sym).name} : ${fmt(g,true)}`);if(g>0){g>50000?(sfx.big(),confetti()):sfx.win();haptic('win');popMoney(g)}else{sfx.lose();haptic('lose')}after()}
 /* Fin de tour : on rejoue le chemin intra-tour du cours pour déclencher liquidation / stop / objectif au bon moment. */
 function tradeTick(p,paths,add){
   for(let i=(p.pos||[]).length-1;i>=0;i--){const o=p.pos[i],{p0,path}=paths[o.sym],lab=`${o.dir>0?'Long':'Short'} ${adef(o.sym).name} x${o.lev}`;
@@ -1613,7 +1880,7 @@ function tradeTick(p,paths,add){
       if(o.sl&&o.m+pnl-o.m0<=-o.sl*o.m0){closed=['🛑 stop déclenché',o.m+pnl];break}
       if(o.tp&&o.m+pnl-o.m0>=o.tp*o.m0){closed=['🎯 objectif atteint',o.m+pnl];break}}
     if(closed){const v=Math.max(0,closed[1]);p.cash+=v;p.stats.trading+=v-o.m0;p.pos.splice(i,1);add(p,`⚡ ${lab} : ${closed[0]} (mise ${fmt(o.m0)})`,v-o.m0);continue}
-    if(o.lev>1||o.dir<0){const fee=o.m*o.lev*FUND;o.m-=fee;p.stats.trading-=fee}
+    if(o.lev>1||o.dir<0){const fee=o.m*o.lev*FUND*(chr(p)==='trader'?.5:1);o.m-=fee;p.stats.trading-=fee}
     const v=posVal(o);
     if(v<=o.m*MAINT){p.pos.splice(i,1);p.stats.trading-=o.m0-v;add(p,`⚡ ${lab} : 💀 liquidé`,-o.m0);continue}
     add(p,`⚡ ${lab} (en cours, vaut ${fmt(v)})`,v-v0)}}
@@ -1644,40 +1911,86 @@ function sellAsset(){const p=cur(),a=asset(mSel),q=p.stocks[mSel]||0,v=q*a.price
   const frac=n/v;p.cash+=n;p.cost[mSel]=(p.cost[mSel]||0)*(1-frac);p.stocks[mSel]=q*(1-frac);if(p.stocks[mSel]*a.price<1){delete p.stocks[mSel];delete p.cost[mSel]}
   addFeed(`vend ${fmt(n)} de ${adef(mSel).name}`);sfx.coin();toast('Vente effectuée : '+fmt(n));after()}
 /* ================= IMMO ================= */
+/* Immobilier par ville : chaque ville a un niveau de prix, un rendement locatif (part de la valeur touchée en loyer à
+   chaque tour), une volatilité et une tendance cachée qui dure quelques tours. Les prix et les rendements évoluent à
+   chaque fin de tour ; les agents immobiliers donnent un avis sur la demande, juste environ 2 fois sur 3. */
+const CITIES=[
+ {k:'miami',n:'Miami',e:'🌴',lvl:1.3,yld:.045,vol:.06,drift:.018,d:'Soleil, yachts et argent facile : des prix nerveux.'},
+ {k:'ny',n:'New York',e:'🗼',lvl:1.9,yld:.03,vol:.035,drift:.02,d:'Prix très élevés et solides, rendement faible.'},
+ {k:'la',n:'Los Angeles',e:'🏊',lvl:1.6,yld:.035,vol:.05,drift:.018,d:'Villas avec piscine : la valeur grimpe, les loyers moins.'},
+ {k:'vegas',n:'Las Vegas',e:'🎰',lvl:.9,yld:.06,vol:.07,drift:.01,d:'Casinos et chantiers : rendement élevé, prix imprévisibles.'},
+ {k:'chicago',n:'Chicago',e:'🏬',lvl:.8,yld:.065,vol:.04,drift:.008,d:'Marché solide et populaire : bons loyers, prix sages.'},
+];
+/* ym : multiplicateur de rendement (les petites surfaces rapportent proportionnellement plus). */
+const RTYPES=[
+ {k:'studio',n:'Studio',e:'🛏️',base:25000,ym:1.15},
+ {k:'appart',n:'Appartement',e:'🏢',base:80000,ym:1},
+ {k:'maison',n:'Maison',e:'🏡',base:220000,ym:.9},
+ {k:'immeuble',n:'Immeuble de rapport',e:'🏬',base:900000,ym:1.05},
+ {k:'villa',n:'Villa de prestige',e:'🏰',base:2500000,ym:.75},
+];
+const VACANCY=.07;
+const cdef=k=>CITIES.find(c=>c.k===k), rdef=k=>RTYPES.find(t=>t.k===k), city=k=>G.cities.find(c=>c.k===k);
+function rprice(ck,tk){return rdef(tk).base*cdef(ck).lvl*city(ck).idx}
+function rrent(ck,tk){return rprice(ck,tk)*city(ck).yld*rdef(tk).ym}
+function pctY(y){return (y*100).toFixed(1).replace('.',',')+' %'}
+function stepCity(c,shock){const d=cdef(c.k);
+  const r=Math.max(Math.log(.6),d.drift+.8*d.vol*c.reg+gauss()*d.vol*.6+(shock||0));
+  c.chg=Math.exp(r)-1;c.idx=Math.max(.2,c.idx*Math.exp(r));c.hist.push(c.idx);if(c.hist.length>25)c.hist.shift();
+  c.yld=clamp(c.yld*Math.exp(gauss()*.05-r*.4+(d.yld-c.yld)/d.yld*.15),d.yld*.6,d.yld*1.6);
+  if(Math.random()>.75)c.reg=pick([-1,0,1].filter(x=>x!==c.reg));
+  c.rating=Math.random()<.65?c.reg:pick([-1,0,1])}
+function initCities(){return CITIES.map(d=>{const c={k:d.k,idx:1,yld:d.yld,reg:pick([-1,0,1]),hist:[1],chg:0,rating:0};
+  for(let i=0;i<4;i++)stepCity(c,0);c.idx0=c.idx;return c})}
+function trendCity(c){const h=c.hist,n=h.length;if(n<4)return 0;const ch=h[n-1]/h[n-4]-1,v=cdef(c.k).vol;return ch>v?1:ch<-v?-1:0}
+let imSel='miami';
 function openImmo(){openSheet('Immobilier',immoHTML(),()=>setBody(immoHTML()))}
-function immoHTML(){const p=viewer(),RO=ro();
-  return `${RO?RO_NOTE:''}${note('Chaque bien est unique : premier arrivé, premier servi. Frais de notaire 7 %. Le loyer tombe à chaque fin de tour. À crédit, tu n’avances que 25 % du prix plus les frais, et la banque prête le reste à 4 % par tour.')}
-  <div class="row between small muted mt-3"><span>Indice immobilier <b class="num ${G.reIndex>=1?'pos':'neg'}">${pct(G.reIndex-1)}</b></span><span>Cash <b class="gold num">${fmt(p.cash)}</b></span></div>
-  <div class="list mt-2">${G.props.map(x=>{const v=propVal(x),own=x.owner!=null?G.players[x.owner]:null,mine=x.owner===p.id,cash=v*1.07,down=v*.25+v*.07;
-    return `<div class="item${mine?' mine':''}"><span class="ic">${x.e}</span><span class="bd"><b>${x.n}</b><span class="small muted">${x.c} · <b class="num">${fmt(v)}</b> · loyer <span class="num">${fmt(propRent(x))}</span> par tour</span>
-      <span class="tags">${own&&!mine?`<span class="tag">${own.avatar} ${esc(own.name)}</span>`:''}${mine?'<span class="tag y">À toi</span>':''}</span>
-      ${mine&&!RO?`<div class="btns">${B('Vendre',{v:'secondary',inline:1,on:`sellProp(${x.id})`,cost:fmt(v*.95)})}</div>`:''}
-      ${!own&&!RO?`<div class="btns">${B('Acheter cash',{v:'secondary',inline:1,on:`buyProp(${x.id},0)`,cost:fmt(cash)+' · 1 PA',why:whyNot(1,cash,p)})}${B('À crédit',{v:'secondary',inline:1,on:`buyProp(${x.id},1)`,cost:'apport '+fmt(down)+' · 1 PA',why:whyNot(1,down,p)})}</div>`:''}
-    </span></div>`}).join('')}</div>`}
-function buyProp(id,credit){const p=cur(),x=G.props[id],v=propVal(x);if(x.owner!=null)return;
-  const pay=credit?v*.32:v*1.07;if(!canPay(p,pay)||!useAP(1))return;p.cash-=pay;if(credit)p.debt+=v*.75;x.owner=p.id;
-  addFeed(`achète ${x.e} ${x.n} à ${x.c}${credit?' (à crédit)':''}`);sfx.win();confetti(60);toast(`${x.n} à ${x.c} est à toi`);after()}
-function sellProp(id){const p=cur(),x=G.props[id];if(x.owner!==p.id)return;const v=propVal(x)*.95;p.cash+=v;x.owner=null;addFeed(`vend ${x.e} ${x.n} pour ${fmt(v)}`);sfx.coin();toast('Vendu '+fmt(v));after()}
+function reItem(x,mine){const rt=rdef(x.t),cd=cdef(x.c),v=rprice(x.c,x.t),g=v-x.paid;
+  return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n} · ${cd.n}</b><span class="small muted">Valeur <b class="num">${fmt(v)}</b> · <span class="num ${g>=0?'pos':'neg'}">${fmt(g,true)}</span> · loyer ≈ <span class="num">${fmt(rrent(x.c,x.t))}</span> par tour</span>
+    ${mine?`<div class="btns">${B('Vendre',{v:'secondary',inline:1,on:`sellRE('${x.id}')`,cost:fmt(v*.95)})}</div>`:''}</span></div>`}
+function immoHTML(){const p=viewer(),RO=ro(),c=city(imSel),d=cdef(imSel),t=trendCity(c),mine=(p.re||[]);
+  return `${RO?RO_NOTE:''}${note('Choisis ta ville : chacune a son niveau de prix, son rendement locatif et sa tendance, qui changent à chaque tour. Le loyer tombe en fin de tour, mais un logement peut rester vide. Frais d’acquisition ${Math.round(reFee(p)*100)} %. À crédit, tu avances 25 % plus les frais et la banque prête le reste à 4 % par tour.')}
+  <h3 class="sec">Les villes</h3><div class="list">${G.cities.map(x=>{const dd=cdef(x.k);
+    return `<button class="item pick ${x.k===imSel?'sel':''}" aria-pressed="${x.k===imSel}" onclick="imSel='${x.k}';refreshSheet()"><span class="ic">${dd.e}</span><span class="bd"><b>${dd.n}</b><span class="small muted">Rendement <b class="num">${pctY(x.yld)}</b> par tour · prix <span class="num ${x.chg>=0?'pos':'neg'}">${pct(x.chg)}</span></span></span>${spark(x.hist)}</button>`}).join('')}</div>
+  <h3 class="sec">${d.n}</h3><div class="panel tight"><p class="small muted">${d.d}</p>
+    <div class="kv"><span>Prix depuis le début</span><b class="num ${c.idx>=c.idx0?'pos':'neg'}">${pct(c.idx/c.idx0-1)}</b></div>
+    <div class="kv"><span>Rendement locatif</span><b class="num">${pctY(c.yld)} par tour</b></div>
+    <div class="kv"><span>Tendance (3 tours)</span><b class="${t>0?'pos':t<0?'neg':''}">${['↘ Baissière','→ Stable','↗ Haussière'][t+1]}</b></div>
+    <div class="kv"><span>Demande selon les agents</span><b class="${c.rating>0?'pos':c.rating<0?'neg':''}">${['Faible','Normale','Forte'][c.rating+1]}</b></div>
+    <div class="kv"><span>Volatilité des prix</span><span>${d.vol>.055?'élevée':d.vol>.04?'moyenne':'faible'}</span></div></div>
+  <h3 class="sec">Acheter à ${d.n}</h3><div class="list">${RTYPES.map(rt=>{const v=rprice(imSel,rt.k),cash=v*(1+reFee(p)),down=v*(.25+reFee(p));
+    return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n}</b><span class="small muted"><b class="num">${fmt(v)}</b> · loyer ≈ <span class="num">${fmt(rrent(imSel,rt.k))}</span> par tour</span>
+      ${RO?'':`<div class="btns">${B('Acheter cash',{v:'secondary',inline:1,on:`buyRE('${rt.k}',0)`,cost:fmt(cash)+' · 1 PA',why:whyNot(1,cash,p)})}${B('À crédit',{v:'secondary',inline:1,on:`buyRE('${rt.k}',1)`,cost:'apport '+fmt(down)+' · 1 PA',why:chr(p)==='trader'?'Pas de crédit pour le Trader':whyNot(1,down,p)})}</div>`}</span></div>`}).join('')}</div>
+  ${mine.length?`<h3 class="sec">Tes biens <span class="num">(${mine.length})</span></h3><div class="list">${mine.map(x=>reItem(x,!RO)).join('')}</div>`:''}`}
+const reFee=p=>chr(p)==='builder'?.02:.07;
+function buyRE(tk,credit){const p=cur(),rt=rdef(tk),cd=cdef(imSel),v=rprice(imSel,tk);
+  if(credit&&chr(p)==='trader'){toast('Le Trader n’obtient pas de crédit immobilier.',1);return}
+  const fee=reFee(p),pay=credit?v*(.25+fee):v*(1+fee);if(!canPay(p,pay)||!useAP(1))return;p.cash-=pay;if(credit)p.debt+=v*.75;
+  p.re=p.re||[];p.re.push({id:rid(5),c:imSel,t:tk,paid:v});
+  addFeed(`achète ${rt.e} ${rt.n.toLowerCase()} à ${cd.n}${credit?' (à crédit)':''}`);sfx.win();toast(`${rt.n} à ${cd.n} : c’est à toi`);after()}
+function sellRE(id){const p=cur(),i=(p.re||[]).findIndex(x=>x.id===id);if(i<0)return;const x=p.re[i],v=rprice(x.c,x.t)*.95;
+  p.cash+=v;p.re.splice(i,1);addFeed(`vend ${rdef(x.t).n.toLowerCase()} à ${cdef(x.c).n} pour ${fmt(v)}`);sfx.coin();toast('Vendu '+fmt(v));after()}
 
 /* ================= BUSINESS ================= */
 let bizNameDraft={};
 function openBiz(){openSheet('Entreprises',bizHTML(),()=>setBody(bizHTML()))}
 function bizHTML(){const p=cur();
-  const mine=p.biz.map((b,i)=>{const d=bizDef(b.k),up=d.cost*.7*b.lvl;return `<div class="item mine"><span class="ic">${d.e}</span><span class="bd"><b>${esc(b.name)}</b>
+  const mine=p.biz.map((b,i)=>{const d=bizDef(b.k),up=bizCost(p,d)*.7*b.lvl;return `<div class="item mine"><span class="ic">${d.e}</span><span class="bd"><b>${esc(b.name)}</b>
      <span class="small muted">${d.n} · valeur <b class="num">${fmt(bizVal(b))}</b> · niveau <span class="num">${b.lvl}/5</span> · revenu <span class="num">${fmt(d.min*bizMult(b.lvl))}</span> à <span class="num">${fmt(d.max*bizMult(b.lvl))}</span></span>
      <div class="btns">${b.lvl<5?B('Développer',{v:'secondary',inline:1,on:`upBiz(${i})`,cost:fmt(up)+' · 1 PA',why:whyNot(1,up,p)}):'<span class="tag y">Niveau max</span>'}${B('Revendre',{v:'text',inline:1,on:`sellBiz(${i})`})}</div></span></div>`}).join('');
   return `${p.biz.length?`<h3 class="sec">Tes boîtes</h3><div class="list">${mine}</div>`:''}
   <h3 class="sec">Créer une entreprise</h3>${note('Chaque boîte rapporte (ou coûte) une somme aléatoire à chaque tour, avec un petit risque de faillite. La développer augmente ses revenus de 60 % par niveau.')}
   <div class="list mt-2">${BIZ.map(d=>`<div class="item"><span class="ic">${d.e}</span><span class="bd"><b>${d.n}</b>
-    <span class="small muted">Revenu par tour <span class="num">${fmt(d.min)}</span> à <span class="num">${fmt(d.max)}</span> · faillite <span class="num">${Math.round(d.fail*100)} %</span>${d.acq?' · rachat possible x6':''}${d.resto?' · ferme en cas de confinement':''}</span>
-    <div class="btns">${B('Créer',{v:'secondary',inline:1,on:`newBiz('${d.k}')`,cost:fmt(d.cost)+' · 2 PA',why:whyNot(2,d.cost,p)})}</div></span></div>`).join('')}</div>`}
-function newBiz(k){const p=cur(),d=bizDef(k);if(!canPay(p,d.cost)||!hasAP(2))return;
+    <span class="small muted">Revenu par tour <span class="num">${fmt(d.min)}</span> à <span class="num">${fmt(d.max)}</span> · faillite <span class="num">${Math.round(d.fail*100)} %</span>${d.acq?' · rachat possible : 3 fois son prix':''}${d.resto?' · ferme en cas de confinement':''}</span>
+    <div class="btns">${B('Créer',{v:'secondary',inline:1,on:`newBiz('${d.k}')`,cost:fmt(bizCost(p,d))+' · 2 PA',why:whyNot(2,bizCost(p,d),p)})}</div></span></div>`).join('')}</div>`}
+const bizCost=(p,d)=>d.cost*(chr(p)==='builder'?1.2:1);
+function newBiz(k){const p=cur(),d=bizDef(k);if(!canPay(p,bizCost(p,d))||!hasAP(2))return;
   openSheet('Nomme ta boîte',`<p class="muted">Comment s’appelle ta nouvelle ${d.n.toLowerCase()} ?</p>
    <div class="amtrow"><input id="bizName" maxlength="24" value="${esc(pick(d.names))}" aria-label="Nom de l’entreprise"></div>
-   <div class="sheet-foot stack">${B('Créer l’entreprise',{v:'primary',on:`confirmBiz('${k}')`,cost:fmt(d.cost)+' · 2 PA'})}${B('Retour',{v:'secondary',on:'openBiz()'})}</div>`)}
-function confirmBiz(k){const p=cur(),d=bizDef(k);if(!canPay(p,d.cost)||!useAP(2))return;const name=($('#bizName').value||d.n).trim();
-  p.cash-=d.cost;p.biz.push({k,name,lvl:1});addFeed(`ouvre ${d.e} ${esc(name)} (${d.n.toLowerCase()})`);sfx.win();confetti(70);toast(`${name} ouvre ses portes`);save();render();openBiz()}
-function upBiz(i){const p=cur(),b=p.biz[i],up=bizDef(b.k).cost*.7*b.lvl;if(!canPay(p,up)||!useAP(1))return;p.cash-=up;b.lvl++;addFeed(`développe ${esc(b.name)} au niveau ${b.lvl}`);sfx.win();toast(`${b.name} passe au niveau ${b.lvl}`);after()}
+   <div class="sheet-foot stack">${B('Créer l’entreprise',{v:'primary',on:`confirmBiz('${k}')`,cost:fmt(bizCost(p,d))+' · 2 PA'})}${B('Retour',{v:'secondary',on:'openBiz()'})}</div>`)}
+function confirmBiz(k){const p=cur(),d=bizDef(k);if(!canPay(p,bizCost(p,d))||!useAP(2))return;const name=($('#bizName').value||d.n).trim();
+  p.cash-=bizCost(p,d);p.biz.push({k,name,lvl:1});addFeed(`ouvre ${d.e} ${esc(name)} (${d.n.toLowerCase()})`);sfx.win();confetti(70);toast(`${name} ouvre ses portes`);save();render();openBiz()}
+function upBiz(i){const p=cur(),b=p.biz[i],up=bizCost(p,bizDef(b.k))*.7*b.lvl;if(!canPay(p,up)||!useAP(1))return;p.cash-=up;b.lvl++;addFeed(`développe ${esc(b.name)} au niveau ${b.lvl}`);sfx.win();toast(`${b.name} passe au niveau ${b.lvl}`);after()}
 function sellBiz(i){const p=cur(),b=p.biz[i],v=bizVal(b)*R(.8,1.2);p.cash+=v;p.biz.splice(i,1);addFeed(`revend ${esc(b.name)} pour ${fmt(v)}`);sfx.coin();toast(`${b.name} revendue ${fmt(v)}`);after()}
 
 /* ================= STARTUPS (VC) ================= */
@@ -1691,7 +2004,7 @@ function genOffers(){return Array.from({length:3},()=>{const team=RI(1,5),trac=R
   return {id:Math.random().toString(36).slice(2,8),name:pick(SNAMES),pitch:pick(PITCHES[sec]),e:pick(SECT_E[sec]),
     sec,team,trac,tracVis:clamp(trac+pick([-1,0,0,1]),1,5),hype,q:clamp(.45*(team-1)/4+.35*(trac-1)/4+R(-.1,.3),0,1),
     min:pick([1000,5000,10000,25000,50000]),aud:[]}})}
-function entryRatio(o){return clamp(1-.07*(o.team+o.tracVis-6)-.08*(o.hype-1),.45,1.1)}
+function entryRatio(o){return clamp(1-.07*(o.team+o.tracVis-6)-.08*(o.hype-1),.45,1)}
 function grade(q){return q>.7?'A':q>.5?'B':q>.3?'C':'D'}
 function auditCost(o){return Math.max(500,niceRound(o.min*.15))}
 function stars(n){return '★'.repeat(n)+'☆'.repeat(5-n)}
@@ -1703,7 +2016,7 @@ function vcHTML(){const p=viewer(),RO=ro();
     <p><b>Prix d’entrée</b> : les belles startups et celles qui font le buzz sont chères, ta part vaut alors moins que ta mise. La hype n’améliore presque pas les chances : une bonne équipe sans buzz, c’est la bonne affaire.</p>
     <p><b>Secteur</b> : si les analystes sont à l’achat sur son secteur en Bourse, la startup lève plus facilement et se revend mieux.</p>
     <p>Après chaque levée réussie, tu peux <b>remettre au pot</b> au nouveau prix, ou <b>revendre ta part</b> (−20 %) pour sécuriser tes gains. Plusieurs petits tickets limitent la casse.</p></details>
-  ${G.offers.map(o=>{const au=(o.aud||[]).includes(p.id),s=SECTS[o.sec||0],sa=asset(s.sym),er=entryRatio(o),ac=auditCost(o);
+  ${G.offers.map(o=>{const au=audited(p,o),s=SECTS[o.sec||0],sa=asset(s.sym),er=entryRatio(o),ac=auditCost(o);
     return `<div class="panel offer"><div class="head"><span class="e">${o.e}</span><div><b>${esc(o.name)}</b><div class="small muted">${esc(o.pitch)}</div></div></div>
     <div class="kv"><span>Secteur</span><span>${s.n} · <span class="${(sa.rating||0)>0?'pos':(sa.rating||0)<0?'neg':''}">${RATING[(sa.rating||0)+1]}</span></span></div>
     <div class="kv"><span>Équipe</span><span class="gold" aria-label="${o.team} sur 5">${stars(o.team)}</span></div>
@@ -1720,8 +2033,9 @@ function vcPortfolio(p,mine){const ds=p.deals.filter(d=>d.kind==='vc');if(!ds.le
     return `<div class="item pick"><span class="ic">${d.e}</span><span class="bd"><b>${esc(d.name)}</b><span class="small muted">${STAGES[d.stage]} · ${SECTS[d.sec].n} · ${esc(d.news||'')}</span>
     <span class="small">Investi <span class="num">${fmt(d.amt)}</span> · ta part vaut <b class="num">${fmt(d.value)}</b> <b class="num ${g>=0?'pos':'neg'}">${fmt(g,true)}</b></span>
     ${mine?`<div class="btns">${B('Revendre ma part',{v:'secondary',inline:1,on:`sellVC('${d.id}')`,cost:fmt(d.value*.8)})}${can?B('Suivre la levée',{v:'secondary',inline:1,on:`followVC('${d.id}')`,cost:fmt(d.follow)+' · 1 PA',why:whyNot(1,d.follow,p)}):''}</div>`:''}</span></div>`}).join('')}</div>`}
-function auditVC(id){const p=cur(),o=G.offers.find(x=>x.id===id);if(!o)return;o.aud=o.aud||[];if(o.aud.includes(p.id))return;const c=auditCost(o);if(!canPay(p,c))return;
-  p.cash-=c;p.stats.vc-=c;o.aud.push(p.id);sfx.tick();toast(`Audit de ${o.name} : note ${grade(o.q)}`);after()}
+function audited(p,o){return (o.aud||[]).includes(p.id)||(p.audits||[]).includes(o.id)}
+function auditVC(id){const p=cur(),o=G.offers.find(x=>x.id===id);if(!o)return;if(audited(p,o))return;const c=auditCost(o);if(!canPay(p,c))return;
+  p.cash-=c;p.stats.vc-=c;(p.audits=p.audits||[]).push(o.id);sfx.tick();toast(`Audit de ${o.name} : note ${grade(o.q)}`);after()}
 function investVC(id){const p=cur(),o=G.offers.find(x=>x.id===id),n=getAmt('vc_'+id);if(!o)return;if(n<o.min){toast('Le ticket minimum est de '+fmt(o.min),1);return}
   if(!canPay(p,n)||!useAP(1))return;p.cash-=n;
   p.deals.push({kind:'vc',id:rid(5),name:o.name,pitch:o.pitch,e:o.e,sec:o.sec||0,q:o.q,hype:o.hype,amt:n,value:n*entryRatio(o),stage:0,news:'tu viens d’entrer au capital'});
@@ -1761,12 +2075,12 @@ function heistParts(){const p=cur(),h=HEISTS[hs.t];
   return [['Base',h.ch],['Équipe',TEAMS[hs.team][1]],['Approche',APPS[hs.app][1]],['Repérage',reconBonus(p,hs.t)],['Ta réputation policière',-p.heat/250],['Sécurité renforcée',-((G.sec&&G.sec[hs.t])||0)*.05]]}
 function heistChance(){return clamp(heistParts().reduce((s,x)=>s+x[1],0),.02,.9)}
 function heistCost(){const h=HEISTS[hs.t];return Math.round(h.prep+TEAMS[hs.team][3]*h.min)}
-function openHeist(){if(!hasAP(1))return;const p=cur();if(rep(p)<HEISTS[hs.t].rep)hs.t=0;
+function openHeist(){const p=cur();if(chr(p)==='banker'){toast('Le Banquier ne braque pas : trop propre sur lui.',1);return}if(!hasAP(1))return;if(rep(p)<HEISTS[hs.t].rep)hs.t=0;
   openSheet('Préparer un braquage',heistHTML(),()=>setBody(heistHTML()))}
 function heistHTML(){const p=cur(),h=HEISTS[hs.t],ch=heistChance(),cut=TEAMS[hs.team][2],m=APPS[hs.app][2],cost=heistCost(),locked=rep(p)<h.rep,rb=reconBonus(p,hs.t);
   const parts=heistParts().filter(x=>Math.abs(x[1])>=.005);
-  const why=G.ap<3?(G.ap?`Il faut tes 3 PA, il t’en reste ${G.ap}. Repère la cible maintenant, frappe au prochain tour.`:'Plus de points d’action'):p.cash<cost?`Il te manque ${fmt(cost-p.cash)}`:'';
-  return `${note('Un braquage prend <b>tout ton tour (3 PA)</b> et la préparation se paie d’avance, même si ça rate. Le butin est de l’<b>argent sale</b>, à blanchir. En cas d’échec : prison, amende de 30 % du cash, argent sale saisi.','warn')}
+  const why=G.ap<2?(G.ap?`Il faut 2 PA, il t’en reste ${G.ap}. Repère la cible maintenant, frappe au prochain tour.`:'Plus de points d’action'):p.cash<cost?`Il te manque ${fmt(cost-p.cash)}`:'';
+  return `${note('Un braquage coûte <b>2 PA</b> et la préparation se paie d’avance, même si ça rate. Le butin est de l’<b>argent sale</b>, à blanchir. En cas d’échec : prison, amende de 30 % de ton argent liquide, argent sale saisi.','warn')}
   <h3 class="sec">Cible · réputation <span class="num">${rep(p)}</span></h3><div class="list ill">${HEISTS.map((x,i)=>{const lk=rep(p)<x.rep,sec=(G.sec&&G.sec[i])||0;
     return `<button class="item pick ${hs.t===i?'sel':''} ${lk?'lock':''}" aria-pressed="${hs.t===i}" onclick="hs.t=${i};sfx.tick();refreshSheet()"><span class="ic">${lk?icon('lock','Verrouillée'):x.e}</span><span class="bd"><b>${x.n}</b><span class="small muted"><span class="num">${fmt(x.min)}</span> à <span class="num">${fmt(x.max)}</span> · prépa <span class="num">${fmt(x.prep)}</span></span>
       <span class="tags">${lk?`<span class="tag r">Réputation ${x.rep} requise</span>`:''}${sec?`<span class="tag r">Sécurité −${sec*5} %</span>`:''}${reconBonus(p,i)?'<span class="tag c">Repérée</span>':''}</span></span><span class="rt small num">${Math.round(x.ch*100)} %</span></button>`}).join('')}</div>
@@ -1780,25 +2094,25 @@ function heistHTML(){const p=cur(),h=HEISTS[hs.t],ch=heistChance(),cut=TEAMS[hs.
    <div class="kv"><span>Si ça rate</span><span class="neg">${h.jail} à ${h.jail+1} tours de prison</span></div></div>
   ${locked?`<div class="err">Il te faut ${h.rep} de réputation pour cette cible. Réussis d’abord des coups plus modestes.</div>`:`
   <div class="mt-3">${B(rb?'Cible déjà repérée':'Faire un repérage',{v:'secondary',on:'doRecon()',cost:rb?'+15 %':'1 PA · +15 %',why:rb?'Le bonus dure jusqu’au prochain tour':G.ap<1?'Plus de points d’action':''})}</div>
-  <div class="sheet-foot">${B('Lancer le braquage',{v:'danger',on:'runHeist()',cost:fmt(cost)+' · 3 PA',why})}</div>`}`}
-function doRecon(){const p=cur(),h=HEISTS[hs.t];if(rep(p)<h.rep||!useAP(1))return;p.recon={t:hs.t,until:G.round+1};p.heat=clamp(p.heat+2,0,100);
+  <div class="sheet-foot">${B('Lancer le braquage',{v:'danger',on:'runHeist()',cost:fmt(cost)+' · 2 PA',why})}</div>`}`}
+function doRecon(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}const p=cur(),h=HEISTS[hs.t];if(rep(p)<h.rep||!useAP(1))return;p.recon={t:hs.t,until:G.round+1};p.heat=clamp(p.heat+2,0,100);
   addFeed('fait des repérages discrets');sfx.tick();toast(`${h.n} repéré(e) : +15 % jusqu’au prochain tour`);after()}
-async function runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)return;
+async function runHeist(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)return;
   if(rep(p)<h.rep){toast(`Réputation ${h.rep} requise.`,1);return}
-  if(!canPay(p,cost)||!useAP(3))return;
+  if(!canPay(p,cost)||!useAP(2))return;
   const ch=heistChance();p.cash-=cost;busy=true;render();
   const steps=[['🚐','Planque devant la cible…'],['🎭','Masques et gants enfilés…'],[pick(['💥','🔓','🧨']),'C’est parti !'],['🏎️','La fuite à fond sur l’autoroute…']];
   $('#shTitle').textContent=h.n;$('#shBody').innerHTML=`<div class="steps" id="hsteps" aria-live="polite"></div><div id="hres"></div>`;
-  for(const [e,t] of steps){const d=document.createElement('div');d.textContent=e+'  '+t;$('#hsteps').appendChild(d);tone(220,.15,'triangle',.06);buzz(30);await sleep(950)}
+  for(const [e,t] of steps){const d=document.createElement('div');d.textContent=e+'  '+t;$('#hsteps').appendChild(d);tone(220,.15,'triangle',.06);haptic('step');await sleep(950)}
   const ok=Math.random()<ch;let html,hLoot=0;p.recon=null;
   if(ok){const loot=R(h.min,h.max)*APPS[hs.app][2]*(1-TEAMS[hs.team][2]);hLoot=loot;p.dirty+=loot;p.stats.crime+=loot;p.stats.heists++;p.rep=rep(p)+1;
     G.sec=G.sec||HEISTS.map(()=>0);G.sec[hs.t]+=2;p.heat=clamp(p.heat+h.heat*APPS[hs.app][3],0,100);
     html=`${resBox(1,`Braquage réussi<span class="big dirty">${fmt(loot,true)}</span>`)}<p class="muted small">Argent sale : pense à le blanchir. Réputation ${p.rep}. La cible renforce sa sécurité.</p>`;
-    loot>100000?(sfx.big(),confetti()):sfx.win();popMoney(loot)}
+    loot>100000?(sfx.big(),confetti()):sfx.win();haptic('jackpot');popMoney(loot);if(loot>=20000)shared({t:'hl',item:{r:G.round,pid:p.id,t:`braque ${h.n.toLowerCase()}`,v:loot}})}
   else if(Math.random()<.2){p.heat=clamp(p.heat+h.heat*.6,0,100);html=`${resBox(-1,'Raté, mais tu t’enfuis les mains vides')}<p class="muted small">La préparation (<span class="num">${fmt(cost)}</span>) est perdue et les flics ont ton signalement.</p>`;sfx.lose()}
-  else{const fine=Math.max(0,p.cash)*.3;p.cash-=fine;const t=h.jail+RI(0,1);p.jail=t;p.heat=clamp(p.heat+h.heat,0,100);let lost='';
+  else{const fine=takeLiquid(p,liquid(p)*.3);const t=h.jail+RI(0,1);p.jail=t;p.heat=clamp(p.heat+h.heat,0,100);let lost='';
     if(p.net){p.net=0;lost+='<br>Ton réseau est démantelé.'}if(p.dirty>0){lost+=`<br>Argent sale saisi : ${fmt(p.dirty)}.`;p.dirty=0}
-    html=`${resBox(-1,'Arrêté')}<p>${h.fl}</p><p class="muted small">Amende <span class="num">${fmt(fine)}</span> · ${t} tour${t>1?'s':''} de prison${lost}</p>`;sfx.siren();shake();buzz([300,100,300])}
+    html=`${resBox(-1,'Arrêté')}<p>${h.fl}</p><p class="muted small">Amende <span class="num">${fmt(fine)}</span> · ${t} tour${t>1?'s':''} de prison${lost}</p>`;sfx.siren();shake();haptic('arrest')}
   addFeed(ok?`braque ${h.e} ${h.n} et repart avec ${fmt(hLoot)}`:p.jail?`se fait arrêter en braquant ${h.e} ${h.n}`:`rate son braquage (${h.n}) mais s’enfuit`);
   $('#hres').innerHTML=html+`<div class="mt-3">${B('Fermer',{v:'secondary',on:'busy=false;closeSheet()'})}</div>`;
   busy=false;save();render()}
@@ -1840,16 +2154,17 @@ function openDirty(){if(!hasAP(1))return;
   openSheet('Coups bas',dirtyHTML(),()=>setBody(dirtyHTML()))}
 function dirtyHTML(){const p=cur(),t=G.players[dt.target],others=G.players.filter(o=>o.id!==p.id);
   const modes=[['duel','🎲','Duel de dés','Mise contre un pote : le plus gros lancer rafle tout. Refuser coûte 10 % de la mise.'],
-    ['scam','🃏','Arnaque','50 % de chances de lui soutirer 8 à 20 % de son cash. Si ça rate, tu lui dois un dédommagement.'],
-    ['snitch','🐀','Balancer','Pour 3 000 €, tu donnes un tuyau anonyme à la police : sa jauge prend +35.']];
+    ['scam','🃏','Arnaque',`${Math.round(Math.min(.85,(isMark(t)?.65:.5)+(chr(p)==='crook'?.2:0))*100)} % de chances de lui soutirer 8 à 20 % de son argent liquide (cash et actions). Si ça rate, tu lui dois un dédommagement.`],
+    ['snitch','🐀','Balancer',`Pour ${fmt(snitchCost(t))}, tu donnes un tuyau anonyme à la police : sa jauge prend +35. Une fois par tour et par victime.`]];
   let foot='';
   if(dt.mode==='duel'){const mx=Math.max(0,Math.min(p.cash,t.cash));foot=`<h3 class="sec">Mise du duel</h3>${amt('duelAmt',mx,Math.min(2000,mx))}
     <div class="sheet-foot">${B('Défier '+esc(t.name),{v:'danger',on:'startDuel()',cost:'1 PA',why:whyNot(1,0,p)||(mx<=0?'Un de vous deux n’a plus de cash':'')})}</div>`}
   if(dt.mode==='scam')foot=`<div class="sheet-foot">${B('Arnaquer '+esc(t.name),{v:'danger',on:'doScam()',cost:'1 PA',why:whyNot(1,0,p)})}</div>`;
-  if(dt.mode==='snitch')foot=`<div class="sheet-foot">${B('Balancer '+esc(t.name),{v:'danger',on:'doSnitch()',cost:'3 000 € · 1 PA',why:whyNot(1,3000,p)})}</div>`;
+  if(dt.mode==='snitch')foot=`<div class="sheet-foot">${B('Balancer '+esc(t.name),{v:'danger',on:'doSnitch()',cost:fmt(snitchCost(t))+' · 1 PA',why:(G.snitched&&G.snitched[t.id]===G.round)?'Déjà balancé ce tour-ci':whyNot(1,snitchCost(t),p)})}</div>`;
+  const markNote=isMark(t)?note(`${esc(t.name)} est <b>la cible du moment</b> (en tête ou vient de toucher le gros lot) : les coups bas contre lui coûtent moins cher et réussissent plus souvent.`,'mt-3'):'';
   return `<h3 class="sec">Le coup</h3><div class="list ill">${modes.map(([k,e,l,d])=>`<button class="item pick ${dt.mode===k?'sel':''}" aria-pressed="${dt.mode===k}" onclick="dt.mode='${k}';refreshSheet()"><span class="ic">${e}</span><span class="bd"><b>${l}</b><span class="small muted">${d}</span></span><span class="rt small muted">1 PA</span></button>`).join('')}</div>
-  <h3 class="sec">Victime</h3><div class="seg">${others.map(o=>`<button class="${dt.target===o.id?'on':''}" aria-pressed="${dt.target===o.id}" onclick="dt.target=${o.id};refreshSheet()">${o.avatar} ${esc(o.name)}<small class="num">${fmt(o.cash)}</small></button>`).join('')}</div>${foot}`}
-function startDuel(){const p=cur(),t=G.players[dt.target],n=getAmt('duelAmt');if(n<=0){toast('Choisis une mise.',1);return}if(n>p.cash||n>t.cash){toast('La mise dépasse le cash de l’un de vous deux.',1);return}
+  <h3 class="sec">Victime</h3><div class="seg">${others.map(o=>`<button class="${dt.target===o.id?'on':''}" aria-pressed="${dt.target===o.id}" onclick="dt.target=${o.id};refreshSheet()">${o.avatar} ${esc(o.name)}<small class="num">${blind(o)?'?':fmt(o.cash)}</small>${isMark(o)?'<small>cible</small>':''}</button>`).join('')}</div>${markNote}${foot}`}
+function startDuel(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}const p=cur(),t=G.players[dt.target],n=getAmt('duelAmt');if(n<=0){toast('Choisis une mise.',1);return}if(n>p.cash||n>t.cash){toast('La mise dépasse le cash de l’un de vous deux.',1);return}
   if(!useAP(1))return;dt.stake=n;render();
   $('#shTitle').textContent='Duel de dés';
   if(ON&&t.uid!==UID){busy=true;dt.reqId=rid(6);
@@ -1875,17 +2190,20 @@ async function duelGo(){if(!dt.stake||dt.rolling)return;dt.rolling=true;const p=
   addFeed(`remporte ${fmt(dt.stake)} au duel de dés contre ${esc(l.name)} (${Math.max(a,b)} à ${Math.min(a,b)})`,w);
   $('#dres').innerHTML=`${resBox(1,`${w.avatar} ${esc(w.name)} rafle <span class="num">${fmt(dt.stake)}</span>`)}${B('Fermer',{v:'secondary',on:'closeSheet()'})}`;
   dt.stake=0;dt.rolling=false;sfx.big();confetti(80);busy=false;save();render()}
-function doScam(){if(!useAP(1))return;const p=cur(),t=G.players[dt.target];let html;
-  if(Math.random()<.5){const x=Math.max(0,t.cash)*R(.08,.2);t.cash-=x;p.cash+=x;p.stats.scam+=x;
+function doScam(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}if(!useAP(1))return;const p=cur(),t=G.players[dt.target];let html;
+  if(Math.random()<Math.min(.85,(isMark(t)?.65:.5)+(chr(p)==='crook'?.2:0))){const x=takeLiquid(t,liquid(t)*R(.08,.2));p.cash+=x;p.stats.scam+=x;p.stats.scams=(p.stats.scams||0)+1;
     t.inbox.push({k:'Mauvaise nouvelle',e:'🃏',t:'Tu t’es fait arnaquer',d:`Un faux placement en or « garanti » : ${esc(p.name)} t’a eu en beauté.`,fx:fmt(-x)});
     addFeed(`arnaque ${esc(t.name)} et lui soutire ${fmt(x)}`);
     html=resBox(1,`Arnaque réussie<span class="big">${fmt(x,true)}</span>`);sfx.win();popMoney(x)}
-  else{const x=Math.max(1000,Math.max(0,p.cash)*.05);p.cash-=x;t.cash+=x;p.heat=clamp(p.heat+10,0,100);
+  else{const x=takeLiquid(p,Math.max(1000,liquid(p)*.05));t.cash+=x;p.heat=clamp(p.heat+(chr(p)==='crook'?20:10),0,100);
     t.inbox.push({k:'Bonne nouvelle',e:'🕵️',t:'Tentative d’arnaque déjouée',d:`${esc(p.name)} a essayé de t’arnaquer. Raté : il te verse un dédommagement.`,fx:fmt(x,true)});
     addFeed(`tente d’arnaquer ${esc(t.name)}, raté : il doit le dédommager`);
     html=resBox(-1,`${esc(t.name)} a flairé l’arnaque. Tu lui dois <span class="num">${fmt(x)}</span>.`);sfx.lose();shake()}
   $('#shBody').innerHTML=html+B('Fermer',{v:'secondary',on:'closeSheet()'});save();render()}
-function doSnitch(){const p=cur(),t=G.players[dt.target];if(!canPay(p,3000)||!useAP(1))return;p.cash-=3000;t.heat=clamp(t.heat+35,0,100);addFeed('Un tuyau anonyme vient d’arriver au commissariat : quelqu’un a été balancé.',null);
+/* Balancer : 2 % du patrimoine de la victime (3 000 € minimum), moitié prix contre la cible du moment. */
+function snitchCost(t){return niceRound(Math.max(3000,netWorth(t)*.02)*(isMark(t)?.5:1))}
+function doSnitch(){if(simFree()){toast('Ça se joue pendant la phase des coups.',1);return}const p=cur(),t=G.players[dt.target],c=snitchCost(t);G.snitched=G.snitched||{};if(G.snitched[t.id]===G.round){toast('Déjà balancé ce tour-ci.',1);return}
+  if(!canPay(p,c)||!useAP(1))return;p.cash-=c;G.snitched[t.id]=G.round;t.heat=clamp(t.heat+35,0,100);addFeed('Un tuyau anonyme vient d’arriver au commissariat : quelqu’un a été balancé.',null);
   t.inbox.push({k:'Police',e:'🐀',t:'Quelqu’un t’a balancé',bad:1,d:'Un tuyau anonyme est arrivé au commissariat. Qui parmi tes « amis » a fait ça ?',fx:'Police +35'});
   $('#shBody').innerHTML=`${resBox(1,`C’est fait. ${esc(t.name)} ne saura jamais que c’était toi, sauf si tu craques.`)}${B('Fermer',{v:'secondary',on:'closeSheet()'})}`;sfx.coin();save();render()}
 /* ================= BANK ================= */
@@ -1903,14 +2221,14 @@ function borrow(){const p=cur(),n=Math.min(getAmt('borAmt'),maxBorrow(p));if(n<=
 function repay(){const p=cur(),n=Math.min(getAmt('repAmt'),p.debt,Math.max(p.cash,0));if(n<=0)return;p.cash-=n;p.debt-=n;if(p.debt<1)p.debt=0;sfx.coin();toast('Remboursé : '+fmt(n));after()}
 function lawyer(){const p=cur(),c=lawyerCost(p);if(!canPay(p,c))return;p.cash-=c;p.heat=clamp(p.heat-30,0,100);G.lawyer=true;sfx.coin();toast('Ton dossier s’est « égaré ».');after()}
 /* ================= ASSETS ================= */
-function openAssets(pid){const id=pid!=null?pid:cur().id;openSheet('Patrimoine',assetsHTML(id),()=>setBody(assetsHTML(id)))}
+function openAssets(pid){const id=pid!=null?pid:cur().id;if(blind(G.players[id])){toast('Dernière manche à l’aveugle : sa fortune est cachée.',1);return}openSheet('Patrimoine',assetsHTML(id),()=>setBody(assetsHTML(id)))}
 function assetsHTML(id){const p=G.players[id],mine=G.screen==='turn'&&id===cur().id&&isMyTurn();
   const rows=[['Cash',p.cash],['Argent sale (compté 50 %)',(p.dirty||0)*DIRTY_VALUE,'dirty'],['Bourse et crypto',stockVal(p)],['Positions de trading',posTotal(p)],['Immobilier',propsVal(p)],['Entreprises',bizTotal(p)],['Startups et coups',dealsVal(p)],['Dettes',-p.debt]];
   return `<div class="row mb-3"><div class="av" style="--c:${p.color}">${p.avatar}</div><div><b>${esc(p.name)}</b><div class="gold num bold">${fmt(netWorth(p))} net</div></div></div>
   <div class="panel tight">${rows.map(([l,v,c])=>`<div class="kv"><span>${l}</span><b class="num ${c||''}">${fmt(v)}</b></div>`).join('')}</div>
   <div class="mt-3">${spark(p.hist.concat([netWorth(p)]),440,70,p.color).replace('class="spark ','class="spark wide ')}</div>
   ${Object.keys(p.stocks).length?`<h3 class="sec">Actions et crypto</h3><div class="list">${Object.keys(p.stocks).map(s=>{const d=adef(s),v=p.stocks[s]*asset(s).price,c=p.cost[s]||0;return `<${mine?'button':'div'} class="item" ${mine?`onclick="openMarket('${s}')"`:''}><span class="ic">${d.e}</span><span class="bd"><b>${d.name}</b></span><span class="rt"><b class="num">${fmt(v)}</b><div class="small num ${v-c>=0?'pos':'neg'}">${fmt(v-c,true)}</div></span></${mine?'button':'div'}>`}).join('')}</div>`:''}
-  ${myProps(p).length?`<h3 class="sec">Immobilier</h3><div class="list">${myProps(p).map(x=>`<div class="item"><span class="ic">${x.e}</span><span class="bd"><b>${x.n}</b><span class="small muted">${x.c} · <span class="num">${fmt(propRent(x))}</span> par tour</span>${mine?`<div class="btns">${B('Vendre',{v:'text',inline:1,on:`sellProp(${x.id})`})}</div>`:''}</span><span class="rt num">${fmt(propVal(x))}</span></div>`).join('')}</div>`:''}
+  ${myProps(p).length?`<h3 class="sec">Immobilier</h3><div class="list">${myProps(p).map(x=>reItem(x,mine)).join('')}</div>`:''}
   ${p.biz.length?`<h3 class="sec">Entreprises</h3><div class="list">${p.biz.map((b,i)=>`<div class="item"><span class="ic">${bizDef(b.k).e}</span><span class="bd"><b>${esc(b.name)}</b><span class="small muted">niveau <span class="num">${b.lvl}</span></span>${mine?`<div class="btns">${B('Revendre',{v:'text',inline:1,on:`sellBiz(${i})`})}</div>`:''}</span><span class="rt num">${fmt(bizVal(b))}</span></div>`).join('')}</div>`:''}
   ${(p.pos||[]).length?`<h3 class="sec">Positions de trading</h3><div class="list">${p.pos.map(o=>posHTML(o,mine)).join('')}</div>`:''}
   ${vcPortfolio(p,mine)}
@@ -1921,42 +2239,65 @@ function assetsHTML(id){const p=G.players[id],mine=G.screen==='turn'&&id===cur()
     ${p.shield>=G.round?`<div class="item"><span class="ic">🕶️</span><span class="bd"><b>Avocat à l’année</b><span class="small muted">Risque d’arrestation divisé par deux jusqu’au tour <span class="num">${p.shield}</span></span></span></div>`:''}</div>`:''}`}
 /* ================= RANKING / MENU ================= */
 function ranked(){return G.players.slice().sort((a,b)=>netWorth(b)-netWorth(a))}
-function openRanking(){openSheet('Classement',`<div class="list">${ranked().map((p,i)=>`<button class="item" onclick="openAssets(${p.id})"><span class="rank num">${i+1}</span><div class="av sm" style="--c:${p.color}">${p.avatar}</div>
-  <span class="bd"><b>${esc(p.name)}${p.jail?` <span class="tag r">En prison</span>`:''}</b><span class="small muted">cash <span class="num">${fmt(p.cash)}</span>${p.dirty>0?` · sale <span class="dirty num">${fmt(p.dirty)}</span>`:''} · police <span class="num">${Math.round(p.heat)}</span> · réputation <span class="num">${rep(p)}</span></span></span><span class="rt"><b class="num gold">${fmt(netWorth(p))}</b></span></button>`).join('')}</div><p class="small muted mt-3">Touche un joueur pour voir son patrimoine.</p>`)}
-function openMenu(){openSheet('Menu',`<div class="stack">
-  ${B(icon(SOUND?'sound':'mute')+(SOUND?'Couper le son':'Activer le son'),{v:'secondary',on:"SOUND=!SOUND;try{localStorage.setItem('rq_sound',SOUND?'1':'0')}catch(e){};openMenu()"})}
+/* Dernière manche à l'aveugle : pendant les tours de la dernière manche, on ne voit plus la fortune des autres. */
+function blindRound(){return !!G&&G.round>=G.maxRounds&&(G.screen==='turn'||G.screen==='pass')}
+function viewerP(){return ON?me():cur()}
+function blind(q){return blindRound()&&q!==viewerP()}
+function openRanking(){if(blindRound()){openSheet('Classement',`${note('<b>Dernière manche à l’aveugle.</b> Les fortunes sont cachées jusqu’au journal final : personne ne sait s’il est déjà battu. Tout peut encore basculer.')}<div class="list mt-3">${G.players.map(p=>`<div class="item"><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}</b><span class="small muted">${p===viewerP()?'toi · '+fmt(netWorth(p)):'fortune cachée'}${p.jail?' · en prison':''}</span></span></div>`).join('')}</div>`);return}
+  openSheet('Classement',`<div class="list">${ranked().map((p,i)=>`<button class="item" onclick="openAssets(${p.id})"><span class="rank num">${i+1}</span><div class="av sm" style="--c:${p.color}">${p.avatar}</div>
+  <span class="bd"><b>${esc(p.name)}${p.jail?` <span class="tag r">En prison</span>`:''}${isMark(p)?` <span class="tag y">Cible</span>`:''}</b><span class="small muted">cash <span class="num">${fmt(p.cash)}</span>${p.dirty>0?` · sale <span class="dirty num">${fmt(p.dirty)}</span>`:''} · police <span class="num">${Math.round(p.heat)}</span> · réputation <span class="num">${rep(p)}</span></span></span><span class="rt"><b class="num gold">${fmt(netWorth(p))}</b></span></button>`).join('')}</div><p class="small muted mt-3">Touche un joueur pour voir son patrimoine.</p>`)}
+/* Réglages partagés par l'accueil et le menu en partie. */
+function settingsHTML(){return `<div class="stack">
+  ${B(icon(SOUND?'sound':'mute')+(SOUND?'Couper le son':'Activer le son'),{v:'secondary',on:"toggleSet('sound')"})}
+  ${canHaptic?B(HAPTICS?'Couper les vibrations':'Activer les vibrations',{v:'secondary',on:"toggleSet('haptics')"}):''}
+  ${B(MOTION?'Couper les animations du décor':'Activer les animations du décor',{v:'secondary',on:"toggleSet('motion')"})}
+  ${RM.matches?note('Ton téléphone demande de réduire les animations : le décor reste immobile. Pour changer ça sur iPhone : Réglages › Accessibilité › Mouvement › Réduire les animations.'):''}
+  </div>`}
+function toggleSet(k){
+  if(k==='sound'){SOUND=!SOUND;try{localStorage.setItem('rq_sound',SOUND?'1':'0')}catch(e){}}
+  if(k==='haptics'){HAPTICS=!HAPTICS;try{localStorage.setItem('sf_haptics',HAPTICS?'1':'0')}catch(e){}haptic('confirm')}
+  if(k==='motion'){MOTION=!MOTION;try{localStorage.setItem('sf_motion',MOTION?'1':'0')}catch(e){}applyMotion()}
+  sfx.tick();refreshSheet()}
+function openSettings(){openSheet('Réglages',settingsHTML(),()=>{$('#shBody').innerHTML=settingsHTML()})}
+function menuHTML(){return `${settingsHTML()}<div class="stack mt-6">
   ${ON?B('Quitter la partie',{v:'secondary',on:'leaveOnline(false)'})+`<p class="small muted">Tu pourras revenir avec le code <span class="num">${ON.code}</span>.</p>`:`
   ${B('Quitter et sauvegarder',{v:'secondary',on:"forceClose();G.screen='pass';G.resumeTurn=true;save();G=null;APP.view='home';render()"})}
-  <button class="btn btn-danger" onclick="if(this.dataset.c){clearSave();G=null;forceClose();APP.view='home';render()}else{this.dataset.c=1;this.textContent='Touche encore pour abandonner'}">Abandonner la partie</button>`}</div>`)}
+  <button class="btn btn-danger" onclick="if(this.dataset.c){clearSave();G=null;forceClose();APP.view='home';render()}else{this.dataset.c=1;this.textContent='Touche encore pour abandonner'}">Abandonner la partie</button>`}</div>`}
+function openMenu(){openSheet('Menu',menuHTML(),()=>{$('#shBody').innerHTML=menuHTML()})}
 /* ================= END OF ROUND ================= */
 function liquidate(p,add){
   if(p.cash>=0)return;
   while(p.cash<0&&(p.pos||[]).length){const o=p.pos.pop(),v=posVal(o);p.cash+=v;p.stats.trading+=v-o.m0;add(p,'🔻 Position clôturée de force : '+adef(o.sym).name,v)}
   for(const s of Object.keys(p.stocks)){if(p.cash>=0)break;const v=p.stocks[s]*asset(s).price;p.cash+=v;delete p.stocks[s];delete p.cost[s];add(p,'🔻 Vente forcée '+ASSETS.find(x=>x.sym===s).name,v)}
-  for(const x of myProps(p).sort((a,b)=>a.p-b.p)){if(p.cash>=0)break;const v=propVal(x)*.85;p.cash+=v;x.owner=null;add(p,'🔻 Saisie : '+x.n,v)}
+  for(const x of myProps(p).slice().sort((a,b)=>rprice(a.c,a.t)-rprice(b.c,b.t))){if(p.cash>=0)break;const v=rprice(x.c,x.t)*.85;p.cash+=v;p.re=p.re.filter(y=>y!==x);add(p,'🔻 Saisie : '+rdef(x.t).n+' à '+cdef(x.c).n,v)}
   while(p.cash<0&&p.biz.length){const b=p.biz.pop(),v=bizVal(b)*.7;p.cash+=v;add(p,'🔻 Liquidation : '+b.name,v)}
 }
 function endRound(){
-  const ev=Math.random()<.8?pick(EVENTS):null;
+  const ev=G.nextEv==null?(Math.random()<.8?pick(EVENTS):null):G.nextEv>=0?EVENTS[G.nextEv]:null;
+  const rumorWas=G.rumor,rumorTrue=G.rumor!=null&&G.rumor===G.nextEv;
   const lines={};G.players.forEach(p=>lines[p.id]=[]);const add=(p,l,a,dv)=>lines[p.id].push({l,a,dv:dv||0});
-  const m={stock:{},all:0,crypto:0,re:0,restoOff:0,bizMult:1,rentMult:1};
+  const won=resolveAuction(add);grantAuction(won,add);
+  const m={stock:{},all:0,crypto:0,re:0,city:{},cityYld:{},restoOff:0,bizMult:1,rentMult:1};
   G.laundBoost=1;
   if(ev)ev.f(m,add);
   const bias=G.bias||{};G.bias={};
   const paths={};
   G.assets.forEach(a=>{const d=adef(a.sym),s=(d.crypto?m.crypto:m.all)+(m.stock[a.sym]||0)+(bias[a.sym]||0);paths[a.sym]=stepAsset(a,Math.log(Math.max(.15,1+s)))});
   setEarnings();
-  G.reIndex=Math.max(.3,G.reIndex*(1+.018+gauss()*.03+m.re));
+  G.cities.forEach(c=>{stepCity(c,Math.log(Math.max(.4,1+m.re+(m.city[c.k]||0))));if(m.cityYld[c.k])c.yld*=m.cityYld[c.k]});
+  G.reIndex=G.cities.reduce((s,c)=>s+c.idx/c.idx0,0)/G.cities.length;
+  const lead=leader();
   G.players.forEach(p=>{
-    const rent=myProps(p).reduce((s,x)=>s+propRent(x),0)*m.rentMult;if(rent>0){p.cash+=rent;p.stats.rent+=rent;add(p,'🏠 Loyers',rent)}
+    let rent=0,empty=0;myProps(p).forEach(x=>{if(Math.random()<VACANCY){empty++;return}rent+=rrent(x.c,x.t)});rent*=m.rentMult;
+    if(rent>0){p.cash+=rent;p.stats.rent+=rent;add(p,'🏠 Loyers',rent)}if(empty)add(p,`🏚️ ${empty} logement${empty>1?'s':''} vide${empty>1?'s':''} ce tour`,0)
     for(let i=p.biz.length-1;i>=0;i--){const b=p.biz[i],d=bizDef(b.k);
       if(Math.random()<d.fail){p.biz.splice(i,1);add(p,`💥 ${b.name} fait faillite`,0);continue}
-      if(d.acq&&Math.random()<d.acq){const v=bizVal(b)*6;p.cash+=v;p.biz.splice(i,1);p.stats.biz+=v;add(p,`🤑 ${b.name} rachetée par un géant !`,v);continue}
+      if(d.acq&&Math.random()<d.acq){const v=d.cost*3;p.cash+=v;p.biz.splice(i,1);p.stats.biz+=v;add(p,`🤑 ${b.name} rachetée par un géant !`,v);continue}
       let inc=R(d.min,d.max)*bizMult(b.lvl)*m.bizMult;if(d.resto&&m.restoOff)inc=-d.cost*.01;
       if(d.heat)p.heat=clamp(p.heat+d.heat,0,100);
       p.cash+=inc;p.stats.biz+=inc;add(p,`${d.e} ${b.name}`,inc)}
     if(p.net){const n=NET[p.net],inc=R(n.min,n.max);p.dirty=(p.dirty||0)+inc;p.stats.crime+=inc;p.heat=clamp(p.heat+n.heat,0,100);add(p,'💊 Trafic (argent sale)',0,inc)}
-    if(p.debt>0){const it=p.debt*.04;p.cash-=it;add(p,'💳 Intérêts',-it)}
+    if(p.debt>0){const it=p.debt*(chr(p)==='banker'?.02:chr(p)==='gambler'?.06:.04);p.cash-=it;add(p,'💳 Intérêts',-it)}
     tradeTick(p,paths,add);
     for(let i=p.deals.length-1;i>=0;i--){const d=p.deals[i];
       if(d.kind==='vc'){if(vcTick(p,d,add)!=='ok')p.deals.splice(i,1);continue}
@@ -1964,12 +2305,17 @@ function endRound(){
       if(d.out)p.stats.biz+=v-d.amt;else p.stats.vc+=v-d.amt;p.deals.splice(i,1);add(p,`${d.e} ${d.name} ${txt}`,v)}}
     const dh=dirtyHeat(p.dirty||0);if(dh){p.heat=clamp(p.heat+dh,0,100);add(p,`💵 Argent sale qui dort : 🚨 +${dh}`,0)}
     p.heat=clamp(p.heat-7,0,100);p.laund=0;
+    if(chr(p)==='godfather'){p.heat=clamp(p.heat+3,0,100);add(p,'🎩 Le Parrain est surveillé (+3)',0)}
+    if(p===lead){p.heat=clamp(p.heat+5,0,100);add(p,'👑 En tête du classement : la police s’intéresse à toi (+5)',0)}
+    if(p.shark&&G.round>=p.shark.due){const amt=p.shark.amt,got=takeLiquid(p,amt),rest=amt-got;p.shark=null;
+      add(p,'🦈 L’usurier se sert',-got);if(rest>0){p.debt+=rest*1.5;add(p,`🦈 Il manquait ${fmt(rest)} : +${fmt(rest*1.5)} de dette`,0)}}
     liquidate(p,add);
     p.hist.push(netWorth(p));
   });
   const movers=G.assets.map(a=>({d:ASSETS.find(x=>x.sym===a.sym),chg:a.chg})).sort((a,b)=>b.chg-a.chg);
-  G.recap={round:G.round,ev,lines,movers,re:G.reIndex,earn:G.assets.filter(a=>a.earn).map(a=>adef(a.sym).e+' '+adef(a.sym).name)};
-  G.offers=genOffers();
+  G.recap={round:G.round,ev,lines,movers,re:G.reIndex,cities:G.cities.map(c=>({e:cdef(c.k).e,n:cdef(c.k).n,chg:c.chg})).sort((a,b)=>b.chg-a.chg),earn:G.assets.filter(a=>a.earn).map(a=>adef(a.sym).e+' '+adef(a.sym).name)};
+  G.offers=genOffers();G.auction=genAuction();planEvent();
+  G.recap.rumor=rumorWas!=null&&EVENTS[rumorWas]?{t:EVENTS[rumorWas].t,ok:rumorTrue}:null;G.recap.nextRumor=G.rumor;
   G.sec=(G.sec||HEISTS.map(()=>0)).map(s=>Math.max(0,s-1));
   addFeed(`📰 Fin du tour ${G.round}${ev?' : '+ev.t.toLowerCase():''}`,null);
   G.screen='recap';
@@ -1983,17 +2329,25 @@ function renderRecap(){const rc=G.recap,last=G.round>=G.maxRounds;
   paint(`<div class="paper" data-z="paper">
     <div class="mast">${PAPERS[(rc.round-1)%PAPERS.length]}</div><div class="dateline"><span>Édition du tour <span class="num">${rc.round}</span></span><span>Prix : 2 €</span></div>
     ${rc.ev?`<div class="ev-e" aria-hidden="true">${rc.ev.e}</div><div class="headline">${rc.ev.t}</div><p>${rc.ev.d}</p>`:`<div class="headline">Calme plat sur les marchés</div><p>Rien à signaler. Les journalistes sont partis en RTT.</p>`}
+    ${rc.rumor?`<p><b>La rumeur disait :</b> ${rc.rumor.t.toLowerCase()}. ${rc.rumor.ok?'Elle disait vrai.':'Fausse piste.'}</p>`:''}
+    ${rc.nextRumor!=null&&EVENTS[rc.nextRumor]&&!last?`<p><b>On murmure déjà pour le prochain tour :</b> ${EVENTS[rc.nextRumor].t.toLowerCase()}.</p>`:''}
     ${rc.earn&&rc.earn.length?`<p><b>Résultats trimestriels attendus au prochain tour :</b> ${rc.earn.join(', ')}.</p>`:''}
-    <div class="movers">${rc.movers.map(x=>`<div><span>${x.d.e} ${x.d.name}</span><b class="num ${x.chg>=0?'pos':'neg'}">${pct(x.chg)}</b></div>`).join('')}<div><span>🏠 Immobilier</span><b class="num ${rc.re>=1?'pos':'neg'}">${pct(rc.re-1)}</b></div></div>
+    <div class="movers">${rc.movers.map(x=>`<div><span>${x.d.e} ${x.d.name}</span><b class="num ${x.chg>=0?'pos':'neg'}">${pct(x.chg)}</b></div>`).join('')}</div>
+    ${rc.cities?`<p class="mt-3"><b>Immobilier</b></p><div class="movers">${rc.cities.map(x=>`<div><span>${x.e} ${x.n}</span><b class="num ${x.chg>=0?'pos':'neg'}">${pct(x.chg)}</b></div>`).join('')}</div>`:''}
   </div>
   <div data-z="accounts">${label('Le compte de chacun')}
   ${ranked().map((p,i)=>{const ls=rc.lines[p.id]||[],tot=ls.reduce((s,x)=>s+x.a,0);return `<div class="pl"><div class="h"><div class="av sm" style="--c:${p.color}">${p.avatar}</div><b><span class="num">${i+1}.</span> ${esc(p.name)}</b><span class="gold num bold">${fmt(netWorth(p))}</span></div>
     ${ls.length?ls.map(ln).join('')+`<div class="tot"><span>Flux du tour</span><span class="num ${tot>=0?'pos':'neg'}">${fmt(tot,true)}</span></div>`:'<div class="ln"><span>Aucun revenu passif. Il serait temps d’investir.</span></div>'}</div>`}).join('')}</div>
   <div class="dock" data-z="dock">${canAdvance()?B(last?'Voir le classement final':'Passer au tour suivant',{v:'primary',on:'nextRound()'}):`<div class="center muted small" role="status">L’hôte lance la suite ${waitDots()}</div>`}</div>`,'recap'+G.round);
 }
+/* Objectifs secrets : révélés et payés à la fin (une seule fois). */
+function scoreObjectives(){if(G.objScored)return;G.objScored=true;G.players.forEach(p=>{const o=objDef(p);if(!o)return;p.objOk=!!o.ok(p);
+  if(p.objOk){const b=Math.max(0,netWorth(p))*OBJ_BONUS;p.cash+=b;p.objBonus=b;addFeed(`réussit son objectif secret (${fmt(b,true)})`,p)}})}
 function canAdvance(){return !ON||ON.host||!isOnline(ON.lobby&&ON.lobby.host)}
-function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){G.screen='end';save();render();setTimeout(()=>{sfx.big();confetti(200)},300);return}
-  G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';save();render();window.scrollTo(0,0)}
+function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){scoreObjectives();G.screen='end';save();render();haptic('jackpot');setTimeout(()=>sfx.big(),300);return}
+  haptic('round');
+  G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';
+  if(G.mode==='sim'){G.screen='free';G.opsSeen={};G.coupsQ=[]}save();render();window.scrollTo(0,0)}
 
 /* ================= END ================= */
 function renderEnd(){const rk=ranked(),top=[rk[1],rk[0],rk[2]];
@@ -2011,16 +2365,64 @@ function renderEnd(){const rk=ranked(),top=[rk[1],rk[0],rk[2]];
   A('⭐','Cerveau des braquages',p=>p.stats.heists||0,1,v=>v>0,v=>v+' coup'+(v>1?'s':'')+' réussi'+(v>1?'s':''));
   A('🧼','Roi de la lessive',p=>p.stats.laund||0,1,v=>v>0,v=>fmt(v)+' blanchis');
   paint(`<div data-z="title"><h1 class="endtitle">FIN DE PARTIE</h1>
-  <p class="center muted mt-2">${G.maxRounds} tours de néons, de fric et de quelques délits.</p></div>
+  <p class="center muted mt-2">${G.maxRounds} tours plus tard. The eyes, chico, they never lie.</p></div>
   <div class="podium" data-z="podium">${top.map((p,i)=>p?`<div class="pod"><div class="av" style="--c:${p.color}">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="v num">${fmt(netWorth(p))}</div><div class="blk" aria-label="${[2,1,3][i]}e place">${[2,1,3][i]}</div></div>`:'<div class="pod"></div>').join('')}</div>
   <h2 class="winner" data-z="winner">${esc(rk[0].name)} règne sur la ville</h2>
   <div class="panel" data-z="chart">${chartSVG()}</div>
   <div data-z="rest">${rk.length>3?`${label('Le reste du banc')}<div class="list">${rk.slice(3).map((p,i)=>`<div class="item"><span class="rank num">${i+4}</span><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}</b></span><span class="rt num">${fmt(netWorth(p))}</span></div>`).join('')}</div>`:''}</div>
+  <div data-z="objs">${label('Les objectifs secrets')}<div class="list">${G.players.map(p=>{const o=objDef(p),c=chrDef(p);return o?`<div class="item"><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}${c?' · '+c.n:''}</b><span class="small muted">${o.t} ${p.objOk?`<b class="pos">Réussi : ${fmt(p.objBonus||0,true)}</b>`:'<span class="neg">Raté</span>'}</span></span></div>`:''}).join('')}</div></div>
   <div data-z="awards">${aw.length?`${label('Les trophées')}<div class="list">${aw.map(a=>`<div class="item"><span class="ic">${a.e}</span><span class="bd"><b>${a.t}</b><span class="small muted">${a.p.avatar} ${esc(a.p.name)} · <span class="num">${a.v}</span></span></span></div>`).join('')}</div>`:''}</div>
-  <div class="dock" data-z="dock"><div class="row">${B('Détails',{v:'secondary',on:'openRanking()'})}${
-    !ON?B('Nouvelle partie',{v:'primary',on:"clearSave();G=null;APP.view='home';render()"}):
-    ON.host?B('Retour au salon',{v:'primary',on:'backToLobby()'}):B('Quitter',{v:'secondary',on:'leaveOnline(true)'})}</div></div>`,'end');
+  <div data-z="share" class="mt-4">${B(icon('share')+'Partager la carte de fin',{v:'secondary',on:'shareEndCard()'})}</div>
+  <div class="dock" data-z="dock"><div class="row">${
+    !ON?B('Revanche',{v:'primary',on:'rematch()'})+B('Accueil',{v:'secondary',on:"clearSave();G=null;APP.view='home';render()"}):
+    ON.host?B('Revanche',{v:'primary',on:'rematch()'})+B('Retour au salon',{v:'secondary',on:'backToLobby()'}):B('Quitter',{v:'secondary',on:'leaveOnline(true)'})}</div>${ON&&!ON.host?'<p class="center muted small mt-2">L’hôte peut lancer une revanche.</p>':''}</div>`,'end');
+  saveLeague();
   setTimeout(()=>{const c=$('#chart');if(c)spreadChartLabels(c)},0)}
+/* ================= REVANCHE ================= */
+/* Mêmes joueurs, mêmes réglages, nouvelle partie (personnages et objectifs retirés au sort). */
+function rematch(){if(!G)return;sfx.coin();
+  if(ON){if(!ON.host)return;ON.lobby.started=false;startOnline();return}
+  const list=G.players.map(q=>({name:q.name,av:q.avatar})),cash=G.players[0].hist[0],rounds=G.maxRounds;
+  setup.players=list;setup.cash=cash;setup.rounds=rounds;clearSave();newGame();window.scrollTo(0,0)}
+/* ================= LIGUE ENTRE POTES =================
+   Chaque partie terminée sur ce téléphone est notée : 3 points au premier, 2 au deuxième, 1 au troisième. */
+function getLeague(){try{return JSON.parse(localStorage.getItem('sf_league')||'[]')}catch(e){return []}}
+function saveLeague(){if(!G||!G.gameId)return;const L=getLeague();if(L.some(x=>x.id===G.gameId))return;
+  L.push({id:G.gameId,d:Date.now(),pl:ranked().map((q,i)=>({n:q.name,a:q.avatar,w:Math.round(netWorth(q)),r:i+1}))});
+  try{localStorage.setItem('sf_league',JSON.stringify(L.slice(-200)))}catch(e){}}
+function leagueTable(){const t={};getLeague().forEach(g=>{const n=g.pl.length;g.pl.forEach(q=>{const k=q.n.trim().toLowerCase();const e=t[k]=t[k]||{n:q.n,a:q.a,pts:0,g:0,w:0,last:0,best:0};
+  e.n=q.n;e.a=q.a;e.g++;e.pts+=Math.max(0,4-q.r);if(q.r===1)e.w++;if(q.r===n&&n>1)e.last++;e.best=Math.max(e.best,q.w)})});
+  return Object.values(t).sort((a,b)=>b.pts-a.pts||b.w-a.w)}
+function openLeague(){const T=leagueTable(),games=getLeague().length;
+  const parrain=T[0],pigeon=T.slice().sort((a,b)=>b.last-a.last)[0],flambeur=T.slice().sort((a,b)=>b.best-a.best)[0];
+  openSheet('Ligue entre potes',games?`${note(`<b class="num">${games}</b> partie${games>1?'s':''} jouée${games>1?'s':''} sur ce téléphone. 3 points au premier, 2 au deuxième, 1 au troisième.`)}
+  <div class="list mt-3">${[['👑','Parrain de la saison',parrain,parrain&&parrain.pts+' pts'],['🕊️','Pigeon du mois',pigeon&&pigeon.last?pigeon:null,pigeon&&pigeon.last+' fois dernier'],['💎','Plus grosse fortune',flambeur,flambeur&&fmt(flambeur.best)]].filter(x=>x[2]).map(([e,t,q,v])=>`<div class="item"><span class="ic">${e}</span><span class="bd"><b>${t}</b><span class="small muted">${q.a} ${esc(q.n)} · ${v}</span></span></div>`).join('')}</div>
+  <h3 class="sec">Classement</h3><div class="list">${T.map((q,i)=>`<div class="item"><span class="rank num">${i+1}</span><span class="ic">${q.a}</span><span class="bd"><b>${esc(q.n)}</b><span class="small muted"><span class="num">${q.g}</span> partie${q.g>1?'s':''} · <span class="num">${q.w}</span> victoire${q.w>1?'s':''}</span></span><span class="rt"><b class="num gold">${q.pts} pts</b></span></div>`).join('')}</div>
+  <div class="mt-4">${B('Remettre la ligue à zéro',{v:'text',on:"if(confirmReset())openLeague()"})}</div>`:note('Aucune partie terminée sur ce téléphone pour l’instant. Finis une partie pour ouvrir la ligue !'))}
+function confirmReset(){if(!window.__rz){window.__rz=1;toast('Touche encore une fois pour tout effacer.');setTimeout(()=>window.__rz=0,3000);return false}try{localStorage.removeItem('sf_league')}catch(e){}window.__rz=0;toast('Ligue remise à zéro.');return true}
+/* ================= CARTE DE FIN PARTAGEABLE =================
+   Une image (1080 × 1350) : podium, fortunes et trois moments forts, à envoyer dans le groupe. */
+function endCardCanvas(){const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const pink=cssVar('--neon-pink')||'#ff2a8a',cyan=cssVar('--neon-cyan')||'#19e6ff',gold=cssVar('--cash')||'#ffd23f';
+  const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1a0533');g.addColorStop(.55,'#3a0b4d');g.addColorStop(1,'#0b0618');x.fillStyle=g;x.fillRect(0,0,W,H);
+  x.strokeStyle='rgba(25,230,255,.18)';x.lineWidth=2;for(let i=0;i<14;i++){const y=H*.62+i*i*4.2;x.beginPath();x.moveTo(0,y);x.lineTo(W,y);x.stroke()}
+  x.textAlign='center';x.fillStyle=pink;x.shadowColor=pink;x.shadowBlur=30;x.font='bold 120px Audiowide, Impact, sans-serif';x.fillText('SCARFACE',W/2,170);x.shadowBlur=0;
+  x.fillStyle='#fff';x.font='40px Figtree, Arial, sans-serif';x.fillText(`${G.maxRounds} tours · ${new Date().toLocaleDateString('fr-FR')}`,W/2,235);
+  const rk=ranked(),pos=[[W/2,420,1],[W/2-310,500,2],[W/2+310,540,3]];
+  rk.slice(0,3).forEach((q,i)=>{const [px,py,rank]=pos[i];x.font='110px serif';x.fillText(q.avatar,px,py);x.fillStyle=rank===1?gold:'#fff';x.font=`bold ${rank===1?54:44}px Figtree, Arial, sans-serif`;
+    x.fillText(`${rank}. ${q.name}`,px,py+80);x.fillStyle=cyan;x.font=`bold ${rank===1?50:40}px Audiowide, Arial, sans-serif`;x.fillText(fmt(netWorth(q)),px,py+140);x.fillStyle='#fff'});
+  x.fillStyle=gold;x.font='bold 56px Figtree, Arial, sans-serif';x.fillText(`${rk[0].name} règne sur la ville`,W/2,800);
+  const hl=(G.highlights||[]).slice().sort((a,b)=>b.v-a.v).slice(0,3);
+  x.textAlign='left';x.font='bold 40px Figtree, Arial, sans-serif';x.fillStyle=pink;x.fillText('Les moments forts',90,900);
+  x.font='36px Figtree, Arial, sans-serif';x.fillStyle='#fff';
+  (hl.length?hl.map(h=>{const q=G.players[h.pid];return `${q?q.name:'?'} ${h.t} (${fmt(h.v,true)}) au tour ${h.r}`}):['Une partie sans coup d’éclat. La prochaine sera la bonne.']).forEach((t,i)=>{
+    const words=t.split(' ');let line='',y=965+i*120;for(const w of words){if(x.measureText(line+w).width>900){x.fillText(line,90,y);line='';y+=46}line+=w+' '}x.fillText('• '.length?line:line,90,y)});
+  x.textAlign='center';x.fillStyle='rgba(255,255,255,.7)';x.font='32px Figtree, Arial, sans-serif';x.fillText('The world is yours',W/2,H-60);
+  return c}
+async function shareEndCard(){try{const c=endCardCanvas(),blob=await new Promise(res=>c.toBlob(res,'image/png'));const file=new File([blob],'scarface-fin-de-partie.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Scarface',text:`${ranked()[0].name} règne sur la ville !`});return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Image enregistrée')}
+  catch(e){if(e&&e.name!=='AbortError')toast('Partage impossible sur cet appareil.',1)}}
 /* Courbe finale : couleurs des joueurs, axes discrets, étiquettes de fin de ligne qui ne se chevauchent pas. */
 function chartSVG(){const W=440,H=210,P=44,R0=36,n=Math.max(...G.players.map(p=>p.hist.length));const all=G.players.flatMap(p=>p.hist);const mx=Math.max(...all,1),mn=Math.min(0,...all);
   const X=i=>P+i/(n-1||1)*(W-P-R0),Y=v=>H-24-(v-mn)/(mx-mn||1)*(H-40);
@@ -2036,7 +2438,26 @@ function spreadChartLabels(){}
 (()=>{const r=new URLSearchParams(location.search).get('room');if(r){APP.joinCode=r.toUpperCase().slice(0,4);APP.view='join'}})();
 /* Le décor se met en pause quand l'onglet est caché. */
 document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('away',document.hidden);if(!document.hidden&&ON&&ON.client&&!ON.client.connected){try{ON.client.reconnect()}catch(e){}}});
+/* Réglage « Animations du décor » et préférence d'accessibilité du téléphone. */
+let MOTION=true;try{MOTION=localStorage.getItem('sf_motion')!=='0'}catch(e){}
+const RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
+function applyMotion(){document.body.classList.toggle('still',!MOTION||RM.matches)}
+applyMotion();try{RM.addEventListener('change',applyMotion)}catch(e){}
+/* Défilement de la grille, image par image : seule la transformation change, à vitesse constante. */
+(function gridLoop(){const g=document.querySelector('#bg .grid');if(!g)return;const cs=getComputedStyle(document.documentElement);
+  const cell=parseFloat(cs.getPropertyValue('--grid-cell'))||56,per=cs.getPropertyValue('--grid-persp').trim()||'260px',
+    tilt=cs.getPropertyValue('--grid-tilt').trim()||'72deg',period=(parseFloat(cs.getPropertyValue('--loop-grid'))||2.4)*1000;
+  let y=0,last=0;
+  const frame=t=>{requestAnimationFrame(frame);
+    const run=MOTION&&!RM.matches&&!document.hidden&&!document.body.classList.contains('paused');
+    if(run&&last){y=(y+Math.min(t-last,100)/period*cell)%cell;g.style.transform=`perspective(${per}) rotateX(${tilt}) translateY(${(y-cell).toFixed(2)}px)`}
+    last=t};
+  requestAnimationFrame(frame)})();
 render();
+/* Écran de démarrage : visible au moins 600 ms, retiré dès que les polices sont prêtes (2,5 s au plus). */
+(()=>{const s=document.getElementById('splash');if(!s)return;const t0=performance.now();let gone=false;
+  const hide=()=>{if(gone)return;gone=true;setTimeout(()=>{s.classList.add('gone');setTimeout(()=>s.remove(),450)},Math.max(0,600-(performance.now()-t0)))};
+  (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(hide,hide);setTimeout(hide,2500)})();
 </script>
 </body>
 </html>
