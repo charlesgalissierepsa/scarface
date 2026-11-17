@@ -2188,10 +2188,15 @@ function vcOutcome(h){const r=Math.random()-(h-3)*.02;
 
 /* ================= JOB ================= */
 function openJob(){if(!hasAP(1))return;
-  openSheet('Boulot honnête',`<p class="muted">De l’argent propre, sans risque. Et ça fait baisser ta jauge de police de 12 : la police aime les gens qui travaillent.</p>
+  openSheet('Boulot honnête',`<p class="muted">De l’argent propre : 800 à 3 000 €. Ta jauge de police baisse de 4, la police aime les gens qui travaillent. Mais 1 fois sur 9, ton patron te payait au black : police +8.</p>
   <div class="sheet-foot">${B('Aller bosser',{v:'primary',on:'doJob()',cost:'1 PA'})}</div>`)}
-function doJob(){if(!useAP(1))return;const p=cur(),[e,t,d]=pick(JOBS),g=RI(8,30)*100;p.cash+=g;p.heat=clamp(p.heat-12,0,100);addFeed(`fait un petit boulot ${e} : ${t.toLowerCase()} (+${fmt(g)})`);forceClose();save();render();
-  showCards([{k:'Boulot honnête',e,t,d,fx:fmt(g,true)+' · police −12'}])}
+/* Petit boulot : police −4 ; 1 fois sur 9, payé au black : police +8 (le salaire reste acquis). */
+const JOB_HEAT=4,BLACK_HEAT=8,BLACK_P=1/9;
+function doJob(){if(!useAP(1))return;const p=cur(),[e,t,d]=pick(JOBS),g=RI(8,30)*100,black=Math.random()<BLACK_P;p.cash+=g;
+  p.heat=clamp(p.heat+(black?BLACK_HEAT:-JOB_HEAT),0,100);
+  addFeed(black?`fait un petit boulot ${e} : ${t.toLowerCase()} (+${fmt(g)}), mais payé au black`:`fait un petit boulot ${e} : ${t.toLowerCase()} (+${fmt(g)})`);forceClose();save();render();
+  showCards([black?{k:'Boulot au black',e:'🕵️',bad:1,t:'Tu étais payé au black',d:`${t} : pas de fiche de paie, pas de déclaration. Un voisin t’a dénoncé.`,fx:fmt(g,true)+' · police +'+BLACK_HEAT}
+    :{k:'Boulot honnête',e,t,d,fx:fmt(g,true)+' · police −'+JOB_HEAT}]);if(black)haptic('error')}
 /* ================= HEIST ================= */
 let hs={t:0,team:0,app:1};
 /* [nom, bonus de réussite, part du butin, honoraires payés d'avance (fraction du butin mini)] */
