@@ -895,7 +895,7 @@ const LEGENDS=[
  ['Les plans d’un trésor de pirate, authentifiés par un expert.','met la main sur un trésor de pirate']];
 /* Associés du tour : un talent et un défaut. Chaque joueur en reçoit un nouveau à chaque tour (tous différents, jamais le même deux tours de suite si possible). */
 const CHARS=[
- {k:'banker',e:'🏦',n:'Le Banquier',t:'Intérêts de tes emprunts : 2 % par tour au lieu de 4 %.',f:'Braquages interdits ce tour.'},
+ {k:'banker',e:'🏦',n:'Le Banquier',t:'Intérêts de tes emprunts : 1 % par tour au lieu de 4 %.',f:'Braquages interdits ce tour.'},
  {k:'godfather',e:'👑',n:'Le Parrain',t:'Réseau de trafic offert si tu n’en as pas (1 000 à 3 000 € d’argent sale par tour).',f:'+3 de police en fin de tour.'},
  {k:'crook',e:'🃏',n:'L’Escroc',t:'Arnaques réussies à 70 % au lieu de 50 % (85 % contre la cible du moment).',f:'Arnaque ratée : +20 de police au lieu de +10.'},
  {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Intérêts de tes emprunts : 6 % par tour au lieu de 4 %.'},
@@ -903,6 +903,8 @@ const CHARS=[
  {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier : 2 % au lieu de 7 %.',f:'Créer ou développer une entreprise coûte 20 % plus cher.'},
 ];
 const chr=p=>p&&p.chr||'';
+/* Taux d'intérêt des emprunts par tour, selon l'associé du tour. */
+const debtRate=p=>chr(p)==='banker'?.01:chr(p)==='gambler'?.06:.04;
 function dealPartners(ps){let cs;for(let k=0;k<12;k++){cs=CHARS.slice().sort(()=>Math.random()-.5);if(ps.every((p,i)=>p.chr!==cs[i%cs.length].k))break}
   ps.forEach((p,i)=>{p.chr=cs[i%cs.length].k;if(p.chr==='godfather'&&!(p.net>0))p.net=1})}
 const chrDef=p=>CHARS.find(c=>c.k===chr(p));
@@ -1000,9 +1002,7 @@ function grantAuction(r,add){if(!r)return;const {w,a}=r;
 /* L'événement de la prochaine fin de manche est tiré à l'avance. Une rumeur l'annonce, mais elle peut se tromper. */
 function planEvent(){G.nextEv=Math.random()<.8?RI(0,EVENTS.length-1):-1;
   G.rumor=G.nextEv>=0&&Math.random()<.7?G.nextEv:RI(0,EVENTS.length-1)}
-/* Fiabilité réelle d'une rumeur : un événement 8 manches sur 10, annoncé juste 7 fois sur 10 (sinon une rumeur au hasard). */
-const RUMOR_OK=Math.round(80*(.7+.3/EVENTS.length));
-function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span class="ic">${e.e}</span><span class="bd"><b>Rumeur : ${e.t.toLowerCase()}</b><span class="small pro"><span>Si elle dit vrai : ${e.x}, en fin de manche.</span><span class="muted">Fiabilité : <b class="num">${RUMOR_OK} %</b> de chances que ça arrive.</span></span></span></div>`:''}
+function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span class="ic">${e.e}</span><span class="bd"><b>Rumeur : ${e.t.toLowerCase()}</b><span class="small pro"><span>Si elle dit vrai : ${e.x}, en fin de manche.</span><span class="muted">Une rumeur peut être fausse.</span></span></span></div>`:''}
 /* Bloc « cette manche » de l'écran de tour : rumeur, enchère, associé du tour et objectif secret. */
 function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
   return `${label('Infos du tour')}<div class="list">${rumorHTML()}
@@ -1210,7 +1210,7 @@ function renderSetup(){
 }
 const RULES_BODY=`    <p><b>Le but</b> : finir avec le plus gros <b>patrimoine net</b>. Tout le monde part avec la même somme.</p>
     <p><b>Ton tour</b> : <b>3 points d’action (PA)</b>. Casino, trading, immobilier, startup, boulot, coup bas : 1 PA. Entreprise, trafic, braquage : 2 PA. Bourse, banque, blanchiment et ventes sont gratuits. L’interrupteur en bas à gauche passe de l’écran <b>Manche</b> à l’écran <b>Actions</b>.</p>
-    <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (fiable à environ 57 %), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un nouvel <b>associé</b> te donne un talent (en vert) et un défaut (en rouge) pour ce tour, et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
+    <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un nouvel <b>associé</b> te donne un talent (en vert) et un défaut (en rouge) pour ce tour, et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
     <p><b>En ligne</b>, tout le monde joue son tour en même temps. Touche « Finir mon tour » quand tu as fini : la manche se ferme quand tout le monde a fini. Une partie publique apparaît dans « Rejoindre une partie », une privée se rejoint avec le code. Sur un seul téléphone, chacun son tour.</p>
     <p><b>Placements</b> : en <b>trading</b>, tes positions (hausse ou baisse, levier, stop-loss) restent ouvertes d’un tour à l’autre. En <b>immobilier</b>, 7 villes sur la carte, chacune avec ses prix, ses loyers et sa tendance : Detroit est bon marché et rentable, New York cher et solide. Les <b>startups</b> lèvent des fonds ou meurent ; un audit révèle leur vraie qualité. Au <b>casino</b>, on débloque le suivant en cumulant des gains égaux à sa mise max.</p>
     <p><b>Coups bas</b> : duel au <b>poker</b> (Texas Hold’em à mise égale, en direct sur les deux écrans), arnaque, ou balancer quelqu’un à la police. En ligne, la victime le voit tout de suite.</p>
@@ -2388,7 +2388,7 @@ function maxBorrow(p){return Math.max(0,Math.floor(grossAssets(p)*.6+5000-p.debt
 function lawyerCost(p){return Math.round(Math.max(2000,netWorth(p)*.04))}
 function openBank(){openSheet('Banque',bankHTML(),()=>setBody(bankHTML()))}
 function bankHTML(){const p=cur(),mb=maxBorrow(p),lc=lawyerCost(p),rp=Math.min(Math.max(p.cash,0),p.debt);
-  return `<div class="panel tight"><div class="kv"><span>Dette actuelle</span><b class="num">${fmt(p.debt)}</b></div><div class="kv"><span>Intérêts</span><span class="num">4 % par tour</span></div><div class="kv"><span>Capacité d’emprunt</span><b class="num">${fmt(mb)}</b></div></div>
+  return `<div class="panel tight"><div class="kv"><span>Dette actuelle</span><b class="num">${fmt(p.debt)}</b></div><div class="kv"><span>Intérêts</span><span class="num">${Math.round(debtRate(p)*100)} % par tour</span></div><div class="kv"><span>Capacité d’emprunt</span><b class="num">${fmt(mb)}</b></div></div>
   <h3 class="sec">Emprunter</h3>${amt('borAmt',mb,Math.min(10000,mb))}<div class="mt-3">${B('Emprunter',{v:'secondary',on:'borrow()',why:mb<=0?'Plus de capacité d’emprunt':''})}</div>
   ${p.debt>0?`<h3 class="sec">Rembourser</h3>${amt('repAmt',rp,rp)}<div class="mt-3">${B('Rembourser',{v:'secondary',on:'repay()',why:rp<=0?'Plus de cash':''})}</div>`:''}
   <h3 class="sec">Services spéciaux</h3>
@@ -2475,7 +2475,7 @@ function endRound(){
       if(d.heat)p.heat=clamp(p.heat+d.heat,0,100);
       p.cash+=inc;p.stats.biz+=inc;add(p,`${d.e} ${b.name}`,inc)}
     if(p.net){const n=NET[p.net],inc=R(n.min,n.max);p.dirty=(p.dirty||0)+inc;p.stats.crime+=inc;p.heat=clamp(p.heat+n.heat,0,100);add(p,'💊 Trafic (argent sale)',0,inc)}
-    if(p.debt>0){const it=p.debt*(chr(p)==='banker'?.02:chr(p)==='gambler'?.06:.04);p.cash-=it;add(p,'💳 Intérêts',-it)}
+    if(p.debt>0){const it=p.debt*debtRate(p);p.cash-=it;add(p,'💳 Intérêts',-it)}
     tradeTick(p,paths,add);
     for(let i=p.deals.length-1;i>=0;i--){const d=p.deals[i];
       if(d.kind==='vc'){if(vcTick(p,d,add)!=='ok')p.deals.splice(i,1);continue}
