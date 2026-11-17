@@ -1002,7 +1002,7 @@ function grantAuction(r,add){if(!r)return;const {w,a}=r;
 /* L'événement de la prochaine fin de manche est tiré à l'avance. Une rumeur l'annonce, mais elle peut se tromper. */
 function planEvent(){G.nextEv=Math.random()<.8?RI(0,EVENTS.length-1):-1;
   G.rumor=G.nextEv>=0&&Math.random()<.7?G.nextEv:RI(0,EVENTS.length-1)}
-function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span class="ic">${e.e}</span><span class="bd"><b>Rumeur : ${e.t.toLowerCase()}</b><span class="small pro"><span>Si elle dit vrai : ${e.x}, en fin de manche.</span><span class="muted">Une rumeur peut être fausse.</span></span></span></div>`:''}
+function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span class="ic">${e.e}</span><span class="bd"><b>Rumeur : ${e.t.toLowerCase()}</b><span class="small pro"><span>Si elle dit vrai : ${e.x}, en fin de manche.</span></span></span></div>`:''}
 /* Bloc « cette manche » de l'écran de tour : rumeur, enchère, associé du tour et objectif secret. */
 function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
   return `${label('Infos du tour')}<div class="list">${rumorHTML()}
@@ -1643,7 +1643,7 @@ function takeOpp(id){if(busy)return;const p=cur(),o=(G.opps||[]).find(x=>x.id===
 function renderTurn(){
   const p=cur(),nw=netWorth(p),opps=G.opps||[];
   const apMsg=G.inCasino&&G.casinoLeft>0?`Au casino : encore ${G.casinoLeft} partie${G.casinoLeft>1?'s':''}`:G.ap>0?`${G.ap} point${G.ap>1?'s':''} d’action restant${G.ap>1?'s':''}`:'Plus de PA : gère tes finances ou termine';
-  const meta=[p.net?NET[p.net].n:'Citoyen modèle','Réputation '+rep(p)];if(p.shield>=G.round)meta.push('avocat à l’année');
+  const meta=['Réputation '+rep(p)];if(p.shield>=G.round)meta.push('avocat à l’année');
   paint(`
   <div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds}</span>
     ${topActs(1)}</div>
