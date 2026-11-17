@@ -1220,11 +1220,11 @@ const RULES_BODY=`    <p><b>Le but</b> : finir avec le plus gros <b>patrimoine n
 const FOOT_BTNS=`<div class="foot-btns">${B('Règles',{v:'secondary',inline:1,on:'openRules()'})}${B('Ligue',{v:'secondary',inline:1,on:'openLeague()'})}${B('Réglages',{v:'secondary',inline:1,on:'openSettings()'})}</div>`;
 /* Règles : fenêtre au centre de l'écran (pas une feuille qui monte, pas un bloc qui se déplie). */
 /* Fenêtre au centre de l'écran : le modèle unique des règles, des réglages et de « Quitter ». */
-function openModal(id,title,body){ovOpener=document.activeElement;ovQueue=[];
+function openModal(id,title,body,noFoot){ovOpener=document.activeElement;ovQueue=[];
   $('#ovWrap').innerHTML=`<div class="ov" onclick="if(event.target===this)closeOv()"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mT">
     <div class="modal-head"><h2 id="mT">${title}</h2>${iconBtn('close','Fermer','closeOv()')}</div>
     <div class="modal-body" id="mBody" data-m="${id}">${body}</div>
-    <div class="modal-foot">${B('Fermer',{v:'primary',on:'closeOv()'})}</div></div></div>`;
+    ${noFoot?'':`<div class="modal-foot">${B('Fermer',{v:'primary',on:'closeOv()'})}</div>`}</div></div>`;
   document.body.classList.add('paused');setTimeout(()=>{const b=$('#ovWrap .modal .iconbtn');b&&b.focus({preventScroll:true})},60)}
 function openRules(){openModal('rules','Les règles',RULES_BODY)}
 function cycleAv(i){const used=setup.players.map(p=>p.av);let k=AVATARS.indexOf(setup.players[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));setup.players[i].av=AVATARS[k];sfx.tick();renderSetup()}
@@ -2446,7 +2446,7 @@ function quitHTML(){return `<div class="stack">
   ${ON?B('Quitter la partie',{v:'secondary',on:'closeOv();leaveOnline(false)'})+`<p class="small muted">Tu pourras revenir avec le code <span class="num">${ON.code}</span>.</p>`:`
   ${B('Quitter et sauvegarder',{v:'secondary',on:"closeOv();forceClose();G.screen='pass';G.resumeTurn=true;save();G=null;APP.view='home';render()"})}
   <button class="btn btn-danger" onclick="if(this.dataset.c){closeOv();clearSave();G=null;forceClose();APP.view='home';render()}else{this.dataset.c=1;this.textContent='Touche encore pour abandonner'}">Abandonner la partie</button>`}</div>`}
-function openQuit(){openModal('quit','Quitter la partie',quitHTML())}
+function openQuit(){openModal('quit','Quitter la partie',quitHTML(),1)}
 /* ================= END OF ROUND ================= */
 function liquidate(p,add){
   if(p.cash>=0)return;
