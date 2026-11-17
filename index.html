@@ -108,7 +108,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
 body{background:var(--bg-scene);color:var(--ink);font:var(--fw-regular) var(--fs-md)/var(--lh-base) var(--font-body);overflow-x:hidden}
-body.locked{overflow:hidden}
+body.locked{overflow:hidden;position:fixed;left:0;right:0;top:var(--lock-y,0)}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;border-radius:var(--radius)}
 input{font:inherit;color:inherit;border-radius:var(--radius)}
 :focus-visible{outline:2px solid var(--neon-cyan);outline-offset:2px}
@@ -302,7 +302,7 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 /* ===== Feuilles ===== */
 .sheet{position:fixed;inset:0;z-index:50;pointer-events:none;visibility:hidden;transition:visibility 0s linear var(--dur-base)}
 .sheet .bg{position:absolute;inset:0;background:var(--bg-scrim);opacity:0;transition:opacity var(--dur-base) var(--ease-out)}
-.sheet .panel2{position:absolute;left:0;right:0;bottom:0;max-width:var(--sheet-w);margin:0 auto;max-height:var(--sheet-max);display:flex;flex-direction:column;
+.sheet .panel2{position:absolute;left:0;right:0;bottom:var(--kb,0px);max-width:var(--sheet-w);margin:0 auto;max-height:min(var(--sheet-max),calc(var(--vvh,100dvh) - var(--sp-4)));display:flex;flex-direction:column;
   background:var(--surface-2);border-top:1px solid var(--line);transform:translateY(105%);transition:transform var(--dur-base) var(--ease-out)}
 .sheet.open{pointer-events:auto;visibility:visible;transition:visibility 0s}
 .sheet.open .bg{opacity:1;transition:opacity var(--dur-slow) var(--ease-in)}
@@ -1162,7 +1162,6 @@ function applyState(m){
   /* La feuille de consultation ouverte pendant l'attente cachait le bouton « Jouer mon tour » et le journal du tour. */
   if((mineNow&&!wasMine)||(same&&prevScreen!==G.screen+G.round&&(G.screen==='recap'||G.screen==='end')))forceClose();
   if(mineNow&&!wasMine&&G.screen==='pass'){sfx.big();haptic('turn');document.title='À toi de jouer ! · Scarface'}
-  if(G.screen==='end'&&(!same||m.G.screen!=='end'))setTimeout(()=>confetti(160),300);
   scheduleRender();
 }
 function onJoin(m){
@@ -1377,13 +1376,25 @@ function endTurn(force){
 }
 
 /* ================= SHEET ================= */
+/* iPhone : Safari ignore overflow:hidden sur le body. Quand le clavier s'ouvrait dans une feuille, il faisait défiler
+   la page derrière, et ce décalage restait après la fermeture du clavier : les boutons ne répondaient plus là où on
+   les voyait, et il fallait recharger. On fige donc la page pendant qu'une feuille est ouverte, on remonte la feuille
+   au-dessus du clavier, et on remet la page en place quand le clavier se ferme. */
+let lockY=0;
+function lockPage(){const b=document.body;if(b.classList.contains('locked'))return;lockY=window.scrollY||0;b.style.setProperty('--lock-y',(-lockY)+'px');b.classList.add('locked')}
+function unlockPage(){const b=document.body;if(!b.classList.contains('locked'))return;b.classList.remove('locked');b.style.removeProperty('--lock-y');window.scrollTo(0,lockY)}
+(()=>{const vv=window.visualViewport;if(!vv)return;const r=document.documentElement;
+  const upd=()=>{r.style.setProperty('--kb',Math.max(0,Math.round(window.innerHeight-vv.height-vv.offsetTop))+'px');r.style.setProperty('--vvh',Math.round(vv.height)+'px')};
+  vv.addEventListener('resize',upd);vv.addEventListener('scroll',upd);upd()})();
+document.addEventListener('focusout',e=>{if(!e.target||!e.target.matches||!e.target.matches('input'))return;
+  setTimeout(()=>{const a=document.activeElement;if(a&&a.matches&&a.matches('input'))return;if(document.body.classList.contains('locked'))window.scrollTo(0,0)},80)});
 /* Feuille : en-tête fixe, corps qui défile, pied fixe. Un élément .sheet-foot rendu dans le corps est déplacé dans le pied. */
 let sheetOpener=null;
 function moveFoot(){const f=$('#shFoot'),s=$('#shBody .sheet-foot');f.innerHTML='';if(s)f.appendChild(s)}
 function openSheet(title,html,fn){const sh=$('#sheet'),was=sh.classList.contains('open');
   $('#shTitle').textContent=noEmo(title);setBody(html);sheetFn=fn||null;
   if(!was){sheetOpener=document.activeElement;sh.classList.add('open');sh.setAttribute('aria-hidden','false');$('#shBody').scrollTop=0;
-    document.body.classList.add('locked','paused');setTimeout(()=>{try{$('#shClose').focus({preventScroll:true})}catch(e){}},60)}
+    lockPage();document.body.classList.add('paused');setTimeout(()=>{try{$('#shClose').focus({preventScroll:true})}catch(e){}},60)}
   showActiveTabs()}
 /* Garde la position des listes horizontales quand la feuille se redessine ; à l'ouverture, montre l'onglet actif. */
 function showActiveTabs(){document.querySelectorAll('#shBody .tabs').forEach(t=>{const on=t.querySelector('.on');if(on&&(on.offsetLeft<t.scrollLeft||on.offsetLeft+on.offsetWidth>t.scrollLeft+t.clientWidth))t.scrollLeft=on.offsetLeft-12})}
@@ -1400,7 +1411,7 @@ function refreshSheet(){if(sheetFn&&$('#sheet').classList.contains('open')){cons
 function closeSheet(){if(busy)return;forceClose()}
 function forceClose(){const sh=$('#sheet');sheetFn=null;if(!sh.classList.contains('open'))return;
   sh.classList.remove('open','dragging');sh.setAttribute('aria-hidden','true');sh.style.removeProperty('--drag');
-  document.body.classList.remove('locked');if(!$('#ovWrap').children.length)document.body.classList.remove('paused');
+  unlockPage();if(!$('#ovWrap').children.length)document.body.classList.remove('paused');
   if(sheetOpener&&document.contains(sheetOpener)){try{sheetOpener.focus({preventScroll:true})}catch(e){}}sheetOpener=null}
 function after(){document.querySelectorAll('#sheet input[data-u]').forEach(e=>delete e.dataset.u);save();render();refreshSheet()}
 document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('#sheet input'))e.target.dataset.u='1'});
@@ -2058,7 +2069,7 @@ function renderRecap(){const rc=G.recap,last=G.round>=G.maxRounds;
   <div class="dock" data-z="dock">${canAdvance()?B(last?'Voir le classement final':'Passer au tour suivant',{v:'primary',on:'nextRound()'}):`<div class="center muted small" role="status">L’hôte lance la suite ${waitDots()}</div>`}</div>`,'recap'+G.round);
 }
 function canAdvance(){return !ON||ON.host||!isOnline(ON.lobby&&ON.lobby.host)}
-function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){G.screen='end';save();render();haptic('jackpot');setTimeout(()=>{sfx.big();confetti(200)},300);return}
+function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){G.screen='end';save();render();haptic('jackpot');setTimeout(()=>sfx.big(),300);return}
   haptic('round');
   G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';save();render();window.scrollTo(0,0)}
 
