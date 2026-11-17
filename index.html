@@ -778,11 +778,11 @@ const EVENTS=[
  {e:'🏖️',t:'ÉTÉ CANICULAIRE',d:'Les touristes se ruent sur les locations : loyers x2 ce tour-ci.',f:m=>{m.rentMult=2}},
  {e:'🚁',t:'DESCENTE DES STUPS',d:'Hélicos, chiens renifleurs, vedettes rapides : 25 % de l’argent sale de chacun est saisi.',f:(m,add)=>G.players.forEach(p=>{if(p.dirty>0){const x=p.dirty*.25;p.dirty-=x;add(p,'🚁 Saisie des stups (argent sale)',0,-x)}})},
  {e:'🏝️',t:'PARADIS FISCAL À LA MODE',d:'Les banques offshore ouvrent grand leurs portes : la capacité de blanchiment de tes commerces double ce tour-ci.',f:()=>{G.laundBoost=2}},
- {e:'🏝️',t:'LA CÔTE D’AZUR S’ARRACHE',d:'Les célébrités achètent tout ce qui a vue sur mer : les prix bondissent.',f:m=>{m.city.cote=.15}},
- {e:'🏠',t:'LILLE, CAPITALE ÉTUDIANTE',d:'Afflux d’étudiants : les loyers grimpent à Lille.',f:m=>{m.cityYld.lille=1.25}},
- {e:'🏔️',t:'NEIGE RECORD À CHAMONIX',d:'Les stations affichent complet : prix et loyers en hausse.',f:m=>{m.city.chamonix=.1;m.cityYld.chamonix=1.15}},
- {e:'🏬',t:'MARSEILLE SE TRANSFORME',d:'Grands travaux sur le port : les investisseurs reviennent.',f:m=>{m.city.marseille=.12}},
- {e:'🗼',t:'PARIS : LOYERS ENCADRÉS',d:'La mairie plafonne les loyers parisiens.',f:m=>{m.cityYld.paris=.8}},
+ {e:'🌴',t:'MIAMI S’ARRACHE',d:'Les célébrités achètent tout ce qui a vue sur l’océan : les prix bondissent.',f:m=>{m.city.miami=.15}},
+ {e:'🏬',t:'CHICAGO ACCUEILLE LES ÉTUDIANTS',d:'Les universités affichent complet : les loyers grimpent à Chicago.',f:m=>{m.cityYld.chicago=1.25}},
+ {e:'🎰',t:'UN CASINO GÉANT OUVRE À VEGAS',d:'Des milliers d’employés à loger : prix et loyers en hausse.',f:m=>{m.city.vegas=.1;m.cityYld.vegas=1.15}},
+ {e:'🎬',t:'HOLLYWOOD EN PLEIN BOOM',d:'Les studios tournent à plein régime : Los Angeles attire les investisseurs.',f:m=>{m.city.la=.12}},
+ {e:'🗼',t:'NEW YORK : LOYERS ENCADRÉS',d:'La ville plafonne les loyers à Manhattan.',f:m=>{m.cityYld.ny=.8}},
  {e:'🕵️',t:'NOUVEAU PROCUREUR INCORRUPTIBLE',d:'Il a juré de nettoyer la ville. Tout le monde prend +12 de recherche.',f:()=>G.players.forEach(p=>{p.heat=clamp(p.heat+12,0,100)})},
 ];
 const DESTIN=[
@@ -821,7 +821,7 @@ const OPPS=[
  {k:'truck',e:'📼',t:'Cargaison tombée du camion',d:'Des magnétoscopes « sans facture ». Tu paies en propre, tu revends en liquide sale (x1,5 à x2,4). 🚨 +10',c:u=>u*.8,
    go:(p,o)=>{const x=o.cost*R(1.5,2.4);p.dirty+=x;p.heat=clamp(p.heat+10,0,100);p.stats.crime+=x-o.cost;return fmt(x,true)+' d’argent sale'}},
  {k:'fore',e:'🏚️',t:'Saisie immobilière',roll:p=>{const tgt=Math.max(20000,netWorth(p)*.6),c=pick(CITIES).k;const t=RTYPES.slice().sort((a,b)=>Math.abs(Math.log(rprice(c,a.k)/tgt))-Math.abs(Math.log(rprice(c,b.k)/tgt)))[0].k;return {c,t}},
-   d:o=>`${rdef(o.t).n} à ${cdef(o.c).n} bradé à 65 % de sa valeur. Sans frais de notaire.`,c:(u,o)=>rprice(o.c,o.t)*.65,
+   d:o=>`${rdef(o.t).n} à ${cdef(o.c).n} bradé à 65 % de sa valeur. Sans frais d’acquisition.`,c:(u,o)=>rprice(o.c,o.t)*.65,
    go:(p,o)=>{p.re=p.re||[];p.re.push({id:rid(5),c:o.c,t:o.t,paid:rprice(o.c,o.t)});return '🔑 '+rdef(o.t).n+' à '+cdef(o.c).n+' est à toi'}},
  {k:'poker',e:'♠️',t:'Poker clandestin',d:'Une table enfumée dans l’arrière-salle d’un club. 45 % de chances de repartir avec x2,2… et la police passe parfois.',c:u=>u*.5,
    go:(p,o)=>{let s;if(Math.random()<.45){const w=o.cost*2.2;p.cash+=w;p.stats.casino+=w-o.cost;s=fmt(w-o.cost,true)}else{p.stats.casino-=o.cost;s='Tout perdu : '+fmt(-o.cost)}if(Math.random()<.12){p.heat=clamp(p.heat+15,0,100);s+=' · 🚨 descente de police +15'}return s}},
@@ -936,7 +936,7 @@ const RULES_BODY=`    <p>Chacun part avec la même somme. À ton tour, tu as <b>
     <p>À chaque tour, <b>3 opportunités</b> tombent : yacht saisi, tuyau d’initié, commissaire corrompu. À toi de choisir ce qui vaut tes PA.</p>
     <p>La Bourse, la banque, le blanchiment et la vente de tes biens sont <b>gratuits</b>.</p>
     <p><b>Trading</b> : tes positions (hausse ou baisse, levier jusqu’à x10, stop-loss, objectif) restent ouvertes d’un tour à l’autre. Lis les signaux (tendance, valorisation, analystes, résultats trimestriels) : ils donnent un avantage, pas une certitude.</p>
-    <p><b>Immobilier</b> : 8 villes, chacune avec son niveau de prix, son rendement locatif et sa tendance, qui évoluent à chaque tour. Compare avant d’acheter : un studio à Lille rapporte beaucoup en loyers, une villa à Paris compte surtout sur la hausse des prix. Un logement peut rester vide un tour.</p>
+    <p><b>Immobilier</b> : 5 villes américaines, chacune avec son niveau de prix, son rendement locatif et sa tendance, qui évoluent à chaque tour. Compare avant d’acheter : un studio à Chicago rapporte beaucoup en loyers, une villa à New York compte surtout sur la hausse des prix. Un logement peut rester vide un tour.</p>
     <p><b>Casinos</b> : du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). Pour entrer dans le casino suivant, cumule dans le casino actuel des gains égaux à sa mise max. Les pertes ne comptent pas.</p>
     <p>Pendant le tour des autres, consulte la Bourse, tes positions, les startups et l’immobilier pour préparer ton coup.</p>
     <p><b>Startups</b> : équipe, traction et hype font le prix et les chances. Un audit révèle la vraie qualité. Suis les levées des bonnes, revends les autres.</p>
@@ -956,8 +956,8 @@ function openRules(){ovOpener=document.activeElement;ovQueue=[];
 function cycleAv(i){const used=setup.players.map(p=>p.av);let k=AVATARS.indexOf(setup.players[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));setup.players[i].av=AVATARS[k];sfx.tick();renderSetup()}
 function addPlayer(){const used=setup.players.map(p=>p.av);setup.players.push({name:'',av:AVATARS.find(a=>!used.includes(a))});renderSetup();setTimeout(()=>{const el=$('#pn'+(setup.players.length-1));el&&el.focus()},50)}
 function rmPlayer(i){setup.players.splice(i,1);renderSetup()}
-function migrate(g){if(!g)return g;if(!g.cities){g.cities=initCities();const CMAP={paris:'paris','saint-tropez':'cote','morbihan':'cote',chamonix:'chamonix',lyon:'lyon',bordeaux:'bordeaux','émilion':'bordeaux',montpellier:'montpellier',marseille:'marseille',lille:'lille'};
-  g.players.forEach(p=>{p.re=p.re||[]});(g.props||[]).forEach(x=>{if(x.owner==null||!g.players[x.owner])return;const lc=(x.c||'').toLowerCase(),key=Object.keys(CMAP).find(k=>lc.includes(k));const ck=key?CMAP[key]:'lyon';
+function migrate(g){if(!g)return g;if(!g.cities){g.cities=initCities();const CMAP={paris:'ny','saint-tropez':'miami','morbihan':'miami',chamonix:'la',lyon:'chicago',bordeaux:'la','émilion':'la',montpellier:'miami',marseille:'vegas',lille:'chicago'};
+  g.players.forEach(p=>{p.re=p.re||[]});(g.props||[]).forEach(x=>{if(x.owner==null||!g.players[x.owner])return;const lc=(x.c||'').toLowerCase(),key=Object.keys(CMAP).find(k=>lc.includes(k));const ck=key?CMAP[key]:'chicago';
     const t=RTYPES.slice().sort((a,b)=>Math.abs(Math.log(a.base*cdef(ck).lvl/x.p))-Math.abs(Math.log(b.base*cdef(ck).lvl/x.p)))[0].k;g.players[x.owner].re.push({id:Math.random().toString(36).slice(2,7),c:ck,t,paid:x.p})});delete g.props}
   g.players.forEach(p=>{p.re=p.re||[]});g.assets.forEach(a=>{if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;if(a.rating==null)a.rating=0});(g.offers||[]).forEach(o=>{if(!o.aud)o.aud=[];if(o.team==null){o.team=o.trac=o.tracVis=3;o.q=.5;o.sec=0}});g.players.forEach(p=>{p.pos=p.pos||[]});return g}
 function resume(){G=migrate(loadSave());if(!G)return;if(G.screen==='turn')G.screen='pass',G.resumeTurn=true;render()}
@@ -1309,7 +1309,7 @@ function closeOv(){$('#ovWrap').innerHTML='';ovQueue=[];if(!$('#sheet').classLis
 const MAIN=[
  {k:'casino',e:'🎰',n:'Casino',s:'3 parties',ap:1,fn:'openCasino()'},
  {k:'trade',e:'⚡',n:'Trading',s:'Long, short, levier',ap:1,fn:'openTrading()'},
- {k:'immo',e:'🌴',n:'Immobilier',s:'8 villes',ap:1,fn:'openImmo()'},
+ {k:'immo',e:'🌴',n:'Immobilier',s:'5 villes',ap:1,fn:'openImmo()'},
  {k:'biz',e:'🏢',n:'Entreprise',s:'Créer 2 · Dév. 1',ap:1,fn:'openBiz()'},
  {k:'vc',e:'🦄',n:'Startups',s:'Non cotées',ap:1,fn:'openVC()'},
  {k:'job',e:'🧑‍🍳',n:'Boulot',s:'Argent propre',ap:1,fn:'openJob()'},
@@ -1706,14 +1706,11 @@ function sellAsset(){const p=cur(),a=asset(mSel),q=p.stocks[mSel]||0,v=q*a.price
    chaque tour), une volatilité et une tendance cachée qui dure quelques tours. Les prix et les rendements évoluent à
    chaque fin de tour ; les agents immobiliers donnent un avis sur la demande, juste environ 2 fois sur 3. */
 const CITIES=[
- {k:'paris',n:'Paris',e:'🗼',lvl:1.8,yld:.03,vol:.035,drift:.02,d:'Prix élevés et solides, rendement faible.'},
- {k:'cote',n:'Côte d’Azur',e:'🏝️',lvl:1.6,yld:.034,vol:.06,drift:.018,d:'Très recherchée, mais sensible aux modes.'},
- {k:'chamonix',n:'Chamonix',e:'🏔️',lvl:1.3,yld:.05,vol:.07,drift:.012,d:'Location saisonnière : rentable mais irrégulière.'},
- {k:'lyon',n:'Lyon',e:'🏢',lvl:1.1,yld:.045,vol:.035,drift:.015,d:'Marché équilibré et stable.'},
- {k:'bordeaux',n:'Bordeaux',e:'🏰',lvl:1,yld:.042,vol:.045,drift:.016,d:'Ville en vogue, prix dynamiques.'},
- {k:'montpellier',n:'Montpellier',e:'🏊',lvl:.95,yld:.05,vol:.05,drift:.014,d:'Population en hausse, bon rendement.'},
- {k:'marseille',n:'Marseille',e:'🏬',lvl:.85,yld:.06,vol:.065,drift:.01,d:'Rendement élevé, prix imprévisibles.'},
- {k:'lille',n:'Lille',e:'🏠',lvl:.75,yld:.065,vol:.04,drift:.008,d:'Ville étudiante : loyers élevés, prix sages.'},
+ {k:'miami',n:'Miami',e:'🌴',lvl:1.3,yld:.045,vol:.06,drift:.018,d:'Soleil, yachts et argent facile : des prix nerveux.'},
+ {k:'ny',n:'New York',e:'🗼',lvl:1.9,yld:.03,vol:.035,drift:.02,d:'Prix très élevés et solides, rendement faible.'},
+ {k:'la',n:'Los Angeles',e:'🏊',lvl:1.6,yld:.035,vol:.05,drift:.018,d:'Villas avec piscine : la valeur grimpe, les loyers moins.'},
+ {k:'vegas',n:'Las Vegas',e:'🎰',lvl:.9,yld:.06,vol:.07,drift:.01,d:'Casinos et chantiers : rendement élevé, prix imprévisibles.'},
+ {k:'chicago',n:'Chicago',e:'🏬',lvl:.8,yld:.065,vol:.04,drift:.008,d:'Marché solide et populaire : bons loyers, prix sages.'},
 ];
 /* ym : multiplicateur de rendement (les petites surfaces rapportent proportionnellement plus). */
 const RTYPES=[
@@ -1737,13 +1734,13 @@ function stepCity(c,shock){const d=cdef(c.k);
 function initCities(){return CITIES.map(d=>{const c={k:d.k,idx:1,yld:d.yld,reg:pick([-1,0,1]),hist:[1],chg:0,rating:0};
   for(let i=0;i<4;i++)stepCity(c,0);c.idx0=c.idx;return c})}
 function trendCity(c){const h=c.hist,n=h.length;if(n<4)return 0;const ch=h[n-1]/h[n-4]-1,v=cdef(c.k).vol;return ch>v?1:ch<-v?-1:0}
-let imSel='lyon';
+let imSel='miami';
 function openImmo(){openSheet('Immobilier',immoHTML(),()=>setBody(immoHTML()))}
 function reItem(x,mine){const rt=rdef(x.t),cd=cdef(x.c),v=rprice(x.c,x.t),g=v-x.paid;
   return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n} · ${cd.n}</b><span class="small muted">Valeur <b class="num">${fmt(v)}</b> · <span class="num ${g>=0?'pos':'neg'}">${fmt(g,true)}</span> · loyer ≈ <span class="num">${fmt(rrent(x.c,x.t))}</span> par tour</span>
     ${mine?`<div class="btns">${B('Vendre',{v:'secondary',inline:1,on:`sellRE('${x.id}')`,cost:fmt(v*.95)})}</div>`:''}</span></div>`}
 function immoHTML(){const p=viewer(),RO=ro(),c=city(imSel),d=cdef(imSel),t=trendCity(c),mine=(p.re||[]);
-  return `${RO?RO_NOTE:''}${note('Choisis ta ville : chacune a son niveau de prix, son rendement locatif et sa tendance, qui changent à chaque tour. Le loyer tombe en fin de tour, mais un logement peut rester vide. Frais de notaire 7 %. À crédit, tu avances 25 % plus les frais et la banque prête le reste à 4 % par tour.')}
+  return `${RO?RO_NOTE:''}${note('Choisis ta ville : chacune a son niveau de prix, son rendement locatif et sa tendance, qui changent à chaque tour. Le loyer tombe en fin de tour, mais un logement peut rester vide. Frais d’acquisition 7 %. À crédit, tu avances 25 % plus les frais et la banque prête le reste à 4 % par tour.')}
   <h3 class="sec">Les villes</h3><div class="list">${G.cities.map(x=>{const dd=cdef(x.k);
     return `<button class="item pick ${x.k===imSel?'sel':''}" aria-pressed="${x.k===imSel}" onclick="imSel='${x.k}';refreshSheet()"><span class="ic">${dd.e}</span><span class="bd"><b>${dd.n}</b><span class="small muted">Rendement <b class="num">${pctY(x.yld)}</b> par tour · prix <span class="num ${x.chg>=0?'pos':'neg'}">${pct(x.chg)}</span></span></span>${spark(x.hist)}</button>`}).join('')}</div>
   <h3 class="sec">${d.n}</h3><div class="panel tight"><p class="small muted">${d.d}</p>
