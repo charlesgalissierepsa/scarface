@@ -345,6 +345,7 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .item .bd{flex:1;min-width:0}
 .item .bd>b{display:block;font-size:var(--fs-md);font-weight:var(--fw-semibold)}
 .item .bd>.small{display:block}
+.item .pro>span{display:block}.item .pro .pos{color:var(--gain)}.item .pro .neg{color:var(--loss)}
 .item .rt{flex:none;text-align:right}
 .item .rank{flex:none;width:var(--sp-6);font-weight:var(--fw-bold);color:var(--cash)}
 .item.lock{opacity:.5}
@@ -830,36 +831,36 @@ const PITCHES=[
 const SECT_E=[['💻','📡','⚙️'],['🧬','🔬','🏥'],['🛍️','🛥️','💼'],['💳','🪙','🔐'],['🔋','🚗','📦'],['☀️','⚡','🛰️']];
 
 const EVENTS=[
- {e:'📉',t:'KRACH BOURSIER',d:'Panique à la Bourse de Paris. Les traders pleurent dans leurs Patek.',f:m=>{m.all=-.25;m.crypto=-.3}},
- {e:'🚀',t:'EUPHORIE SUR LES MARCHÉS',d:'Un tweet présidentiel fait s’envoler toutes les valeurs.',f:m=>{m.all=.15}},
- {e:'🌕',t:'BULLE CRYPTO',d:'Ton oncle parle de Bitcoin au repas de famille. Mauvais signe… ou pas.',f:m=>{m.crypto=.7}},
- {e:'🥶',t:'HIVER CRYPTO',d:'Une plateforme d’échange s’effondre. Le fondateur est introuvable aux Bahamas.',f:m=>{m.crypto=-.55}},
- {e:'🏗️',t:'BOOM IMMOBILIER',d:'Les taux baissent, tout le monde veut acheter. Les prix flambent.',f:m=>{m.re=.15}},
- {e:'🏚️',t:'CRISE IMMOBILIÈRE',d:'Les banques ferment le robinet du crédit. Les prix plongent.',f:m=>{m.re=-.18}},
- {e:'🦠',t:'CONFINEMENT',d:'Bars, restos, salles de sport et boîtes de nuit fermés ce tour-ci.',f:m=>{m.restoOff=1}},
- {e:'🛢️',t:'LE PÉTROLE FLAMBE',d:'Tensions géopolitiques : Norvex Énergie s’envole.',f:m=>{m.stock.PDN=.35;m.stock.VLT=.12}},
- {e:'💻',t:'SCANDALE COMPTABLE CHEZ CELTIS',d:'Les auditeurs découvrent des revenus gonflés. Le titre décroche.',f:m=>{m.stock.NEO=-.4}},
- {e:'💉',t:'GENOVIA OBTIENT SON AUTORISATION',d:'Son traitement phare est approuvé par les autorités sanitaires.',f:m=>{m.stock.BIO=.85}},
- {e:'💠',t:'RUÉE SUR LE SOLARIS COIN',d:'Une grande plateforme le référence. Les petits porteurs se ruent dessus.',f:m=>{m.stock.MOON=2}},
- {e:'💸',t:'CONTRÔLE FISCAL GÉNÉRAL',d:'Bercy envoie ses meilleurs éléments. 8 % du cash et des actions de chacun sont prélevés.',f:(m,add)=>G.players.forEach(p=>{const x=takeLiquid(p,liquid(p)*.08);if(x>0)add(p,'🧾 Contrôle fiscal',-x)})},
- {e:'🚔',t:'OPÉRATION COUP DE POING',d:'La police renforce ses effectifs : tous les suspects sont davantage surveillés.',f:()=>G.players.forEach(p=>{if(p.heat>0)p.heat=clamp(p.heat+20,0,100)})},
- {e:'🎁',t:'PRIME DU GOUVERNEMENT',d:'Chèque exceptionnel de 2 000 € pour tout le monde.',f:(m,add)=>G.players.forEach(p=>{p.cash+=2000;add(p,'🎁 Prime gouvernementale',2000)})},
- {e:'📈',t:'CROISSANCE RECORD',d:'L’économie tourne à plein régime : revenus des entreprises x1,5.',f:m=>{m.bizMult=1.5;m.all=.05}},
- {e:'🌾',t:'FLAMBÉE DES MATIÈRES PREMIÈRES',d:'Vivral répercute la hausse sur ses prix, et ses marges grimpent.',f:m=>{m.stock.BAG=.25}},
- {e:'👜',t:'VENTES RECORD DANS LE LUXE',d:'Maison Valcourt annonce des carnets de commandes pleins.',f:m=>{m.stock.LUX=.3}},
- {e:'🌧️',t:'RÉCESSION',d:'La consommation s’effondre : revenus des entreprises divisés par 2.',f:m=>{m.bizMult=.5;m.all=-.08}},
- {e:'🚘',t:'ARVANE RAPPELLE 200 000 VÉHICULES',d:'Un défaut de batterie impose un rappel massif.',f:m=>{m.stock.VLT=-.35}},
- {e:'🏖️',t:'ÉTÉ CANICULAIRE',d:'Les touristes se ruent sur les locations : loyers x2 ce tour-ci.',f:m=>{m.rentMult=2}},
- {e:'🚁',t:'DESCENTE DES STUPS',d:'Hélicos, chiens renifleurs, vedettes rapides : 25 % de l’argent sale de chacun est saisi.',f:(m,add)=>G.players.forEach(p=>{if(p.dirty>0){const x=p.dirty*.25;p.dirty-=x;add(p,'🚁 Saisie des stups (argent sale)',0,-x)}})},
- {e:'🏝️',t:'PARADIS FISCAL À LA MODE',d:'Les banques offshore ouvrent grand leurs portes : la capacité de blanchiment de tes commerces double ce tour-ci.',f:()=>{G.laundBoost=2}},
- {e:'🏭',t:'DETROIT RELANCE SES USINES',d:'Un constructeur rouvre ses chaînes : les acheteurs reviennent à Detroit.',f:m=>{m.city.detroit=.15}},
- {e:'🎷',t:'MARDI GRAS À NEW ORLEANS',d:'La ville déborde de visiteurs : les loyers grimpent.',f:m=>{m.cityYld.nola=1.3}},
- {e:'🌴',t:'MIAMI S’ARRACHE',d:'Les célébrités achètent tout ce qui a vue sur l’océan : les prix bondissent.',f:m=>{m.city.miami=.15}},
- {e:'🏬',t:'CHICAGO ACCUEILLE LES ÉTUDIANTS',d:'Les universités affichent complet : les loyers grimpent à Chicago.',f:m=>{m.cityYld.chicago=1.25}},
- {e:'🎰',t:'UN CASINO GÉANT OUVRE À VEGAS',d:'Des milliers d’employés à loger : prix et loyers en hausse.',f:m=>{m.city.vegas=.1;m.cityYld.vegas=1.15}},
- {e:'🎬',t:'HOLLYWOOD EN PLEIN BOOM',d:'Les studios tournent à plein régime : Los Angeles attire les investisseurs.',f:m=>{m.city.la=.12}},
- {e:'🗼',t:'NEW YORK : LOYERS ENCADRÉS',d:'La ville plafonne les loyers à Manhattan.',f:m=>{m.cityYld.ny=.8}},
- {e:'🕵️',t:'NOUVEAU PROCUREUR INCORRUPTIBLE',d:'Il a juré de nettoyer la ville. Tout le monde prend +12 de recherche.',f:()=>G.players.forEach(p=>{p.heat=clamp(p.heat+12,0,100)})},
+ {e:'📉',t:'KRACH BOURSIER',x:'Actions ≈ −25 %, cryptos ≈ −30 %',d:'Panique à la Bourse de Paris. Les traders pleurent dans leurs Patek.',f:m=>{m.all=-.25;m.crypto=-.3}},
+ {e:'🚀',t:'EUPHORIE SUR LES MARCHÉS',x:'Toutes les actions ≈ +15 %',d:'Un tweet présidentiel fait s’envoler toutes les valeurs.',f:m=>{m.all=.15}},
+ {e:'🌕',t:'BULLE CRYPTO',x:'Cryptos ≈ +70 %',d:'Ton oncle parle de Bitcoin au repas de famille. Mauvais signe… ou pas.',f:m=>{m.crypto=.7}},
+ {e:'🥶',t:'HIVER CRYPTO',x:'Cryptos ≈ −55 %',d:'Une plateforme d’échange s’effondre. Le fondateur est introuvable aux Bahamas.',f:m=>{m.crypto=-.55}},
+ {e:'🏗️',t:'BOOM IMMOBILIER',x:'Prix de l’immobilier ≈ +15 % partout',d:'Les taux baissent, tout le monde veut acheter. Les prix flambent.',f:m=>{m.re=.15}},
+ {e:'🏚️',t:'CRISE IMMOBILIÈRE',x:'Prix de l’immobilier ≈ −18 % partout',d:'Les banques ferment le robinet du crédit. Les prix plongent.',f:m=>{m.re=-.18}},
+ {e:'🦠',t:'CONFINEMENT',x:'Bars, restos, salles de sport et boîtes ne rapportent rien (petite perte)',d:'Bars, restos, salles de sport et boîtes de nuit fermés ce tour-ci.',f:m=>{m.restoOff=1}},
+ {e:'🛢️',t:'LE PÉTROLE FLAMBE',x:'Norvex Énergie ≈ +35 %, Arvane Motors ≈ +12 %',d:'Tensions géopolitiques : Norvex Énergie s’envole.',f:m=>{m.stock.PDN=.35;m.stock.VLT=.12}},
+ {e:'💻',t:'SCANDALE COMPTABLE CHEZ CELTIS',x:'Celtis Technologies ≈ −40 %',d:'Les auditeurs découvrent des revenus gonflés. Le titre décroche.',f:m=>{m.stock.NEO=-.4}},
+ {e:'💉',t:'GENOVIA OBTIENT SON AUTORISATION',x:'Genovia Pharma ≈ +85 %',d:'Son traitement phare est approuvé par les autorités sanitaires.',f:m=>{m.stock.BIO=.85}},
+ {e:'💠',t:'RUÉE SUR LE SOLARIS COIN',x:'Solaris Coin ≈ ×3',d:'Une grande plateforme le référence. Les petits porteurs se ruent dessus.',f:m=>{m.stock.MOON=2}},
+ {e:'💸',t:'CONTRÔLE FISCAL GÉNÉRAL',x:'Chacun perd 8 % de son cash et de ses actions',d:'Bercy envoie ses meilleurs éléments. 8 % du cash et des actions de chacun sont prélevés.',f:(m,add)=>G.players.forEach(p=>{const x=takeLiquid(p,liquid(p)*.08);if(x>0)add(p,'🧾 Contrôle fiscal',-x)})},
+ {e:'🚔',t:'OPÉRATION COUP DE POING',x:'+20 de police pour chaque joueur déjà surveillé',d:'La police renforce ses effectifs : tous les suspects sont davantage surveillés.',f:()=>G.players.forEach(p=>{if(p.heat>0)p.heat=clamp(p.heat+20,0,100)})},
+ {e:'🎁',t:'PRIME DU GOUVERNEMENT',x:'+2 000 € pour chaque joueur',d:'Chèque exceptionnel de 2 000 € pour tout le monde.',f:(m,add)=>G.players.forEach(p=>{p.cash+=2000;add(p,'🎁 Prime gouvernementale',2000)})},
+ {e:'📈',t:'CROISSANCE RECORD',x:'Revenus des entreprises ×1,5, actions ≈ +5 %',d:'L’économie tourne à plein régime : revenus des entreprises x1,5.',f:m=>{m.bizMult=1.5;m.all=.05}},
+ {e:'🌾',t:'FLAMBÉE DES MATIÈRES PREMIÈRES',x:'Vivral Agroalimentaire ≈ +25 %',d:'Vivral répercute la hausse sur ses prix, et ses marges grimpent.',f:m=>{m.stock.BAG=.25}},
+ {e:'👜',t:'VENTES RECORD DANS LE LUXE',x:'Maison Valcourt ≈ +30 %',d:'Maison Valcourt annonce des carnets de commandes pleins.',f:m=>{m.stock.LUX=.3}},
+ {e:'🌧️',t:'RÉCESSION',x:'Revenus des entreprises ÷2, actions ≈ −8 %',d:'La consommation s’effondre : revenus des entreprises divisés par 2.',f:m=>{m.bizMult=.5;m.all=-.08}},
+ {e:'🚘',t:'ARVANE RAPPELLE 200 000 VÉHICULES',x:'Arvane Motors ≈ −35 %',d:'Un défaut de batterie impose un rappel massif.',f:m=>{m.stock.VLT=-.35}},
+ {e:'🏖️',t:'ÉTÉ CANICULAIRE',x:'Loyers ×2 ce tour-ci',d:'Les touristes se ruent sur les locations : loyers x2 ce tour-ci.',f:m=>{m.rentMult=2}},
+ {e:'🚁',t:'DESCENTE DES STUPS',x:'25 % de l’argent sale de chacun est saisi',d:'Hélicos, chiens renifleurs, vedettes rapides : 25 % de l’argent sale de chacun est saisi.',f:(m,add)=>G.players.forEach(p=>{if(p.dirty>0){const x=p.dirty*.25;p.dirty-=x;add(p,'🚁 Saisie des stups (argent sale)',0,-x)}})},
+ {e:'🏝️',t:'PARADIS FISCAL À LA MODE',x:'Capacité de blanchiment des commerces ×2',d:'Les banques offshore ouvrent grand leurs portes : la capacité de blanchiment de tes commerces double ce tour-ci.',f:()=>{G.laundBoost=2}},
+ {e:'🏭',t:'DETROIT RELANCE SES USINES',x:'Prix à Detroit ≈ +15 %',d:'Un constructeur rouvre ses chaînes : les acheteurs reviennent à Detroit.',f:m=>{m.city.detroit=.15}},
+ {e:'🎷',t:'MARDI GRAS À NEW ORLEANS',x:'Rendement locatif à New Orleans +30 %',d:'La ville déborde de visiteurs : les loyers grimpent.',f:m=>{m.cityYld.nola=1.3}},
+ {e:'🌴',t:'MIAMI S’ARRACHE',x:'Prix à Miami ≈ +15 %',d:'Les célébrités achètent tout ce qui a vue sur l’océan : les prix bondissent.',f:m=>{m.city.miami=.15}},
+ {e:'🏬',t:'CHICAGO ACCUEILLE LES ÉTUDIANTS',x:'Rendement locatif à Chicago +25 %',d:'Les universités affichent complet : les loyers grimpent à Chicago.',f:m=>{m.cityYld.chicago=1.25}},
+ {e:'🎰',t:'UN CASINO GÉANT OUVRE À VEGAS',x:'Prix à Las Vegas ≈ +10 %, rendement locatif +15 %',d:'Des milliers d’employés à loger : prix et loyers en hausse.',f:m=>{m.city.vegas=.1;m.cityYld.vegas=1.15}},
+ {e:'🎬',t:'HOLLYWOOD EN PLEIN BOOM',x:'Prix à Los Angeles ≈ +12 %',d:'Les studios tournent à plein régime : Los Angeles attire les investisseurs.',f:m=>{m.city.la=.12}},
+ {e:'🗼',t:'NEW YORK : LOYERS ENCADRÉS',x:'Rendement locatif à New York −20 %',d:'La ville plafonne les loyers à Manhattan.',f:m=>{m.cityYld.ny=.8}},
+ {e:'🕵️',t:'NOUVEAU PROCUREUR INCORRUPTIBLE',x:'+12 de police pour chaque joueur',d:'Il a juré de nettoyer la ville. Tout le monde prend +12 de recherche.',f:()=>G.players.forEach(p=>{p.heat=clamp(p.heat+12,0,100)})},
 ];
 const DESTIN=[
  {e:'👵',t:'Héritage surprise',d:'Une grand-tante dont tu ignorais l’existence te lègue ses économies.',f:p=>gain(p,RI(3,20)*1000)},
@@ -894,12 +895,12 @@ const LEGENDS=[
  ['Les plans d’un trésor de pirate, authentifiés par un expert.','met la main sur un trésor de pirate']];
 /* Associés du tour : un talent et un défaut. Chaque joueur en reçoit un nouveau à chaque tour (tous différents, jamais le même deux tours de suite si possible). */
 const CHARS=[
- {k:'banker',e:'🏦',n:'Le Banquier',t:'Emprunte à 2 % par tour au lieu de 4 %.',f:'Trop propre sur lui pour braquer quoi que ce soit.'},
- {k:'godfather',e:'👑',n:'Le Parrain',t:'Te monte un petit réseau de trafic si tu n’en as pas.',f:'Toujours surveillé : +3 de police à chaque fin de tour.'},
- {k:'crook',e:'🃏',n:'L’Escroc',t:'Ses arnaques réussissent 20 points plus souvent.',f:'Quand une arnaque rate, la police prend +20 au lieu de +10.'},
- {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Les banques se méfient : ses emprunts coûtent 6 % par tour.'},
- {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2 et 5 positions ouvertes au lieu de 4.',f:'Aucune banque ne lui prête pour l’immobilier : pas d’achat à crédit.'},
- {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier de 2 % au lieu de 7 %.',f:'Ses entreprises lui coûtent 20 % plus cher à créer et développer.'},
+ {k:'banker',e:'🏦',n:'Le Banquier',t:'Intérêts de tes emprunts : 2 % par tour au lieu de 4 %.',f:'Braquages interdits ce tour.'},
+ {k:'godfather',e:'👑',n:'Le Parrain',t:'Réseau de trafic offert si tu n’en as pas (1 000 à 3 000 € d’argent sale par tour).',f:'+3 de police en fin de tour.'},
+ {k:'crook',e:'🃏',n:'L’Escroc',t:'Arnaques réussies à 70 % au lieu de 50 % (85 % contre la cible du moment).',f:'Arnaque ratée : +20 de police au lieu de +10.'},
+ {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Intérêts de tes emprunts : 6 % par tour au lieu de 4 %.'},
+ {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2, 5 positions ouvertes au lieu de 4.',f:'Pas d’achat immobilier à crédit ce tour.'},
+ {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier : 2 % au lieu de 7 %.',f:'Créer ou développer une entreprise coûte 20 % plus cher.'},
 ];
 const chr=p=>p&&p.chr||'';
 function dealPartners(ps){let cs;for(let k=0;k<12;k++){cs=CHARS.slice().sort(()=>Math.random()-.5);if(ps.every((p,i)=>p.chr!==cs[i%cs.length].k))break}
@@ -999,12 +1000,14 @@ function grantAuction(r,add){if(!r)return;const {w,a}=r;
 /* L'événement de la prochaine fin de manche est tiré à l'avance. Une rumeur l'annonce, mais elle peut se tromper. */
 function planEvent(){G.nextEv=Math.random()<.8?RI(0,EVENTS.length-1):-1;
   G.rumor=G.nextEv>=0&&Math.random()<.7?G.nextEv:RI(0,EVENTS.length-1)}
-function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span class="ic">${e.e}</span><span class="bd"><b>Rumeur : ${e.t.toLowerCase()}</b><span class="small muted">Pour la fin de cette manche. Une rumeur peut être fausse.</span></span></div>`:''}
+/* Fiabilité réelle d'une rumeur : un événement 8 manches sur 10, annoncé juste 7 fois sur 10 (sinon une rumeur au hasard). */
+const RUMOR_OK=Math.round(80*(.7+.3/EVENTS.length));
+function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span class="ic">${e.e}</span><span class="bd"><b>Rumeur : ${e.t.toLowerCase()}</b><span class="small pro"><span>Si elle dit vrai : ${e.x}, en fin de manche.</span><span class="muted">Fiabilité : <b class="num">${RUMOR_OK} %</b> de chances que ça arrive.</span></span></span></div>`:''}
 /* Bloc « cette manche » de l'écran de tour : rumeur, enchère, associé du tour et objectif secret. */
 function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
-  return `${label('Cette manche')}<div class="list">${rumorHTML()}
+  return `${label('Infos du tour')}<div class="list">${rumorHTML()}
   ${a?`<${mine?'button':'div'} class="item${mine?'':' ro'}" ${mine?'onclick="openAuction()"':''}><span class="ic">💸</span><span class="bd"><b>Enchère : ${noEmo(a.title)}</b><span class="small muted">Offre secrète, 0 PA · ${mb?'ton offre : <b class="gold num">'+fmt(mb)+'</b>':'minimum '+fmt(a.min)}</span></span>${mine?`<span class="rt muted">${icon('arrow')}</span>`:''}</${mine?'button':'div'}>`:''}
-  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>Associé du tour : ${cd.n}</b><span class="small muted">${cd.t} ${cd.f}</span></span></div>`:''}
+  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>Associé : ${cd.n}</b><span class="small pro"><span class="pos">+ ${cd.t}</span><span class="neg">− ${cd.f}</span></span></span></div>`:''}
   ${od&&mine?`<div class="item"><span class="ic">🎯</span><span class="bd"><b>Objectif secret</b><span class="small muted">${od.t} Réussi : +15 % de patrimoine à la fin.${od.ok(p)?' <b class="pos">Atteint pour l’instant.</b>':''}</span></span></div>`:''}</div>`}
 
 /* ================= STATE ================= */
@@ -1207,7 +1210,7 @@ function renderSetup(){
 }
 const RULES_BODY=`    <p><b>Le but</b> : finir avec le plus gros <b>patrimoine net</b>. Tout le monde part avec la même somme.</p>
     <p><b>Ton tour</b> : <b>3 points d’action (PA)</b>. Casino, trading, immobilier, startup, boulot, coup bas : 1 PA. Entreprise, trafic, braquage : 2 PA. Bourse, banque, blanchiment et ventes sont gratuits. L’interrupteur en bas à gauche passe de l’écran <b>Manche</b> à l’écran <b>Actions</b>.</p>
-    <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un nouvel <b>associé</b> te donne un talent et un défaut pour ce tour, et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
+    <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (fiable à environ 57 %), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un nouvel <b>associé</b> te donne un talent (en vert) et un défaut (en rouge) pour ce tour, et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
     <p><b>En ligne</b>, tout le monde joue son tour en même temps. Touche « Finir mon tour » quand tu as fini : la manche se ferme quand tout le monde a fini. Une partie publique apparaît dans « Rejoindre une partie », une privée se rejoint avec le code. Sur un seul téléphone, chacun son tour.</p>
     <p><b>Placements</b> : en <b>trading</b>, tes positions (hausse ou baisse, levier, stop-loss) restent ouvertes d’un tour à l’autre. En <b>immobilier</b>, 7 villes sur la carte, chacune avec ses prix, ses loyers et sa tendance : Detroit est bon marché et rentable, New York cher et solide. Les <b>startups</b> lèvent des fonds ou meurent ; un audit révèle leur vraie qualité. Au <b>casino</b>, on débloque le suivant en cumulant des gains égaux à sa mise max.</p>
     <p><b>Coups bas</b> : duel au <b>poker</b> (Texas Hold’em à mise égale, en direct sur les deux écrans), arnaque, ou balancer quelqu’un à la police. En ligne, la victime le voit tout de suite.</p>
