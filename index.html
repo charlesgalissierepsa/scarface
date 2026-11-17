@@ -64,8 +64,6 @@
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px;
 
   /* ---- Tailles de composants ---- */
-  /* Enseigne à ampoules de l'accueil */
-  --bulb:#ffe9a6; --bulb-glow:rgba(255,214,120,.35); --bulb-off:rgba(255,233,166,.07); --marquee-bg:#07040c; --marquee-edge:rgba(255,233,166,.18); --marquee-halo:rgba(255,214,120,.15);
   --tap:44px; --btn-h:48px; --row-h:56px; --head-h:56px; --tag-h:20px; --chip-h:32px; --bar-w:3px;
   --av:44px; --av-sm:40px; --av-lg:72px; --av-xl:128px; --dot:8px; --icon:20px; --tile-emoji-box:32px;
   --sheet-max:88dvh; --app-max:480px; --ico-tile:1.6em; --ico-inline:1.15em;
@@ -85,7 +83,7 @@
 
   /* ---- Tailles propres à un composant ---- */
   --slant:8px; --slant-sm:4px; --stripes:8px; --pip-w:24px; --pip-h:10px; --choice-h:72px; --pill-h:28px; --free-h:64px;
-  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --marquee-w:340px;
+  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px;
   --wheel:144px; --card-w:50px; --card-h:72px; --reel-w:76px; --reel-h:86px; --ticket-h:150px; --chart-h:180px;
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
@@ -208,9 +206,6 @@ body.paused #bg *,body.away #bg *,body.paused .logo,body.away .bigav::after,body
 @keyframes flicker{0%,40%,100%{opacity:1}20%,60%{opacity:.35}}
 .tagline{display:block;text-align:center;font:var(--fw-regular) var(--fs-xl)/var(--lh-tight) var(--font-script);color:var(--neon-cyan);margin-top:var(--sp-2);transform:rotate(var(--tilt))}
 .tagline.flat{transform:none}
-/* Enseigne lumineuse du dirigeable : panneau à ampoules, texte qui défile colonne par colonne. */
-.marquee{display:block;width:min(100%,var(--marquee-w));margin:var(--sp-3) auto 0;padding:var(--sp-2) var(--sp-5);background:var(--marquee-bg);border:1px solid var(--marquee-edge);border-radius:999px;box-shadow:0 0 var(--glow-sm) var(--marquee-halo)}
-.marquee canvas{display:block;width:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
 .top-act{gap:var(--sp-2);margin-left:auto;flex:none}
 .top .pill{white-space:normal;line-height:var(--lh-tight);padding-block:var(--sp-1)}
 .choices{display:flex;flex-direction:column;gap:var(--sp-3);margin-top:var(--sp-6)}
@@ -1165,31 +1160,6 @@ function dealRoles(g){const cs=CHARS.slice().sort(()=>Math.random()-.5),os=OBJS.
 function newGame(){G=buildGame(setup.players,setup.cash,setup.rounds);G.gameId=rid(8);save();sfx.coin();haptic('start');render()}
 
 /* ================= HOME ================= */
-/* Enseigne à ampoules façon dirigeable : police matricielle 5 x 7 maison, défilement d'une colonne à la fois.
-   Décor immobile (réglage ou préférence du téléphone) : le texte entier, fixe, centré. */
-const MQ_FONT={T:'11111,00100,00100,00100,00100,00100,00100',H:'10001,10001,10001,11111,10001,10001,10001',E:'11111,10000,10000,11110,10000,10000,11111',
-  W:'10001,10001,10001,10101,10101,10101,01010',O:'01110,10001,10001,10001,10001,10001,01110',R:'11110,10001,10001,11110,10100,10010,10001',
-  L:'10000,10000,10000,10000,10000,10000,11111',D:'11110,10001,10001,10001,10001,10001,11110',I:'01110,00100,00100,00100,00100,00100,01110',
-  S:'01111,10000,10000,01110,00001,00001,11110',Y:'10001,10001,01010,00100,00100,00100,00100',U:'10001,10001,10001,10001,10001,10001,01110'};
-const MQ_COLS=(()=>{const cols=[];for(const ch of 'THE WORLD IS YOURS'){if(ch===' '){cols.push(0,0,0);continue}
-  const rows=MQ_FONT[ch].split(',');for(let c=0;c<5;c++){let m=0;for(let r=0;r<7;r++)if(rows[r][c]==='1')m|=1<<r;cols.push(m)}cols.push(0)}cols.pop();return cols})();
-const MQ_STEP=85,MQ_GAP=24,MQ_PITCH=5;
-let mqRaf=0;
-function marquee(){cancelAnimationFrame(mqRaf);const c=$('#mq');if(!c)return;
-  const still=document.body.classList.contains('still'),x=c.getContext('2d'),dpr=window.devicePixelRatio||1;
-  const on=cssVar('--bulb'),glow=cssVar('--bulb-glow'),off=cssVar('--bulb-off'),loop=MQ_COLS.length+MQ_GAP;
-  let w=0,pitch=MQ_PITCH,n=0;
-  function size(){const cw=c.clientWidth;if(!cw||cw===w)return;w=cw;
-    pitch=still?Math.min(MQ_PITCH,w/(MQ_COLS.length+2)):MQ_PITCH;n=Math.floor(w/pitch);
-    const h=pitch*9;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);c.style.height=h+'px';x.setTransform(dpr,0,0,dpr,0,0)}
-  function draw(shift){size();if(!n)return;x.clearRect(0,0,w,pitch*9);const r=pitch*.32,x0=(w-n*pitch)/2+pitch/2;
-    const lead=still?Math.floor((n-MQ_COLS.length)/2):0;
-    for(let i=0;i<n;i++){const k=still?i-lead:((i+shift-n)%loop+loop)%loop,m=k>=0&&k<MQ_COLS.length?MQ_COLS[k]:0;
-      for(let j=0;j<7;j++){const cx=x0+i*pitch,cy=pitch*1.5+j*pitch;
-        if(m>>j&1){x.fillStyle=glow;x.beginPath();x.arc(cx,cy,r*2.1,0,7);x.fill();x.fillStyle=on;x.beginPath();x.arc(cx,cy,r,0,7);x.fill()}
-        else{x.fillStyle=off;x.beginPath();x.arc(cx,cy,r*.8,0,7);x.fill()}}}}
-  if(still){draw(0);return}
-  size();const s0=n-Math.max(0,Math.floor((n-MQ_COLS.length)/2));let t0=0;(function f(t){if(!document.contains(c))return;if(!t0)t0=t;draw(s0+Math.floor((t-t0)/MQ_STEP));mqRaf=requestAnimationFrame(f)})(performance.now())}
 let profile={name:'',av:pick(AVATARS)};
 try{const pr=JSON.parse(localStorage.getItem('rq_profile')||'null');if(pr)profile=pr}catch(e){}
 function saveProfile(){const el=$('#myName');if(el)profile.name=el.value.trim().slice(0,14);try{localStorage.setItem('rq_profile',JSON.stringify(profile))}catch(e){}}
@@ -1200,22 +1170,22 @@ function flickLogo(){clearTimeout(flickTimer);flickTimer=setTimeout(()=>{const l
   if(!document.hidden&&!document.body.classList.contains('paused')){l.classList.remove('flick');void l.offsetWidth;l.classList.add('flick')}flickLogo()},R(6000,10000))}
 function renderHome(){
   const ses=getSession();
-  const choice=(main,on,t,s)=>`<button class="choice${main?' main':''}" onclick="${on}"><span><b>${t}</b><span>${s}</span></span>${icon('arrow')}</button>`;
+  const choice=(main,on,t)=>`<button class="choice${main?' main':''}" onclick="${on}"><span><b>${t}</b></span>${icon('arrow')}</button>`;
   paint(`
-  <div data-z="logo"><h1 class="logo">SCARFACE</h1><div class="marquee"><canvas id="mq" role="img" aria-label="The world is yours"></canvas></div></div>
+  <div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">The world is yours</span></div>
   <div data-z="profile">${label('Ton profil')}
   <div class="prow"><button class="av" style="--c:var(--cash)" onclick="saveProfile();profile.av=AVATARS[(AVATARS.indexOf(profile.av)+1)%AVATARS.length];sfx.tick();renderHome()" aria-label="Changer d’avatar">${profile.av}</button>
     <input id="myName" maxlength="14" placeholder="Ton pseudo" aria-label="Ton pseudo" value="${esc(profile.name)}" oninput="profile.name=this.value"></div></div>
   ${ses?`<div class="panel mt-4" data-z="session"><b>Partie en ligne en cours</b><div class="muted small">Salon <span class="num">${ses.code}</span></div>
     <div class="row mt-3">${B('Revenir dans la partie',{v:'primary',on:`joinRoom('${ses.code}')`})}${B('Oublier',{v:'text',inline:1,on:"try{localStorage.removeItem('sf_online')}catch(e){};renderHome()"})}</div></div>`:''}
   <div class="choices" data-z="choices">
-    ${choice(1,'createRoom()','Créer une partie en ligne','Tu ouvres un salon et tu partages le code.')}
-    ${choice(0,"saveProfile();APP.view='join';APP.err='';render()",'Rejoindre une partie','Entre le code donné par l’hôte.')}
-    ${choice(0,"saveProfile();APP.view='local';render()",'Jouer sur un seul téléphone','On se passe le téléphone à tour de rôle.')}
+    ${choice(1,'createRoom()','Créer une partie en ligne')}
+    ${choice(0,"saveProfile();APP.view='join';APP.err='';render()",'Rejoindre une partie')}
+    ${choice(0,"saveProfile();APP.view='local';render()",'Jouer sur un seul téléphone')}
   </div>
   <div data-z="err">${APP.err?`<div class="err" role="alert">${APP.err}</div>`:''}</div>
   <div data-z="rules">${FOOT_BTNS}</div>`,'home');
-  flickLogo();marquee();
+  flickLogo();
 }
 function renderJoin(){
   paint(`${topBar(iconBtn('back','Retour à l’accueil',"APP.view='home';APP.err='';render()"))}
@@ -2472,7 +2442,7 @@ document.addEventListener('visibilitychange',()=>{document.body.classList.toggle
 /* Réglage « Animations du décor » et préférence d'accessibilité du téléphone. */
 let MOTION=true;try{MOTION=localStorage.getItem('sf_motion')!=='0'}catch(e){}
 const RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
-function applyMotion(){document.body.classList.toggle('still',!MOTION||RM.matches);marquee()}
+function applyMotion(){document.body.classList.toggle('still',!MOTION||RM.matches)}
 applyMotion();try{RM.addEventListener('change',applyMotion)}catch(e){}
 /* Défilement de la grille, image par image : seule la transformation change, à vitesse constante. */
 (function gridLoop(){const g=document.querySelector('#bg .grid');if(!g)return;const cs=getComputedStyle(document.documentElement);
