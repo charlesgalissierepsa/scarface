@@ -550,6 +550,8 @@ canvas#trc{width:100%;height:var(--chart-h);background:var(--surface-3);border:v
 #chart .gridl{stroke:var(--line)}
 
 /* ===== Toasts et effets ===== */
+#verWarn{position:fixed;left:var(--sp-4);right:var(--sp-4);bottom:calc(env(safe-area-inset-bottom) + var(--dock-space));z-index:150;display:flex;gap:var(--sp-3);align-items:center;padding:var(--sp-3);background:var(--surface-2);border:1px solid var(--loss);box-shadow:0 0 var(--glow-sm) var(--halo-pink);font-size:var(--fs-sm)}
+#verWarn span{flex:1}
 #toast{position:fixed;left:var(--sp-4);right:var(--sp-4);top:calc(env(safe-area-inset-top) + var(--sp-3));z-index:100;display:flex;flex-direction:column;gap:var(--sp-2);max-width:var(--dock-w);margin:0 auto;pointer-events:none}
 .t{padding:var(--sp-3) var(--sp-4);background:var(--surface-2);border:var(--border);border-left:var(--bar-w) solid var(--neon-cyan);color:var(--ink);font-weight:var(--fw-semibold);font-size:var(--fs-sm);animation:tin var(--dur-base) var(--ease-in)}
 .t.bad{border-left-color:var(--neon-pink)}
@@ -1319,12 +1321,20 @@ const BROKERS=['wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mq
 const NS='scarface-jeu-fric-v2';
 const CODECH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rid=n=>Array.from({length:n},()=>CODECH[Math.floor(Math.random()*CODECH.length)]).join('');
+/* Empreinte du code du jeu : deux téléphones qui n'ont pas la même version ne peuvent pas jouer ensemble
+   (les messages ne se comprennent plus et la partie se bloque). Cas typique : le jeu a été mis à jour en ligne et
+   un téléphone n'a pas rechargé la page. */
+const APP_VER=(()=>{try{let t=document.currentScript?document.currentScript.textContent:'';const i=t.indexOf('\nrender();\n');if(i>0)t=t.slice(0,i);
+  let h=0;for(let k=0;k<t.length;k++)h=(h*31+t.charCodeAt(k))|0;return (h>>>0).toString(36)}catch(e){return ''}})();
+function verWarn(show){let w=document.getElementById('verWarn');
+  if(!show){if(w)w.remove();return}if(w)return;w=document.createElement('div');w.id='verWarn';w.setAttribute('role','alert');
+  w.innerHTML=`<span><b>Version différente de l’hôte.</b> Recharge la page pour jouer ensemble.</span><button class="btn btn-primary inline" onclick="location.reload()">Recharger</button>`;document.body.appendChild(w)}
 const UID=(()=>{try{let u=localStorage.getItem('rq_uid');if(!u){u=rid(12);localStorage.setItem('rq_uid',u)}return u}catch(e){return rid(12)}})();
 let ON=null,connAbort=false,pingTimer=null;
 const tp=s=>`${NS}/${ON.code}/${s}`;
 function pub(s,obj,retain,qos=1){if(!ON||!ON.client)return;try{ON.client.publish(tp(s),obj===''?'':JSON.stringify(obj),{qos,retain:!!retain})}catch(e){}}
 function pubState(){pub('state',{from:UID,G},true)}
-function pubLobby(){ON.lobby.ts=Date.now();pub('lobby',ON.lobby,true);pubPublic()}
+function pubLobby(){ON.lobby.ts=Date.now();ON.lobby.ver=APP_VER;pub('lobby',ON.lobby,true);pubPublic()}
 /* Parties publiques : l'hôte affiche son salon sur un tableau commun (${NS}/public/CODE, message gardé par le relais).
    Retiré dès que la partie démarre, que le salon redevient privé, est plein ou fermé. Rafraîchi toutes les 20 s :
    une annonce plus vieille que 90 s est ignorée (hôte parti sans prévenir). */
@@ -1388,7 +1398,7 @@ async function createRoom(){
   if(connAbort){client&&client.end(true);return}
   if(!client){APP.view='home';APP.err='Impossible de joindre le serveur de jeu. Vérifie ta connexion internet et réessaie.';render();return}
   const code=rid(4);newON(client,broker,code);ON.host=true;
-  ON.lobby={host:UID,code,settings:{cash:10000,rounds:12,pub:false},players:[{uid:UID,name:profile.name,av:profile.av}],started:false,gameId:null};
+  ON.lobby={host:UID,ver:APP_VER,code,settings:{cash:10000,rounds:12,pub:false},players:[{uid:UID,name:profile.name,av:profile.av}],started:false,gameId:null};
   ON.wasIn=true;pubLobby();persistSession();startPing();APP.view='lobby';sfx.coin();render();
 }
 async function joinRoom(code){
@@ -1414,8 +1424,8 @@ async function joinRoom(code){
   sfx.coin();render();
 }
 function failJoin(msg){try{ON.client.end(true)}catch(e){}ON=null;G=null;try{localStorage.removeItem('sf_online')}catch(e){}APP.view='join';APP.err=msg;render()}
-async function sendJoin(){for(let i=0;i<10;i++){if(!ON||!ON.lobby||ON.lobby.players.some(p=>p.uid===UID))return;pub('join',{uid:UID,name:profile.name,av:profile.av});await sleep(1500)}}
-function leaveOnline(forget){
+async function sendJoin(){for(let i=0;i<10;i++){if(!ON||!ON.lobby||ON.lobby.players.some(p=>p.uid===UID))return;pub('join',{uid:UID,name:profile.name,av:profile.av,ver:APP_VER});await sleep(1500)}}
+function leaveOnline(forget){verWarn(false);
   if(ON){if(ON.host&&ON.listed){ON.lobby.closed=true;pubPublic(1)}
     if(ON.lobby&&!ON.lobby.started&&forget){if(ON.host){pub('lobby',{closed:true,host:UID},true);pub('state','',true)}else pub('leave',{uid:UID})}
     const c=ON.client;setTimeout(()=>{try{c.end(true)}catch(e){}},400)}
@@ -1436,7 +1446,7 @@ function onMessage(topic,payload){
 function onLobby(L){
   if(ON.host&&ON.lobby&&L.host===UID&&!L.closed)return;
   if(L.closed){if(ON.lobby){toast('Le salon a été fermé par l’hôte.',1);leaveOnline(true)}else ON.lobby=L;return}
-  ON.lobby=L;ON.host=L.host===UID;
+  ON.lobby=L;ON.host=L.host===UID;verWarn(!ON.host&&!!L.ver&&L.ver!==APP_VER);
   const inIt=L.players.some(p=>p.uid===UID);
   if(inIt)ON.wasIn=true;else if(ON.wasIn&&!L.started){toast('L’hôte t’a retiré du salon.',1);leaveOnline(true);return}
   if(!L.started){if(G){G=null;forceClose();closeOv()}APP.view='lobby'}
@@ -1475,10 +1485,10 @@ function applyState(m){
 function onJoin(m){
   if(!ON.host||!ON.lobby||!m.uid)return;const L=ON.lobby;
   const ex=L.players.find(p=>p.uid===m.uid);
-  if(ex){ex.name=m.name||ex.name;pubLobby();render();return}
+  if(ex){ex.name=m.name||ex.name;ex.ver=m.ver||'';pubLobby();render();return}
   if(L.started||L.players.length>=6)return;
   let av=m.av;if(L.players.some(p=>p.av===av))av=AVATARS.find(a=>!L.players.some(p=>p.av===a));
-  L.players.push({uid:m.uid,name:(m.name||'Joueur').slice(0,14),av});ON.presence[m.uid]=Date.now();
+  L.players.push({uid:m.uid,name:(m.name||'Joueur').slice(0,14),av,ver:m.ver||''});ON.presence[m.uid]=Date.now();
   pubLobby();sfx.coin();haptic('action');render();
 }
 function onLeave(m){if(!ON.host||!ON.lobby||ON.lobby.started)return;ON.lobby.players=ON.lobby.players.filter(p=>p.uid!==m.uid);pubLobby();render()}
@@ -1497,7 +1507,7 @@ function renderLobby(){
     <div class="row wrap mt-2">${B(icon('copy')+'Copier le code',{v:'secondary',on:`copyTxt('${L.code}')`})}${B(icon('share')+'Partager le lien',{v:'secondary',on:'shareRoom()'})}</div></div>
   <div data-z="players">${label(`Joueurs <span class="num">(${L.players.length}/6)</span>`)}
   <div class="list">${L.players.map((p,i)=>{const on=isOnline(p.uid);return `<div class="item"><div class="av sm" style="--c:${COLORS[i]}">${p.av}</div>
-    <span class="bd"><b>${esc(p.name)}${p.uid===UID?' <span class="tag">toi</span>':''}</b><span class="small muted">${p.uid===L.host?'Hôte':'Joueur'}</span></span>
+    <span class="bd"><b>${esc(p.name)}${p.uid===UID?' <span class="tag">toi</span>':''}</b><span class="small muted">${p.uid===L.host?'Hôte':'Joueur'}${p.ver&&L.ver&&p.ver!==L.ver?' · <span class="neg">version différente : doit recharger la page</span>':''}</span></span>
     <span class="dot ${on?'':'off'}"></span><span class="sr">${on?'en ligne':'hors ligne'}</span>
     ${h&&p.uid!==UID?iconBtn('close','Retirer '+esc(p.name),`kick('${p.uid}')`):''}</div>`}).join('')}</div>
   ${L.players.length<2?note('En attente d’au moins un autre joueur. Envoie-leur le code.','mt-3'):''}</div>
@@ -1824,7 +1834,9 @@ function rouletteHTML(){const p=cur();
   <h3 class="sec">Ta mise</h3>${amt('rlAmt',casMax(p),Math.min(1000,casMax(p)))}
   <div id="cres">${lastRes}</div>
   <div class="sheet-foot">${B('Lancer la bille',{v:'primary',on:'spinRoulette()',why:casWhy()})}</div>`}
-async function spinRoulette(){const bet=getAmt('rlAmt');if(!casinoStart(bet))return;busy=true;
+/* Les animations verrouillent l'écran (busy) ; ce verrou est toujours rendu, même si une erreur survient en route. */
+function guarded(fn){return async function(){if(busy)return;try{await fn.apply(this,arguments)}catch(e){console.error(e);busy=false;toast('Petit souci technique : action annulée.',1);try{render()}catch(_){}}finally{busy=false}}}
+async function _spinRoulette(){const bet=getAmt('rlAmt');if(!casinoStart(bet))return;busy=true;
   const w=$('#wheel'),final=RI(0,36);let d=40;
   for(let i=0;i<26;i++){const n=i===25?final:RI(0,36);w.textContent=n;w.className='wheel '+rColor(n);sfx.tick();await sleep(d);d*=1.12}
   rl.last=final;const [l,m,test]=RBETS[rl.type];const won=test(final);
@@ -1868,7 +1880,8 @@ function slotsHTML(){const p=cur();
   <h3 class="sec">Ta mise</h3>${amt('slAmt',casMax(p),Math.min(500,casMax(p)))}
   <div id="cres">${lastRes}</div>
   <div class="sheet-foot">${B('Tirer le levier',{v:'primary',on:'spinSlots()',why:casWhy()})}</div>`}
-async function spinSlots(){const bet=getAmt('slAmt');if(!casinoStart(bet))return;busy=true;
+const spinRoulette=guarded(_spinRoulette);
+async function _spinSlots(){const bet=getAmt('slAmt');if(!casinoStart(bet))return;busy=true;
   const res=[rollSym(),rollSym(),rollSym()];
   const els=[0,1,2].map(i=>$('#reel'+i));els.forEach(e=>e.classList.add('spin'));
   const iv=setInterval(()=>{els.forEach((e,i)=>{if(e.classList.contains('spin'))e.textContent=pick(SYM)[0]});sfx.tick()},70);
@@ -1882,6 +1895,7 @@ async function spinSlots(){const bet=getAmt('slAmt');if(!casinoStart(bet))return
   if(mult>=500)bigWin(cur(),net,'fait sauter la machine à sous : 7️⃣ 7️⃣ 7️⃣');
   busy=false;casinoResult(net);refreshSheet()}
 
+const spinSlots=guarded(_spinSlots);
 /* scratch */
 let scPrice=100;
 function scratchHTML(){
@@ -2232,7 +2246,7 @@ function heistHTML(){const p=cur(),h=HEISTS[hs.t],ch=heistChance(),cut=TEAMS[hs.
   <div class="sheet-foot">${B('Lancer le braquage',{v:'danger',on:'runHeist()',cost:fmt(cost)+' · 2 PA',why})}</div>`}`}
 function doRecon(){const p=cur(),h=HEISTS[hs.t];if(rep(p)<h.rep||!useAP(1))return;p.recon={t:hs.t,until:G.round+1};p.heat=clamp(p.heat+2,0,100);
   addFeed('fait des repérages discrets');sfx.tick();toast(`${h.n} repéré(e) : +15 % jusqu’au prochain tour`);after()}
-async function runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)return;
+async function _runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)return;
   if(rep(p)<h.rep){toast(`Réputation ${h.rep} requise.`,1);return}
   if(!canPay(p,cost)||!useAP(2))return;
   const ch=heistChance();p.cash-=cost;busy=true;render();
@@ -2252,6 +2266,7 @@ async function runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)
   $('#hres').innerHTML=html+`<div class="mt-3">${B('Fermer',{v:'secondary',on:'busy=false;closeSheet()'})}</div>`;
   busy=false;save();render()}
 
+const runHeist=guarded(_runHeist);
 /* ================= TRAFFIC ================= */
 function openTraffic(){openSheet('Trafic',trafHTML(),()=>setBody(trafHTML()))}
 function trafHTML(){const p=cur(),lv=p.net,nx=NET[lv+1];
