@@ -1277,13 +1277,32 @@ function renderHome(){
   flickLogo();
 }
 function renderJoin(){
-  paint(`${topBar(iconBtn('back','Retour à l’accueil',"APP.view='home';APP.err='';render()"))}
+  paint(`${topBar(iconBtn('back','Retour à l’accueil',"stopScan();APP.view='home';APP.err='';render()"))}
   <div data-z="form"><h1 class="mt-4 mb-2">Rejoindre une partie</h1><p class="muted">Demande le code à 4 caractères à celui qui a créé le salon.</p>
   <input id="codeIn" class="codein" maxlength="4" autocomplete="off" autocapitalize="characters" aria-label="Code du salon" value="${esc(APP.joinCode)}" placeholder="····" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');APP.joinCode=this.value" onkeydown="if(event.key==='Enter')joinRoom(this.value)">
   ${APP.err?`<div class="err" role="alert">${APP.err}</div>`:''}
-  <div class="mt-4">${B('Entrer dans le salon',{v:'primary',on:"joinRoom($('#codeIn').value)"})}</div></div>`,'join');
-  setTimeout(()=>{const e=$('#codeIn');e&&!APP.joinCode&&e.focus()},50);
+  <div class="mt-4">${B('Entrer dans le salon',{v:'primary',on:"joinRoom($('#codeIn').value)"})}</div></div>
+  <div data-z="pubs" class="mt-6">${pubsHTML()}</div>`,'join');
+  scanPublic();
 }
+/* Écoute le tableau des parties publiques sur tous les relais, tant qu'on est sur l'écran « Rejoindre ». */
+function scanPublic(){if(APP.scan)return;APP.pubs={};APP.scanT=Date.now();const conns=[];
+  APP.scan={conns,iv:setInterval(()=>{if(APP.view!=='join'||G){stopScan();return}refreshPubs()},5000)};
+  BROKERS.forEach(u=>connectBroker(u,8000).then(c=>{if(!APP.scan||APP.scan.conns!==conns){try{c.end(true)}catch(e){}return}conns.push(c);
+    c.on('message',(t,pl)=>{const code=t.split('/').pop(),str=pl.toString();if(!/^[A-Z0-9]{4}$/.test(code))return;
+      if(!str){if(APP.pubs[code]&&APP.pubs[code].broker===u)delete APP.pubs[code];refreshPubs();return}
+      let x;try{x=JSON.parse(str)}catch(e){return}
+      APP.pubs[code]={code,host:String(x.host||'?').slice(0,14),av:String(x.av||'').slice(0,8),n:Math.max(1,+x.n||1),cash:+x.cash||0,rounds:+x.rounds||0,ts:+x.ts||0,broker:u};refreshPubs()});
+    c.subscribe(`${NS}/public/+`,{qos:0})},()=>{}));
+  setTimeout(refreshPubs,4100)}
+function stopScan(){const sc=APP.scan;if(!sc)return;APP.scan=null;clearInterval(sc.iv);sc.conns.forEach(c=>{try{c.end(true)}catch(e){}})}
+function refreshPubs(){const z=document.querySelector('[data-z="pubs"]');if(z&&APP.view==='join'&&!G)z.innerHTML=pubsHTML()}
+function livePubs(){const now=Date.now();return Object.values(APP.pubs||{}).filter(x=>Math.abs(now-x.ts)<PUB_TTL&&x.n<6).sort((a,b)=>b.ts-a.ts)}
+function pubsHTML(){const L=livePubs(),searching=!L.length&&APP.scan&&Date.now()-APP.scanT<4000;
+  return `${label('Parties publiques')}${L.length?`<div class="list">${L.map(x=>`<button class="item pick" onclick="joinPublic('${x.code}')"><div class="av sm" style="--c:var(--neon-cyan)">${esc(x.av)}</div>
+    <span class="bd"><b>Partie de ${esc(x.host)}</b><span class="small muted"><span class="num">${x.n}/6</span> joueur${x.n>1?'s':''}${x.cash?` · <span class="num">${fmt(x.cash)}</span> au départ`:''}${x.rounds?` · <span class="num">${x.rounds}</span> tours`:''}</span></span><span class="rt">${icon('arrow')}</span></button>`).join('')}</div>`
+    :searching?`${loadBar()}<p class="muted small center">Recherche des parties publiques…</p>`:note('Aucune partie publique pour l’instant. Crée la tienne et rends-la publique dans le salon.')}`}
+function joinPublic(code){const x=(APP.pubs||{})[code];APP.hint=x?x.broker:null;joinRoom(code)}
 /* Indicateur de chargement : une barre néon à balayage. */
 function loadBar(){return `<div class="lbar" aria-hidden="true"></div>`}
 function renderConnecting(){paint(`${topBar()}<div class="pass" data-z="conn"><h1 role="status">${APP.connMsg||'Connexion…'}</h1>
@@ -1300,7 +1319,14 @@ let ON=null,connAbort=false,pingTimer=null;
 const tp=s=>`${NS}/${ON.code}/${s}`;
 function pub(s,obj,retain,qos=1){if(!ON||!ON.client)return;try{ON.client.publish(tp(s),obj===''?'':JSON.stringify(obj),{qos,retain:!!retain})}catch(e){}}
 function pubState(){pub('state',{from:UID,G},true)}
-function pubLobby(){ON.lobby.ts=Date.now();pub('lobby',ON.lobby,true)}
+function pubLobby(){ON.lobby.ts=Date.now();pub('lobby',ON.lobby,true);pubPublic()}
+/* Parties publiques : l'hôte affiche son salon sur un tableau commun (${NS}/public/CODE, message gardé par le relais).
+   Retiré dès que la partie démarre, que le salon redevient privé, est plein ou fermé. Rafraîchi toutes les 20 s :
+   une annonce plus vieille que 90 s est ignorée (hôte parti sans prévenir). */
+const PUB_TTL=90000;
+function pubPublic(force){if(!ON||!ON.host||!ON.lobby||!ON.client)return;const L=ON.lobby,on=!!(L.settings&&L.settings.pub&&!L.started&&!L.closed&&L.players.length<6);
+  if(!on&&!ON.listed&&!force)return;ON.listed=on;ON.pubTs=Date.now();const h=L.players.find(q=>q.uid===L.host)||L.players[0]||{};
+  try{ON.client.publish(`${NS}/public/${L.code}`,on?JSON.stringify({host:h.name,av:h.av,n:L.players.length,cash:L.settings.cash,rounds:L.settings.rounds,ts:Date.now()}):'',{qos:1,retain:true})}catch(e){}}
 function isOnline(uid){if(uid===UID)return true;if(!ON||!uid)return false;if(!ON.presence[uid])ON.presence[uid]=Date.now();return Date.now()-ON.presence[uid]<14000}
 /* Un relais qui refuse la connexion échoue tout de suite (avant : on attendait le délai complet pour rien). */
 function connectBroker(url,ms){return new Promise((res,rej)=>{
@@ -1348,24 +1374,25 @@ function newON(client,broker,code,subscribed){
 function resync(){if(!ON)return;if(simFree()&&!ON.host)pubMe();if(ON.host&&ON.lobby&&!ON.lobby.closed)pubLobby();if(G&&ON.lastSeq===G.seq)pubState()}
 function persistSession(){try{localStorage.setItem('sf_online',JSON.stringify({code:ON.code,broker:ON.broker}))}catch(e){}}
 function abortConnect(){connAbort=true;if(ON&&ON.lobby){leaveOnline(false)}else{APP.view='home';render()}}
-function startPing(){clearInterval(pingTimer);const f=()=>{if(ON)pub('ping',{uid:UID},false,0)};f();pingTimer=setInterval(()=>{f();if(!G&&APP.view==='lobby')renderLobby();else if(G&&ON&&G.screen==='free'&&!isMyTurn())render();else if(G&&ON&&!isMyTurn()&&(G.screen==='pass'||G.screen==='turn'))renderSpectate();else if(G&&ON&&G.screen==='recap')renderRecap()},4000)}
+function startPing(){clearInterval(pingTimer);const f=()=>{if(ON)pub('ping',{uid:UID},false,0);if(ON&&ON.host&&ON.listed&&Date.now()-ON.pubTs>20000)pubPublic()};f();pingTimer=setInterval(()=>{f();if(!G&&APP.view==='lobby')renderLobby();else if(G&&ON&&G.screen==='free'&&!isMyTurn())render();else if(G&&ON&&!isMyTurn()&&(G.screen==='pass'||G.screen==='turn'))renderSpectate();else if(G&&ON&&G.screen==='recap')renderRecap()},4000)}
 
 async function createRoom(){
-  saveProfile();if(!profile.name){APP.err='Choisis d’abord un pseudo.';renderHome();return}
+  stopScan();saveProfile();if(!profile.name){APP.err='Choisis d’abord un pseudo.';renderHome();return}
   connAbort=false;APP.err='';APP.view='connecting';APP.connMsg='Ouverture du salon…';render();
   const r=await firstBroker(BROKERS,8000),client=r&&r.client,broker=r&&r.broker;
   if(connAbort){client&&client.end(true);return}
   if(!client){APP.view='home';APP.err='Impossible de joindre le serveur de jeu. Vérifie ta connexion internet et réessaie.';render();return}
   const code=rid(4);newON(client,broker,code);ON.host=true;
-  ON.lobby={host:UID,code,settings:{cash:10000,rounds:12},players:[{uid:UID,name:profile.name,av:profile.av}],started:false,gameId:null};
+  ON.lobby={host:UID,code,settings:{cash:10000,rounds:12,pub:false},players:[{uid:UID,name:profile.name,av:profile.av}],started:false,gameId:null};
   ON.wasIn=true;pubLobby();persistSession();startPing();APP.view='lobby';sfx.coin();render();
 }
 async function joinRoom(code){
   saveProfile();code=(code||'').toUpperCase().trim();
   if(!profile.name){APP.err='Choisis d’abord un pseudo.';APP.view='home';render();return}
   if(code.length!==4){APP.err='Le code fait 4 caractères.';APP.view='join';render();return}
-  connAbort=false;APP.err='';APP.view='connecting';APP.connMsg='Recherche du salon '+code+'…';render();
-  const ses=getSession();const order=ses&&ses.code===code&&ses.broker?[ses.broker,...BROKERS.filter(b=>b!==ses.broker)]:BROKERS;
+  stopScan();connAbort=false;APP.err='';APP.view='connecting';APP.connMsg='Recherche du salon '+code+'…';render();
+  const ses=getSession(),pref=ses&&ses.code===code&&ses.broker?ses.broker:APP.hint&&BROKERS.includes(APP.hint)?APP.hint:null;APP.hint=null;
+  const order=pref?[pref,...BROKERS.filter(b=>b!==pref)]:BROKERS;
   /* L’invité attend plus longtemps que l’hôte (8 s) : il doit pouvoir atteindre le relais, même lent, où le salon a été ouvert. */
   const found=await findRoom(order,code,12000);
   if(connAbort){if(found)try{found.client.end(true)}catch(e){}return}
@@ -1384,7 +1411,8 @@ async function joinRoom(code){
 function failJoin(msg){try{ON.client.end(true)}catch(e){}ON=null;G=null;try{localStorage.removeItem('sf_online')}catch(e){}APP.view='join';APP.err=msg;render()}
 async function sendJoin(){for(let i=0;i<10;i++){if(!ON||!ON.lobby||ON.lobby.players.some(p=>p.uid===UID))return;pub('join',{uid:UID,name:profile.name,av:profile.av});await sleep(1500)}}
 function leaveOnline(forget){
-  if(ON){if(ON.lobby&&!ON.lobby.started&&forget){if(ON.host){pub('lobby',{closed:true,host:UID},true);pub('state','',true)}else pub('leave',{uid:UID})}
+  if(ON){if(ON.host&&ON.listed){ON.lobby.closed=true;pubPublic(1)}
+    if(ON.lobby&&!ON.lobby.started&&forget){if(ON.host){pub('lobby',{closed:true,host:UID},true);pub('state','',true)}else pub('leave',{uid:UID})}
     const c=ON.client;setTimeout(()=>{try{c.end(true)}catch(e){}},400)}
   ON=null;G=null;clearInterval(pingTimer);busy=false;forceClose();closeOv();
   if(forget){try{localStorage.removeItem('sf_online')}catch(e){}}
@@ -1468,11 +1496,13 @@ function renderLobby(){
     <span class="dot ${on?'':'off'}"></span><span class="sr">${on?'en ligne':'hors ligne'}</span>
     ${h&&p.uid!==UID?iconBtn('close','Retirer '+esc(p.name),`kick('${p.uid}')`):''}</div>`}).join('')}</div>
   ${L.players.length<2?note('En attente d’au moins un autre joueur. Envoie-leur le code.','mt-3'):''}</div>
+  <div data-z="vis">${label('Visibilité')}
+  <div class="seg">${[[false,'Privée','Avec le code'],[true,'Publique','Visible par tous']].map(([v,l,s])=>`<button class="${!!S.pub===v?'on':''}" aria-pressed="${!!S.pub===v}" ${h?`onclick="setLobby('pub',${v})"`:'disabled'}>${l}<small>${s}</small></button>`).join('')}</div></div>
   <div data-z="cash">${label('Cash de départ')}
   <div class="seg">${[[5000,'5 000 €','Galère'],[10000,'10 000 €','Classique'],[50000,'50 000 €','Fils à papa']].map(([v,l,s])=>`<button class="${S.cash===v?'on':''}" aria-pressed="${S.cash===v}" ${h?`onclick="setLobby('cash',${v})"`:'disabled'}>${l}<small>${s}</small></button>`).join('')}</div></div>
   <div data-z="rounds">${label('Durée de la partie')}
   <div class="seg">${[[8,'8 tours','Rapide'],[12,'12 tours','Normal'],[20,'20 tours','La soirée']].map(([v,l,s])=>`<button class="${S.rounds===v?'on':''}" aria-pressed="${S.rounds===v}" ${h?`onclick="setLobby('rounds',${v})"`:'disabled'}>${l}<small>${s}</small></button>`).join('')}</div></div>
-  <div class="dock" data-z="dock">${h?B('Démarrer la partie',{v:'primary',on:'startOnline()',why:L.players.length<2?'Il faut au moins deux joueurs':''}):`<div class="center muted small" role="status">En attente de l’hôte ${waitDots()}</div>`}</div>`,'lobby');
+  <div class="dock" data-z="dock">${h?B('Démarrer la partie',{v:'primary',quiet:1,on:'startOnline()',why:L.players.length<2?'Il faut au moins deux joueurs':''}):`<div class="center muted small" role="status">En attente de l’hôte ${waitDots()}</div>`}</div>`,'lobby');
 }
 function setLobby(k,v){if(!ON.host)return;ON.lobby.settings[k]=v;sfx.tick();pubLobby();render()}
 function kick(uid){if(!ON.host)return;ON.lobby.players=ON.lobby.players.filter(p=>p.uid!==uid);pubLobby();render()}

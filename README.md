@@ -8,6 +8,8 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
   (ou le lien partagé). Chacun joue sur son téléphone, et **tout le monde joue son tour en même temps** :
   braquages et coups bas compris. Les coups bas tombent en direct chez la victime. Quand on a fini, « Finir mon
   tour » affiche « En attente de x/x » ; la manche se ferme quand tout le monde a fini.
+- **Parties publiques ou privées** : dans le salon, l'hôte choisit. Une partie publique apparaît dans « Rejoindre une
+  partie » (« Partie de … »), il suffit de la toucher ; une partie privée ne se rejoint qu'avec le code.
 - **Sur un seul téléphone** : on se passe le téléphone à tour de rôle.
 
 ## Les règles en bref
