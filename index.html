@@ -87,7 +87,7 @@
 
   /* ---- Tailles propres à un composant ---- */
   --slant:8px; --slant-sm:4px; --stripes:8px; --pip-w:24px; --pip-h:10px; --choice-h:72px; --pill-h:28px; --free-h:64px;
-  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --card-w:44px; --card-h:62px; --card-r:4px; --dur-flip:420ms; --pin:10px;
+  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --switch-w:128px; --card-w:44px; --card-h:62px; --card-r:4px; --dur-flip:420ms; --pin:10px;
   --wheel:144px; --card-w:50px; --card-h:72px; --reel-w:76px; --reel-h:86px; --ticket-h:150px; --chart-h:180px;
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
@@ -306,6 +306,13 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .free:active{transform:translate(2px,2px)}
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:var(--sp-3) var(--sp-4) calc(env(safe-area-inset-bottom) + var(--sp-3));background:var(--bg-scene);border-top:var(--border)}
 .dock>*{max-width:var(--dock-w);margin:0 auto}
+.dockrow{display:flex;gap:var(--sp-2);align-items:stretch}.dockrow>.btn{flex:1;min-width:0}
+/* Interrupteur Manche / Actions : deux moitiés, la moitié active prend le dégradé néon des sélecteurs. */
+.tswitch{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-1);width:var(--switch-w);min-height:var(--btn-h);padding:var(--sp-1);background:var(--surface-3);border:var(--border)}
+.tswitch span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:var(--fs-xs);font-weight:var(--fw-semibold);color:var(--ink-muted);transition:color var(--dur-fast)}
+.tswitch span .ico{width:16px;height:16px}
+.tswitch span.on{color:var(--on-neon);font-weight:var(--fw-bold);background:linear-gradient(90deg,var(--seg-a),var(--seg-b));clip-path:polygon(var(--slant-sm) 0,100% 0,calc(100% - var(--slant-sm)) 100%,0 100%)}
+.tswitch:active{transform:translate(1px,1px)}
 
 /* ===== Feuilles ===== */
 .sheet{position:fixed;inset:0;z-index:50;pointer-events:none;visibility:hidden;transition:visibility 0s linear var(--dur-base)}
@@ -646,7 +653,7 @@ const ICONS={gear:'M10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM10 2v3M10 15v3M2 10h3M15 1
   trophy:'M6 3h8v5a4 4 0 0 1-8 0zM6 5H3v2a3 3 0 0 0 3 3M14 5h3v2a3 3 0 0 1-3 3M10 12v3M6 17h8',
   lock:'M5 9h10v8H5zM7 9V6a3 3 0 0 1 6 0v3',copy:'M7 7h10v10H7zM13 7V3H3v10h4',share:'M10 13V3M6 7l4-4 4 4M4 11v6h12v-6',
   sound:'M3 8h3l4-4v12l-4-4H3zM13 7a4 4 0 0 1 0 6M15 4a8 8 0 0 1 0 12',mute:'M3 8h3l4-4v12l-4-4H3zM13 8l4 4M17 8l-4 4',
-  info:'M3 3h14v14H3zM10 9v5M10 6v1',book:'M3 4h5l2 2 2-2h5v12h-5l-2 2-2-2H3zM10 6v12',exit:'M9 3H3v14h6M12 6l4 4-4 4M16 10H7',arrow:'M8 4l6 6-6 6',prev:'M12 4l-6 6 6 6'};
+  info:'M3 3h14v14H3zM10 9v5M10 6v1',grid:'M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z',book:'M3 4h5l2 2 2-2h5v12h-5l-2 2-2-2H3zM10 6v12',exit:'M9 3H3v14h6M12 6l4 4-4 4M16 10H7',arrow:'M8 4l6 6-6 6',prev:'M12 4l-6 6 6 6'};
 function icon(n,label){return `<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" ${label?`role="img" aria-label="${label}"`:'aria-hidden="true" focusable="false"'}><path d="${ICONS[n]}"/></svg>`}
 function iconBtn(n,label,on){return `<button class="iconbtn" aria-label="${label}" onclick="${on}">${icon(n)}</button>`}
 /* Coin haut droit de chaque écran (sauf l'accueil) : règles et réglages ; en partie, aussi classement et quitter. */
@@ -888,7 +895,7 @@ const LEGENDS=[
 /* Associés du tour : un talent et un défaut. Chaque joueur en reçoit un nouveau à chaque tour (tous différents, jamais le même deux tours de suite si possible). */
 const CHARS=[
  {k:'banker',e:'🏦',n:'Le Banquier',t:'Emprunte à 2 % par tour au lieu de 4 %.',f:'Trop propre sur lui pour braquer quoi que ce soit.'},
- {k:'godfather',e:'🎩',n:'Le Parrain',t:'Te monte un petit réseau de trafic si tu n’en as pas.',f:'Toujours surveillé : +3 de police à chaque fin de tour.'},
+ {k:'godfather',e:'👑',n:'Le Parrain',t:'Te monte un petit réseau de trafic si tu n’en as pas.',f:'Toujours surveillé : +3 de police à chaque fin de tour.'},
  {k:'crook',e:'🃏',n:'L’Escroc',t:'Ses arnaques réussissent 20 points plus souvent.',f:'Quand une arnaque rate, la police prend +20 au lieu de +10.'},
  {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Les banques se méfient : ses emprunts coûtent 6 % par tour.'},
  {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2 et 5 positions ouvertes au lieu de 4.',f:'Aucune banque ne lui prête pour l’immobilier : pas d’achat à crédit.'},
@@ -981,13 +988,13 @@ function placeBid(zero){const p=cur(),a=G.auction;if(!a||!isMyTurn()||!(G.screen
   if(n>p.cash+old+.5){toast('Pas assez de cash pour cette offre.',1);return}
   p.cash+=old;p.bid=n?{id:a.id,amt:n}:null;p.cash-=n;sfx.coin();toast(n?'Offre déposée : '+fmt(n):'Offre retirée');forceClose();save();render()}
 function resolveAuction(add){const a=G.auction;if(!a)return;const bids=G.players.filter(q=>myBid(q)>0).sort((x,y)=>myBid(y)-myBid(x));
-  const w=bids[0];G.players.forEach(q=>{const b=myBid(q);if(b&&q!==w){q.cash+=b;add(q,'🔨 Enchère perdue, offre remboursée',0)}q.bid=null});
+  const w=bids[0];G.players.forEach(q=>{const b=myBid(q);if(b&&q!==w){q.cash+=b;add(q,'💸 Enchère perdue, offre remboursée',0)}q.bid=null});
   if(!w)return null;const price=bids[0]&&myBid(bids[0])||0;
   return {w,a};}
 function grantAuction(r,add){if(!r)return;const {w,a}=r;
   if(a.kind==='prop'){w.re=w.re||[];w.re.push({id:rid(5),c:a.c,t:a.t,paid:a.v})}
   else w.deals.push({name:'Collection d’art',pitch:'Achetée aux enchères',e:'🖼️',amt:a.v,mature:G.round+2,out:[[.25,.4,'était en partie fausse…'],[.5,1.2,'part au prix estimé : x1,2'],[.25,2.5,'contenait un chef-d’œuvre : x2,5 !']]});
-  add(w,`🔨 Remporte l’enchère : ${noEmo(a.title)}`,0);addFeed(`remporte l’enchère de la manche : ${noEmo(a.title)}`,w)}
+  add(w,`💸 Remporte l’enchère : ${noEmo(a.title)}`,0);addFeed(`remporte l’enchère de la manche : ${noEmo(a.title)}`,w)}
 /* ================= RUMEURS ================= */
 /* L'événement de la prochaine fin de manche est tiré à l'avance. Une rumeur l'annonce, mais elle peut se tromper. */
 function planEvent(){G.nextEv=Math.random()<.8?RI(0,EVENTS.length-1):-1;
@@ -996,7 +1003,7 @@ function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span c
 /* Bloc « cette manche » de l'écran de tour : rumeur, enchère, associé du tour et objectif secret. */
 function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
   return `${label('Cette manche')}<div class="list">${rumorHTML()}
-  ${a?`<${mine?'button':'div'} class="item${mine?'':' ro'}" ${mine?'onclick="openAuction()"':''}><span class="ic">🔨</span><span class="bd"><b>Enchère : ${noEmo(a.title)}</b><span class="small muted">Offre secrète, 0 PA · ${mb?'ton offre : <b class="gold num">'+fmt(mb)+'</b>':'minimum '+fmt(a.min)}</span></span>${mine?`<span class="rt muted">${icon('arrow')}</span>`:''}</${mine?'button':'div'}>`:''}
+  ${a?`<${mine?'button':'div'} class="item${mine?'':' ro'}" ${mine?'onclick="openAuction()"':''}><span class="ic">💸</span><span class="bd"><b>Enchère : ${noEmo(a.title)}</b><span class="small muted">Offre secrète, 0 PA · ${mb?'ton offre : <b class="gold num">'+fmt(mb)+'</b>':'minimum '+fmt(a.min)}</span></span>${mine?`<span class="rt muted">${icon('arrow')}</span>`:''}</${mine?'button':'div'}>`:''}
   ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>Associé du tour : ${cd.n}</b><span class="small muted">${cd.t} ${cd.f}</span></span></div>`:''}
   ${od&&mine?`<div class="item"><span class="ic">🎯</span><span class="bd"><b>Objectif secret</b><span class="small muted">${od.t} Réussi : +15 % de patrimoine à la fin.${od.ok(p)?' <b class="pos">Atteint pour l’instant.</b>':''}</span></span></div>`:''}</div>`}
 
@@ -1074,7 +1081,7 @@ function simSkip(i){if(!ON||!ON.host||G.screen!=='free')return;const q=G.players
   q.t={round:G.round,ap:0,apLeft:0,done:true,opps:[],acted:false,inCasino:false,casinoLeft:0,lawyer:false};addFeed('est absent : son tour est passé.',q);
   G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;simCheck();pubState();render()}
 /* Début de mon tour : carte Destin, police, opportunités. */
-function simStart(){if(!simFree()||simStarted())return;const p=me();if(!p)return;sfx.coin();haptic('turn');
+function simStart(){if(!simFree()||simStarted())return;const p=me();if(!p)return;sfx.coin();haptic('turn');turnTab='manche';
   p.t={round:G.round,ap:AP_MAX,acted:false,inCasino:false,casinoLeft:3,lawyer:false,opps:[],done:false};bj=null;scratch=null;
   const cards=[];p.inbox.forEach(m=>cards.push(m));p.inbox=[];
   if(p.jail>0)cards.push(jailCard(p));
@@ -1198,24 +1205,14 @@ function renderSetup(){
   <div class="seg">${[[8,'8 tours','Rapide'],[12,'12 tours','Normal'],[20,'20 tours','La soirée']].map(([v,l,s])=>`<button class="${setup.rounds===v?'on':''}" aria-pressed="${setup.rounds===v}" onclick="setup.rounds=${v};renderSetup()">${l}<small>${s}</small></button>`).join('')}</div></div>
   <div class="dock" data-z="dock">${B('Lancer la partie',{v:'primary',on:'newGame()'})}</div>`,'setup');
 }
-const RULES_BODY=`    <p>Chacun part avec la même somme. À ton tour, tu as <b>3 points d’action (PA)</b>. Chaque action en coûte : casino, trading, immobilier, startup, boulot ou coup bas = 1 PA ; créer une entreprise ou monter un réseau = 2 PA ; un braquage = <b>2 PA</b>.</p>
-    <p>À chaque tour, <b>3 opportunités</b> tombent : yacht saisi, tuyau d’initié, commissaire corrompu. À toi de choisir ce qui vaut tes PA.</p>
-    <p>La Bourse, la banque, le blanchiment et la vente de tes biens sont <b>gratuits</b>.</p>
-    <p><b>Trading</b> : tes positions (hausse ou baisse, levier jusqu’à x10, stop-loss, objectif) restent ouvertes d’un tour à l’autre. Lis les signaux (tendance, valorisation, analystes, résultats trimestriels) : ils donnent un avantage, pas une certitude.</p>
-    <p><b>Immobilier</b> : 7 villes américaines, chacune avec son niveau de prix, son rendement locatif et sa tendance, qui évoluent à chaque tour. Compare avant d’acheter : un studio à Detroit ne coûte que quelques milliers d’euros et rapporte beaucoup en loyers, une villa à New York compte surtout sur la hausse des prix. Un logement peut rester vide un tour.</p>
-    <p><b>Casinos</b> : du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). Pour entrer dans le casino suivant, cumule dans le casino actuel des gains égaux à sa mise max. Les pertes ne comptent pas.</p>
-    <p><b>En ligne, tout le monde joue en même temps.</b> Chacun joue son tour complet sur son téléphone, sans attendre les autres : casino, Bourse, immobilier, braquages, coups bas. Les coups bas tombent en direct chez la victime, et un duel au poker s’affiche sur les deux écrans. Quand tu as fini, touche « Finir mon tour » : la manche se ferme quand tout le monde a fini. Sur un seul téléphone, on joue chacun son tour.</p>
-    <p><b>Associé du tour</b> : à chaque tour, tu fais équipe avec un nouvel associé (Banquier, Parrain, Escroc, Flambeur, Trader, Promoteur), qui t’apporte un talent et un défaut pour ce tour seulement.</p>
-    <p><b>Objectif secret</b> : chacun reçoit un objectif pour toute la partie. Réussi à la fin : +15 % de patrimoine.</p>
-    <p><b>Enchère de la manche</b> : un lot par tour (un bien saisi, une collection d’art). Offre secrète, gratuite en PA ; la plus haute gagne, les autres sont remboursés.</p>
-    <p><b>Rumeurs</b> : l’événement de fin de manche est annoncé à l’avance… mais une rumeur peut être fausse.</p>
-    <p><b>Gros coups</b> : la machine à sous paie x500 sur trois 7, le grattage x10 000, et une <b>cagnotte commune</b> grossit avec les pertes de tout le monde au casino. Le dernier du classement peut tomber sur le <b>coup du siècle</b> (x8, une chance sur 4), et une opportunité légendaire tombe parfois (x10). Qui touche le gros lot devient la cible : police +10, coups bas moins chers contre lui.</p>
-    <p><b>Le premier du classement</b> attire la police (+5 par manche) et les coups bas contre lui coûtent moins cher. <b>Dernière manche à l’aveugle</b> : les fortunes des autres sont cachées jusqu’au journal final.</p>
-    <p><b>Startups</b> : équipe, traction et hype font le prix et les chances. Un audit révèle la vraie qualité. Suis les levées des bonnes, revends les autres.</p>
-    <p>Les braquages et le trafic rapportent de l’<b>argent sale</b> : il ne compte que pour moitié dans ton patrimoine, il attire la police et il est saisi si tu te fais arrêter. Blanchis-le via tes commerces (10 % de frais) ou chez le blanchisseur (30 %).</p>
-    <p>Les grosses cibles demandent de la <b>réputation</b> (braquages réussis) et une préparation payée d’avance. Un repérage (1 PA) augmente tes chances au tour suivant.</p>
-    <p>La <b>jauge de police</b> monte avec le crime : plus elle est haute, plus tu risques l’arrestation au début de ton tour.</p>
-    <p>À la fin, le plus gros <b>patrimoine net</b> gagne.</p>`;
+const RULES_BODY=`    <p><b>Le but</b> : finir avec le plus gros <b>patrimoine net</b>. Tout le monde part avec la même somme.</p>
+    <p><b>Ton tour</b> : <b>3 points d’action (PA)</b>. Casino, trading, immobilier, startup, boulot, coup bas : 1 PA. Entreprise, trafic, braquage : 2 PA. Bourse, banque, blanchiment et ventes sont gratuits. L’interrupteur en bas à gauche passe de l’écran <b>Manche</b> à l’écran <b>Actions</b>.</p>
+    <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un nouvel <b>associé</b> te donne un talent et un défaut pour ce tour, et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
+    <p><b>En ligne</b>, tout le monde joue son tour en même temps. Touche « Finir mon tour » quand tu as fini : la manche se ferme quand tout le monde a fini. Une partie publique apparaît dans « Rejoindre une partie », une privée se rejoint avec le code. Sur un seul téléphone, chacun son tour.</p>
+    <p><b>Placements</b> : en <b>trading</b>, tes positions (hausse ou baisse, levier, stop-loss) restent ouvertes d’un tour à l’autre. En <b>immobilier</b>, 7 villes sur la carte, chacune avec ses prix, ses loyers et sa tendance : Detroit est bon marché et rentable, New York cher et solide. Les <b>startups</b> lèvent des fonds ou meurent ; un audit révèle leur vraie qualité. Au <b>casino</b>, on débloque le suivant en cumulant des gains égaux à sa mise max.</p>
+    <p><b>Coups bas</b> : duel au <b>poker</b> (Texas Hold’em à mise égale, en direct sur les deux écrans), arnaque, ou balancer quelqu’un à la police. En ligne, la victime le voit tout de suite.</p>
+    <p><b>Crime</b> : braquages et trafic rapportent de l’<b>argent sale</b>, compté pour moitié et saisi en cas d’arrestation : blanchis-le. Les grosses cibles demandent de la réputation. Plus ta <b>jauge de police</b> est haute, plus tu risques la prison.</p>
+    <p><b>Retournements</b> : jackpots, cagnotte commune du casino, coup du siècle pour le dernier. Le premier attire la police et les coups bas. La dernière manche se joue à l’aveugle.</p>`;
 /* Pied de l'accueil et de la configuration : deux boutons explicites, centrés. */
 const FOOT_BTNS=`<div class="foot-btns">${B('Règles',{v:'secondary',inline:1,on:'openRules()'})}${B('Ligue',{v:'secondary',inline:1,on:'openLeague()'})}${B('Réglages',{v:'secondary',inline:1,on:'openSettings()'})}</div>`;
 /* Règles : fenêtre au centre de l'écran (pas une feuille qui monte, pas un bloc qui se déplie). */
@@ -1563,6 +1560,7 @@ function renderPass(){const p=cur();paint(passScreen(p,'Passe le téléphone à'
 function startTurn(){
   if(!G||G.screen!=='pass'||!isMyTurn())return;
   const p=cur();sfx.coin();haptic('turn');
+  turnTab='manche';
   if(G.resumeTurn){G.resumeTurn=false;G.screen='turn';render();return}
   if(G.mode==='sim'){/* phase des coups : les PA gardés, pas de nouvelle carte ni d'opportunité */
     G.acted=false;G.ap=(p.t&&p.t.apLeft)||0;G.inCasino=false;G.casinoLeft=0;G.lawyer=!!(p.t&&p.t.lawyer);G.opps=[];bj=null;
@@ -1653,9 +1651,8 @@ function renderTurn(){
     <div class="heat"><div class="lbl"><span>Police : ${heatLabel(p.heat)}</span><span class="num">${Math.round(p.heat)}/100</span></div><div class="bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p.heat)}" aria-label="Jauge de police"><i style="width:${p.heat}%"></i></div></div>
   </div>
   <div class="ap" data-z="ap"><div class="pips" aria-hidden="true">${Array.from({length:AP_MAX},(_,i)=>`<i class="${i<G.ap?'on':''}"></i>`).join('')}</div><span role="status">${apMsg}</span></div>
-  <div data-z="intel">${intelHTML(p,true)}</div>
-  <div data-z="opps">${opps.length?`${label('Opportunités du tour')}<div class="opps">${opps.map(oppHTML).join('')}</div>`:''}</div>
-  <div data-z="tiles">${label('Actions')}
+  ${turnTab==='manche'?`<div data-z="intel">${intelHTML(p,true)}</div>
+  <div data-z="opps">${opps.length?`${label('Opportunités du tour')}<div class="opps">${opps.map(oppHTML).join('')}</div>`:''}</div>`:`<div data-z="tiles">${label('Actions')}
   <div class="tiles">${MAIN.map(t=>{const live=t.k==='casino'&&G.inCasino&&G.casinoLeft>0;const minAp=t.k==='heist'||t.k==='biz'||t.k==='traf'?1:t.ap;
     if(t.k==='casino'&&G.pot>=1000)t={...t,s:'Cagnotte '+fmt(G.pot)};
     return `<button class="tile ${t.dark?'dark':''} ${!live&&G.ap<minAp?'used':''} ${live?'live':''}" onclick="${t.fn}" aria-label="${t.n}, ${t.s}, ${live?G.casinoLeft+' parties restantes':(t.cl||t.ap)+' PA'}${t.dark?', illégal':''}">${t.dark?'<span class="ill">Illégal</span>':''}<span class="c num">${live?G.casinoLeft+'/3':(t.cl||t.ap)+' PA'}</span><span class="e">${t.e}</span><span class="n">${t.n}</span><span class="s">${t.s}</span></button>`}).join('')}</div></div>
@@ -1665,9 +1662,15 @@ function renderTurn(){
     <button class="free" onclick="openBank()"><span>🏦</span>Banque</button>
     <button class="free ${p.dirty>0?'hot':''}" onclick="openLaunder()"><span>🧼</span>Blanchir</button>
     <button class="free" onclick="openAssets()"><span>💼</span>Biens</button>
-  </div></div>
-  <div class="dock" data-z="dock">${G.screen==='free'?B('Finir mon tour',{v:'primary',on:'endTurn()'}):G.acted?B('Terminer mon tour',{v:'primary',on:'confirmEnd()'}):B('Passer mon tour',{v:'secondary',on:'confirmEnd()'})}</div>`,'turn'+G.round+G.cur+G.screen);
+  </div></div>`}
+  <div class="dock" data-z="dock"><div class="dockrow">${turnSwitch()}${G.screen==='free'?B('Finir mon tour',{v:'primary',on:'endTurn()'}):G.acted?B('Terminer mon tour',{v:'primary',on:'confirmEnd()'}):B('Passer mon tour',{v:'secondary',on:'confirmEnd()'})}</div></div>`,'turn'+G.round+G.cur+G.screen);
 }
+/* Interrupteur des deux écrans du tour, en bas à gauche. */
+let turnTab='manche';
+function turnSwitch(){const m=turnTab==='manche';
+  return `<button class="tswitch" role="switch" aria-checked="${!m}" aria-label="Afficher ${m?'les actions':'la manche'}" onclick="setTurnTab('${m?'actions':'manche'}')">
+    <span class="${m?'on':''}">${icon('info')}Manche</span><span class="${m?'':'on'}">${icon('grid')}Actions</span></button>`}
+function setTurnTab(t){if(turnTab===t)return;turnTab=t;sfx.tick();haptic('action');render();window.scrollTo(0,0)}
 function confirmEnd(){if(busy)return;if(!G.acted){openSheet('Passer ton tour ?',`<p class="muted">Tu n’as utilisé aucun point d’action.</p>
   <div class="sheet-foot stack">${B('Passer mon tour',{v:'primary',on:'endTurn()'})}${B('Continuer à jouer',{v:'secondary',on:'closeSheet()'})}</div>`);return}endTurn()}
 function endTurn(force){
@@ -2477,7 +2480,7 @@ function endRound(){
       if(d.out)p.stats.biz+=v-d.amt;else p.stats.vc+=v-d.amt;p.deals.splice(i,1);add(p,`${d.e} ${d.name} ${txt}`,v)}}
     const dh=dirtyHeat(p.dirty||0);if(dh){p.heat=clamp(p.heat+dh,0,100);add(p,`💵 Argent sale qui dort : 🚨 +${dh}`,0)}
     p.heat=clamp(p.heat-7,0,100);p.laund=0;
-    if(chr(p)==='godfather'){p.heat=clamp(p.heat+3,0,100);add(p,'🎩 Le Parrain est surveillé (+3)',0)}
+    if(chr(p)==='godfather'){p.heat=clamp(p.heat+3,0,100);add(p,'👑 Le Parrain est surveillé (+3)',0)}
     if(p===lead){p.heat=clamp(p.heat+5,0,100);add(p,'👑 En tête du classement : la police s’intéresse à toi (+5)',0)}
     if(p.shark&&G.round>=p.shark.due){const amt=p.shark.amt,got=takeLiquid(p,amt),rest=amt-got;p.shark=null;
       add(p,'🦈 L’usurier se sert',-got);if(rest>0){p.debt+=rest*1.5;add(p,`🦈 Il manquait ${fmt(rest)} : +${fmt(rest*1.5)} de dette`,0)}}
