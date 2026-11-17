@@ -347,7 +347,7 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .item .bd{flex:1;min-width:0}
 .item .bd>b{display:block;font-size:var(--fs-md);font-weight:var(--fw-semibold)}
 .item .bd>.small{display:block}
-.item .pro>span{display:block}.item .pro .pos{color:var(--gain)}.item .pro .neg{color:var(--loss)}
+.item .pro>span{display:block;color:var(--ink)}
 .item .rt{flex:none;text-align:right}
 .item .rank{flex:none;width:var(--sp-6);font-weight:var(--fw-bold);color:var(--cash)}
 .item.lock{opacity:.5}
@@ -1009,7 +1009,7 @@ function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span c
 function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
   return `${label('Infos du tour')}<div class="list">${rumorHTML()}
   ${a?`<${mine?'button':'div'} class="item${mine?'':' ro'}" ${mine?'onclick="openAuction()"':''}><span class="ic">💸</span><span class="bd"><b>Enchère : ${noEmo(a.title)}</b><span class="small muted">Offre secrète, 0 PA · ${mb?'ton offre : <b class="gold num">'+fmt(mb)+'</b>':'minimum '+fmt(a.min)}</span></span>${mine?`<span class="rt muted">${icon('arrow')}</span>`:''}</${mine?'button':'div'}>`:''}
-  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>Associé : ${cd.n}</b><span class="small pro"><span class="pos">+ ${cd.t}</span><span class="neg">− ${cd.f}</span></span></span></div>`:''}
+  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>Associé : ${cd.n}</b><span class="small pro"><span>+ ${cd.t}</span><span>− ${cd.f}</span></span></span></div>`:''}
   ${od&&mine?`<div class="item"><span class="ic">🎯</span><span class="bd"><b>Objectif secret</b><span class="small muted">${od.t} Réussi : +15 % de patrimoine à la fin.${od.ok(p)?' <b class="pos">Atteint pour l’instant.</b>':''}</span></span></div>`:''}</div>`}
 
 /* ================= STATE ================= */
@@ -1212,7 +1212,7 @@ function renderSetup(){
 }
 const RULES_BODY=`    <p><b>Le but</b> : finir avec le plus gros <b>patrimoine net</b>. Tout le monde part avec la même somme.</p>
     <p><b>Ton tour</b> : <b>3 points d’action (PA)</b>. Casino, trading, immobilier, startup, boulot, coup bas : 1 PA. Entreprise, trafic, braquage : 2 PA. Bourse, banque, blanchiment et ventes sont gratuits. L’interrupteur en bas à gauche passe de l’écran <b>Manche</b> à l’écran <b>Actions</b>.</p>
-    <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un nouvel <b>associé</b> te donne un talent (en vert) et un défaut (en rouge) pour ce tour, et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
+    <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un nouvel <b>associé</b> te donne un talent (+) et un défaut (−) pour ce tour, et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
     <p><b>En ligne</b>, tout le monde joue son tour en même temps. Touche « Finir mon tour » quand tu as fini : la manche se ferme quand tout le monde a fini. Une partie publique apparaît dans « Rejoindre une partie », une privée se rejoint avec le code. Sur un seul téléphone, chacun son tour.</p>
     <p><b>Placements</b> : en <b>trading</b>, tes positions (hausse ou baisse, levier, stop-loss) restent ouvertes d’un tour à l’autre. En <b>immobilier</b>, 7 villes sur la carte, chacune avec ses prix, ses loyers et sa tendance : Detroit est bon marché et rentable, New York cher et solide. Les <b>startups</b> lèvent des fonds ou meurent ; un audit révèle leur vraie qualité. Au <b>casino</b>, on débloque le suivant en cumulant des gains égaux à sa mise max.</p>
     <p><b>Coups bas</b> : duel au <b>poker</b> (Texas Hold’em à mise égale, en direct sur les deux écrans), arnaque, ou balancer quelqu’un à la police. En ligne, la victime le voit tout de suite.</p>
@@ -1661,7 +1661,7 @@ function renderTurn(){
   <div class="tiles">${MAIN.map(t=>{const live=t.k==='casino'&&G.inCasino&&G.casinoLeft>0;const minAp=t.k==='heist'||t.k==='biz'||t.k==='traf'?1:t.ap;
     if(t.k==='casino'&&G.pot>=1000)t={...t,s:'Cagnotte '+fmt(G.pot)};
     return `<button class="tile ${t.dark?'dark':''} ${!live&&G.ap<minAp?'used':''} ${live?'live':''}" onclick="${t.fn}" aria-label="${t.n}, ${t.s}, ${live?G.casinoLeft+' parties restantes':(t.cl||t.ap)+' PA'}${t.dark?', illégal':''}">${t.dark?'<span class="ill">Illégal</span>':''}<span class="c num">${live?G.casinoLeft+'/3':(t.cl||t.ap)+' PA'}</span><span class="e">${t.e}</span><span class="n">${t.n}</span><span class="s">${t.s}</span></button>`}).join('')}</div></div>
-  <div data-z="free">${label('Gratuit')}
+  <div data-z="free">${label('Gestion · sans PA')}
   <div class="freebar">
     <button class="free" onclick="openMarket()"><span>📈</span>Bourse</button>
     <button class="free" onclick="openBank()"><span>🏦</span>Banque</button>
