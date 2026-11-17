@@ -1215,7 +1215,7 @@ const RULES_BODY=`    <p><b>Le but</b> : finir avec le plus gros <b>patrimoine n
     <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un nouvel <b>associé</b> te donne un talent (+) et un défaut (−) pour ce tour, et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
     <p><b>En ligne</b>, tout le monde joue son tour en même temps. Touche « Finir mon tour » quand tu as fini : la manche se ferme quand tout le monde a fini. Une partie publique apparaît dans « Rejoindre une partie », une privée se rejoint avec le code. Sur un seul téléphone, chacun son tour.</p>
     <p><b>Placements</b> : en <b>trading</b>, tes positions (hausse ou baisse, levier, stop-loss) restent ouvertes d’un tour à l’autre. En <b>immobilier</b>, 7 villes sur la carte, chacune avec ses prix, ses loyers et sa tendance : Detroit est bon marché et rentable, New York cher et solide. Les <b>startups</b> lèvent des fonds ou meurent ; un audit révèle leur vraie qualité. Au <b>casino</b>, on débloque le suivant en cumulant des gains égaux à sa mise max.</p>
-    <p><b>Coups bas</b> : duel au <b>poker</b> (Texas Hold’em à mise égale, en direct sur les deux écrans), arnaque, ou balancer quelqu’un à la police. En ligne, la victime le voit tout de suite.</p>
+    <p><b>Coups bas</b> (un seul par tour) : duel au <b>poker</b> (Texas Hold’em à mise égale, en direct sur les deux écrans), arnaque, ou balancer quelqu’un à la police. En ligne, la victime le voit tout de suite.</p>
     <p><b>Crime</b> : braquages et trafic rapportent de l’<b>argent sale</b>, compté pour moitié et saisi en cas d’arrestation : blanchis-le. Les grosses cibles demandent de la réputation. Plus ta <b>jauge de police</b> est haute, plus tu risques la prison.</p>
     <p><b>Retournements</b> : jackpots, cagnotte commune du casino, coup du siècle pour le dernier. Le premier attire la police et les coups bas. La dernière manche se joue à l’aveugle.</p>`;
 /* Pied de l'accueil et de la configuration : deux boutons explicites, centrés. */
@@ -1660,7 +1660,7 @@ function renderTurn(){
   <div data-z="opps">${opps.length?`${label('Opportunités du tour')}<div class="opps">${opps.map(oppHTML).join('')}</div>`:''}</div>`:`<div data-z="tiles">${label('Actions')}
   <div class="tiles">${MAIN.map(t=>{const live=t.k==='casino'&&G.inCasino&&G.casinoLeft>0;const minAp=t.k==='heist'||t.k==='biz'||t.k==='traf'?1:t.ap;
     if(t.k==='casino'&&G.pot>=1000)t={...t,s:'Cagnotte '+fmt(G.pot)};
-    return `<button class="tile ${t.dark?'dark':''} ${!live&&G.ap<minAp?'used':''} ${live?'live':''}" onclick="${t.fn}" aria-label="${t.n}, ${t.s}, ${live?G.casinoLeft+' parties restantes':(t.cl||t.ap)+' PA'}${t.dark?', illégal':''}">${t.dark?'<span class="ill">Illégal</span>':''}<span class="c num">${live?G.casinoLeft+'/3':(t.cl||t.ap)+' PA'}</span><span class="e">${t.e}</span><span class="n">${t.n}</span><span class="s">${t.s}</span></button>`}).join('')}</div></div>
+    return `<button class="tile ${t.dark?'dark':''} ${!live&&(G.ap<minAp||t.k==='dirty'&&cbDone(p))?'used':''} ${live?'live':''}" onclick="${t.fn}" aria-label="${t.n}, ${t.s}, ${live?G.casinoLeft+' parties restantes':(t.cl||t.ap)+' PA'}${t.dark?', illégal':''}">${t.dark?'<span class="ill">Illégal</span>':''}<span class="c num">${live?G.casinoLeft+'/3':(t.cl||t.ap)+' PA'}</span><span class="e">${t.e}</span><span class="n">${t.n}</span><span class="s">${t.s}</span></button>`}).join('')}</div></div>
   <div data-z="free">${label('Gestion · sans PA')}
   <div class="freebar">
     <button class="free" onclick="openMarket()"><span>📈</span>Bourse</button>
@@ -2284,7 +2284,10 @@ function launder(mode){const p=cur();let n=Math.min(getAmt(mode?'lnB':'lnA'),p.d
   addFeed(mode?'passe chez le blanchisseur':'fait tourner ses commerces à plein régime');sfx.coin();toast(`${fmt(n-fee)} blanchis (frais ${fmt(fee)})`);after()}
 /* ================= DIRTY TRICKS ================= */
 let dt={mode:'duel',target:null};
-function openDirty(){if(!hasAP(1))return;
+/* Un seul coup bas par tour et par joueur (noté sur sa fiche). */
+function cbDone(p){return !!p&&p.cbR===G.round}
+function cbUse(p){if(cbDone(p)){toast('Un seul coup bas par tour.',1);return false}return true}
+function openDirty(){if(!cbUse(cur())||!hasAP(1))return;
   const others=G.players.filter(o=>o.id!==cur().id);if(dt.target==null||dt.target===cur().id||!G.players[dt.target])dt.target=others[0].id;
   openSheet('Coups bas',dirtyHTML(),()=>setBody(dirtyHTML()))}
 function dirtyHTML(){const p=cur(),t=G.players[dt.target],others=G.players.filter(o=>o.id!==p.id);
@@ -2297,11 +2300,11 @@ function dirtyHTML(){const p=cur(),t=G.players[dt.target],others=G.players.filte
   if(dt.mode==='scam')foot=`<div class="sheet-foot">${B('Arnaquer '+esc(t.name),{v:'danger',on:'doScam()',cost:'1 PA',why:whyNot(1,0,p)})}</div>`;
   if(dt.mode==='snitch')foot=`<div class="sheet-foot">${B('Balancer '+esc(t.name),{v:'danger',on:'doSnitch()',cost:fmt(snitchCost(t))+' · 1 PA',why:snitched(t)?'Déjà balancé ce tour-ci':whyNot(1,snitchCost(t),p)})}</div>`;
   const markNote=isMark(t)?note(`${esc(t.name)} est <b>la cible du moment</b> (en tête ou vient de toucher le gros lot) : les coups bas contre lui coûtent moins cher et réussissent plus souvent.`,'mt-3'):'';
-  return `<h3 class="sec">Le coup</h3><div class="list ill">${modes.map(([k,e,l,d])=>`<button class="item pick ${dt.mode===k?'sel':''}" aria-pressed="${dt.mode===k}" onclick="dt.mode='${k}';refreshSheet()"><span class="ic">${e}</span><span class="bd"><b>${l}</b><span class="small muted">${d}</span></span><span class="rt small muted">1 PA</span></button>`).join('')}</div>
-  <h3 class="sec">Victime</h3><div class="seg">${others.map(o=>`<button class="${dt.target===o.id?'on':''}" aria-pressed="${dt.target===o.id}" onclick="dt.target=${o.id};refreshSheet()">${o.avatar} ${esc(o.name)}<small class="num">${blind(o)?'?':fmt(o.cash)}</small>${isMark(o)?'<small>cible</small>':''}</button>`).join('')}</div>${markNote}${foot}`}
+  return `${note('Un seul coup bas par tour.')}<h3 class="sec">La victime</h3><div class="seg">${others.map(o=>`<button class="${dt.target===o.id?'on':''}" aria-pressed="${dt.target===o.id}" onclick="dt.target=${o.id};refreshSheet()">${o.avatar} ${esc(o.name)}<small class="num">${blind(o)?'?':fmt(o.cash)}</small>${isMark(o)?'<small>cible</small>':''}</button>`).join('')}</div>${markNote}
+  <h3 class="sec">Le coup</h3><div class="list ill">${modes.map(([k,e,l,d])=>`<button class="item pick ${dt.mode===k?'sel':''}" aria-pressed="${dt.mode===k}" onclick="dt.mode='${k}';refreshSheet()"><span class="ic">${e}</span><span class="bd"><b>${l}</b><span class="small muted">${d}</span></span><span class="rt small muted">1 PA</span></button>`).join('')}</div>${foot}`}
 function startDuel(){const p=cur(),t=G.players[dt.target],n=Math.floor(getAmt('duelAmt'));if(busy)return;if(n<=0){toast('Choisis une mise.',1);return}
   if(n>p.cash||n>t.cash){toast('La mise dépasse le cash de l’un de vous deux.',1);return}
-  if(!useAP(1))return;
+  if(!cbUse(p)||!useAP(1))return;p.cbR=G.round;
   const deck=pkDeal(),r=pkResult(deck),d=r>0?n:r<0?-n:0;
   p.cash+=d;
   const show={id:rid(8),a:pkSeat(p),b:pkSeat(t),deck,stake:n};
@@ -2311,7 +2314,7 @@ function startDuel(){const p=cur(),t=G.players[dt.target],n=Math.floor(getAmt('d
     if(!r)addFeed(`fait match nul au poker contre ${esc(t.name)} (${ha} partout)`,p);
     else addFeed(`remporte ${fmt(n)} au poker contre ${esc((r>0?t:p).name)} (${r>0?ha:hb} contre ${r>0?hb:ha})`,r>0?p:t);
     save();render()})}
-function doScam(){if(busy||!useAP(1))return;const p=cur(),t=G.players[dt.target];let html;
+function doScam(){const p=cur(),t=G.players[dt.target];if(busy||!cbUse(p)||!useAP(1))return;p.cbR=G.round;let html;
   if(Math.random()<Math.min(.85,(isMark(t)?.65:.5)+(chr(p)==='crook'?.2:0))){const x=Math.round(liquid(t)*R(.08,.2));p.cash+=x;p.stats.scam+=x;p.stats.scams=(p.stats.scams||0)+1;
     hitPlayer(t,{take:x,card:{k:'Mauvaise nouvelle',e:'🃏',t:'Tu t’es fait arnaquer',bad:1,d:`Un faux placement en or « garanti » : ${esc(p.name)} t’a eu en beauté.`,fx:fmt(-x)}});
     addFeed(`arnaque ${esc(t.name)} et lui soutire ${fmt(x)}`);
@@ -2325,7 +2328,7 @@ function doScam(){if(busy||!useAP(1))return;const p=cur(),t=G.players[dt.target]
 function snitchCost(t){return niceRound(Math.max(3000,netWorth(t)*.02)*(isMark(t)?.5:1))}
 function snitched(t){const p=cur();return t.snR===G.round||!!(p&&p.snd&&p.snd[t.id]===G.round)}
 function doSnitch(){const p=cur(),t=G.players[dt.target],c=snitchCost(t);if(snitched(t)){toast('Déjà balancé ce tour-ci.',1);return}
-  if(!canPay(p,c)||!useAP(1))return;p.cash-=c;p.snd=p.snd||{};p.snd[t.id]=G.round;
+  if(!cbUse(p)||!canPay(p,c)||!useAP(1))return;p.cbR=G.round;p.cash-=c;p.snd=p.snd||{};p.snd[t.id]=G.round;
   hitPlayer(t,{heat:35,snR:G.round,card:{k:'Police',e:'🐀',t:'Quelqu’un t’a balancé',bad:1,d:'Un tuyau anonyme est arrivé au commissariat. Qui parmi tes « amis » a fait ça ?',fx:'Police +35'}});
   addFeed('Un tuyau anonyme vient d’arriver au commissariat : quelqu’un a été balancé.',null);
   $('#shBody').innerHTML=`${resBox(1,`C’est fait. ${esc(t.name)} ne saura jamais que c’était toi, sauf si tu craques.`)}${B('Fermer',{v:'secondary',on:'closeSheet()'})}`;sfx.coin();save();render()}
