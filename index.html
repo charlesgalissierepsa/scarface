@@ -1850,12 +1850,6 @@ function signalsHTML(sym){const a=asset(sym),d=adef(sym),t=trendOf(a),v=valuatio
   <div class="kv"><span>Volatilité</span><span>${d.vol>.3?'extrême':d.vol>.15?'élevée':'modérée'}</span></div>
   ${a.earn?note('<b>Résultats trimestriels ce tour</b> : gros mouvement attendu, dans un sens ou dans l’autre.','warn mt-2'):''}
   </div>`}
-const MKT_HELP=`<details class="rules"><summary>Comment lire le marché</summary>
-  <p><b>Tendance</b> : les actifs traversent des phases haussières ou baissières qui durent souvent plusieurs tours, jusqu’à ce qu’elles se retournent.</p>
-  <p><b>Valorisation</b> : un actif sous-évalué a tendance à remonter vers sa juste valeur, un actif surévalué à redescendre. L’estimation est approximative.</p>
-  <p><b>Analystes</b> : ils devinent la phase du prochain tour, mais se trompent à peu près une fois sur deux : un indice parmi d’autres, jamais une certitude.</p>
-  <p><b>Résultats trimestriels</b> : annoncés un tour à l’avance, ils provoquent de gros mouvements. Parfait pour parier, dangereux avec du levier.</p>
-  <p>Quand plusieurs signaux vont dans le même sens, tes chances sont meilleures. Rien n’est jamais garanti.</p></details>`;
 /* ================= TRADING (positions qui durent) ================= */
 const LEVS=[1,2,3,5,10], OPEN_FEE=.004, FUND=.015, MAINT=.1, MAX_POS=4;
 let tr={sym:'NEO',dir:1,lev:3,sl:.5,tp:0};
@@ -1879,7 +1873,7 @@ const RO_NOTE=note('<b>Mode consultation</b> : prépare ton prochain tour. Tu po
 function assetTabs(){return `<div class="tabs" role="tablist">${ASSETS.map(x=>`<button role="tab" aria-selected="${tr.sym===x.sym}" class="${tr.sym===x.sym?'on':''}" onclick="tr.sym='${x.sym}';refreshSheet()">${x.e} ${x.name}${asset(x.sym).earn?'<span class="tag p">Résultats</span>':''}</button>`).join('')}</div>`}
 function tradeHTML(){if(ro()){const v=viewer(),ps=v.pos||[];
     return `${RO_NOTE}${ps.length?`<h3 class="sec">Tes positions <span class="num">(${ps.length}/${MAX_POS})</span></h3><div class="list">${ps.map(o=>posHTML(o,false)).join('')}</div>`:'<p class="muted small">Tu n’as aucune position ouverte.</p>'}
-    <h3 class="sec">Signaux du marché</h3>${assetTabs()}${signalsHTML(tr.sym)}${MKT_HELP}`}
+    <h3 class="sec">Signaux du marché</h3>${assetTabs()}${signalsHTML(tr.sym)}`}
   const p=cur(),pos=p.pos||[],room=Math.max(0,tradeCap(p)-notional(p)),maxM=Math.max(0,Math.floor(Math.min(p.cash/(1+tr.lev*OPEN_FEE),room/tr.lev)));
   const lq=(1-MAINT)/tr.lev*100,fund=(tr.lev>1||tr.dir<0)?FUND*tr.lev*100:0,f1=x=>x.toFixed(1).replace('.',',');
   const why=G.ap<1?'Plus de points d’action':pos.length>=MAX_POS?`Maximum ${MAX_POS} positions ouvertes`:maxM<100?'Pas assez de cash ou d’exposition disponible':'';
@@ -1887,7 +1881,7 @@ function tradeHTML(){if(ro()){const v=viewer(),ps=v.pos||[];
   ${pos.length?`<h3 class="sec">Tes positions <span class="num">(${pos.length}/${MAX_POS})</span></h3><div class="list">${pos.map(o=>posHTML(o,true)).join('')}</div>`:''}
   <h3 class="sec">Nouvelle position</h3>
   ${assetTabs()}
-  ${signalsHTML(tr.sym)}${MKT_HELP}
+  ${signalsHTML(tr.sym)}
   <h3 class="sec">Sens</h3><div class="seg"><button class="${tr.dir===1?'on':''}" aria-pressed="${tr.dir===1}" onclick="tr.dir=1;refreshSheet()">Hausse<small>long</small></button><button class="${tr.dir===-1?'on':''}" aria-pressed="${tr.dir===-1}" onclick="tr.dir=-1;refreshSheet()">Baisse<small>short</small></button></div>
   <h3 class="sec">Levier</h3><div class="seg">${LEVS.map(l=>`<button class="${tr.lev===l?'on':''} num" aria-pressed="${tr.lev===l}" onclick="tr.lev=${l};refreshSheet()">x${l}</button>`).join('')}</div>
   <h3 class="sec">Stop-loss</h3><div class="seg">${[[0,'Aucun'],[.25,'−25 %'],[.5,'−50 %']].map(([v,l])=>`<button class="${tr.sl===v?'on':''}" aria-pressed="${tr.sl===v}" onclick="tr.sl=${v};refreshSheet()"><span class="num">${l}</span><small>${v?'de la mise':'risqué'}</small></button>`).join('')}</div>
@@ -1936,7 +1930,7 @@ function marketHTML(){const p=viewer(),RO=ro();
   if(mSel){const a=asset(mSel),d=adef(mSel),q=p.stocks[mSel]||0,v=q*a.price,cost=p.cost[mSel]||0;
     return `${B(icon('prev')+'Tous les actifs',{v:'text',inline:1,on:'mSel=null;refreshSheet()'})}
     <div class="offer"><div class="head"><span class="e">${d.e}</span><div><b>${d.name}</b><div class="muted small">${d.crypto?'Crypto':'Action'} · ${d.tk||d.sym}</div></div></div></div>
-    <p class="muted small">${d.desc}</p>${signalsHTML(mSel)}${MKT_HELP}
+    <p class="muted small">${d.desc}</p>${signalsHTML(mSel)}
     <div class="panel tight mt-3"><div class="kv"><span>Tu détiens</span><b class="num">${fmt(v)}</b></div><div class="kv"><span>Investi</span><span class="num">${fmt(cost)}</span></div><div class="kv"><span>Plus ou moins-value</span><b class="${v-cost>=0?'pos':'neg'} num">${fmt(v-cost,true)}</b></div></div>
     ${RO?'':`<h3 class="sec">Acheter</h3>${amt('buyAmt',p.cash,Math.min(1000,p.cash))}<div class="mt-3">${B('Acheter '+d.name,{v:'secondary',on:'buyAsset()',why:p.cash<=0?'Plus de cash':''})}</div>
     ${q>0?`<h3 class="sec">Vendre</h3>${amt('sellAmt',v,v)}<div class="mt-3">${B('Vendre '+d.name,{v:'secondary',on:'sellAsset()'})}</div>`:''}
