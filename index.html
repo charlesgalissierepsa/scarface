@@ -3378,9 +3378,13 @@ function botSuQ(p,s){if(suAudited(p,s)||suOnBoard(p,s))return s.q;const lv=blv(p
 function botSuMu(s,q){return -.11+.2*q-.045*suStage(s.V)+.03*(Math.round(s.team)-3)+.07*suReg(s)}
 function botVC(p,avail,left){const lv=blv(p),out=[],h=Math.min(left,8),room=p.cash-botReserve(p);if(!G.su||room<500)return out;
   suLive().forEach(s=>{
-    if(lv>=2&&!suAudited(p,s)&&s.raise&&!s.raise.down&&suStage(s.V)<=1&&suAuditCost(p,s)<=room*(lv>=3?.06:.03))botDo('🔍',{},()=>suAudit(s.id));
+    /* audit seulement si la startup a l'air prometteuse et que le ticket prévu justifie son prix */
+    if(lv>=2&&!suAudited(p,s)&&s.raise&&!s.raise.down&&suStage(s.V)<=1){const plan=Math.min(s.raise.T*(lv>=3?.6:.3),avail*(lv>=3?.15:.1),room),c=suAuditCost(p,s);
+      if(c<=room*(lv>=3?.06:.03)&&c<=plan*.08&&(lv<3||botSuQ(p,s)>=.4))botDo('🔍',{},()=>suAudit(s.id))}
     const q=botSuQ(p,s),d=suHold(p,s.id),mu=botSuMu(s,q);
-    if(s.raise&&!suOrdOf(p,s,'raise').length){const n=Math.floor(Math.min(s.raise.T*(lv>=3?.6:.3),avail*(lv>=3?.15:.1),room));
+    /* le Difficile n'entre dans une levée que s'il connaît le vrai potentiel (audit ou siège au conseil) et qu'il est bon */
+    const known=suAudited(p,s)||suOnBoard(p,s);
+    if(s.raise&&!suOrdOf(p,s,'raise').length&&!(lv>=3&&(!known||q<.6))){const n=Math.floor(Math.min(s.raise.T*(lv>=3?.6:.3),avail*(lv>=3?.15:.1),room));
       if(n>=suMinTicket(s)){const pd=clamp(.55-.8*q+(s.raise.down?.2:0),.02,.9);
         let v=n*((1-pd)*Math.exp(mu*h)*(s.V/s.raise.pre)*1.1-1);if(lv===1)v=v*R(.2,1.5)+R(0,1500);
         out.push({k:'su:'+s.id,ap:1,v,go:()=>botDo(s.e,{su_amt:n},()=>suInvest(s.id))})}}
