@@ -1148,7 +1148,7 @@ function renderWaitFree(){const p=me(),feed=(G.feed||[]).slice().reverse().slice
     <button class="free" onclick="openImmo()"><span>🌴</span>Immobilier</button>
     <button class="free" onclick="openVC()"><span>🦄</span>Startups</button></div></div>
   <div data-z="feed">${label('Ce qui se passe')}<div class="list">${feed.map(f=>`<div class="item"><span class="bd small">${f.t}</span></div>`).join('')}</div></div>
-  <div class="dock" data-z="dock"><button class="btn btn-secondary" disabled aria-live="polite">En attente de ${simDoneCount()}/${G.players.length}</button></div>`,'waitfree'+G.round)}
+  <div class="dock" data-z="dock"><button class="btn btn-secondary" disabled aria-live="polite">En attente de ${G.players.length-simDoneCount()}/${G.players.length}</button></div>`,'waitfree'+G.round)}
 function isMyTurn(){if(!ON)return true;if(!G)return false;if(G.screen==='free'){const m=me();return !!m&&!(m.t&&m.t.round===G.round&&m.t.done)}
   return !!(G.players[G.cur]&&G.players[G.cur].uid===UID)}
 function me(){return G&&ON?G.players.find(p=>p.uid===UID):null}
