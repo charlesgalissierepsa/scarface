@@ -11,7 +11,7 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
 - **Parties publiques ou privées** : dans le salon, l'hôte choisit. Une partie publique apparaît dans « Rejoindre une
   partie » (« Partie de … »), il suffit de la toucher ; une partie privée ne se rejoint qu'avec le code.
 - **Sur un seul téléphone** : on se passe le téléphone à tour de rôle.
-- **Seul contre l’ordinateur** : sans connexion, contre 1 à 7 adversaires (jusqu'à 8 joueurs, en ligne et sur un téléphone aussi). Chacun a un niveau (Facile, Moyen, Difficile) et un caractère tiré au sort (prudent, flambeur, mafieux, trader). Les ordinateurs jouent avec les mêmes règles que les humains, sans connaître l’avenir, et racontent leur tour à l’écran. Les parties en solo ne comptent pas dans la ligue.
+- **Seul contre l’ordinateur** : sans connexion, contre 1 à 7 adversaires (jusqu'à 8 joueurs, en ligne et sur un téléphone aussi). Chacun a un niveau (Facile, Moyen, Difficile) et un caractère tiré au sort (prudent, flambeur, mafieux, trader). Les ordinateurs jouent avec les mêmes règles que les humains, sans connaître l’avenir, et racontent leur tour à l’écran.
 
 ## Comptes joueurs
 
@@ -19,6 +19,8 @@ La première page propose trois entrées :
 - **Jouer en tant qu’invité** : un pseudo est attribué (SCAR-123456) et ne se modifie pas. Les statistiques sont gardées sur ce téléphone ; l’invité peut ensuite créer un vrai compte en les gardant.
 - **S’inscrire** : pseudo unique (4 à 14 caractères), adresse email et mot de passe.
 - **Se connecter** : avec le pseudo ou l’email, et le mot de passe.
+
+Les parties en ligne et en solo comptent dans les statistiques du compte ; une partie à plusieurs sur un seul téléphone n’y compte pas. Un joueur inscrit peut changer son mot de passe dans les réglages.
 
 Les comptes et les statistiques sont gérés par Supabase (projet « scarface »). La structure de la base est dans `supabase/migrations/` et la fonction de connexion par pseudo dans `supabase/functions/login/`. Sans réseau, on peut toujours jouer en invité, sans statistiques.
 
@@ -60,7 +62,7 @@ Les comptes et les statistiques sont gérés par Supabase (projet « scarface »
   - En ligne, chaque joueur ne modifie que sa fiche (ordres, votes, mentorat) ; l'hôte applique tout en fin de manche.
 - **Casinos à paliers** : six casinos, du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). On débloque le
   suivant en cumulant, dans le casino actuel, des gains égaux à sa mise max. Les pertes ne comptent pas.
-- **Après la partie** : revanche en un clic, ligue entre potes (classement cumulé sur le téléphone) et carte de fin
+- **Après la partie** : revanche en un clic et carte de fin
   à partager dans le groupe.
 - **Duel au poker** (coup bas) : une main de Texas Hold'em à mise égale, affichée en direct sur les deux écrans ;
   la meilleure main de 5 cartes parmi 7 rafle le pot.
