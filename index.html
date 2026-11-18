@@ -2817,17 +2817,20 @@ function renderAuth(){const t=AUTH.tab,up=!!(ACC&&ACC.guest&&!ACC.local);
   else if(t==='signup')body=`<h2 class="mt-6 mb-3">${up?'Crée ton compte':'S’inscrire'}</h2>
     ${up?note(`Tu gardes tes statistiques d’invité (<b>${esc(ACC.username)}</b>) et tu choisis ton vrai pseudo.`,'mb-3'):''}<div class="authform">
     ${f('authName','text','Pseudo (4 caractères minimum)','name',';checkName()')}<div class="fhint ${AUTH.nameSt==='ok'?'pos':AUTH.nameSt?'neg':''}" id="nameSt" role="status">${nameStTxt()}</div>
-    ${f('authEmail','email','Adresse email','email')}${f('authPw','password','Mot de passe (6 caractères minimum)','pw')}
+    ${f('authEmail','email','Adresse email','email')}${f('authPw','password','Mot de passe (6 caractères minimum)','pw',';checkPw()')}${pwHint()}
     <div class="mt-2">${B(AUTH.busy?'Création…':'Créer mon compte',{v:'primary',on:'doSignup()',quiet:1,why:AUTH.busy?'…':''})}</div>
     <div class="row">${back}</div></div>`;
   else if(t==='reset')body=`<h2 class="mt-6 mb-3">Nouveau mot de passe</h2><div class="authform">
-    ${f('authPw','password','Nouveau mot de passe (6 caractères minimum)','pw')}
+    ${f('authPw','password','Nouveau mot de passe (6 caractères minimum)','pw',';checkPw()')}${pwHint()}
     <div class="mt-2">${B('Enregistrer',{v:'primary',on:'doReset()'})}</div></div>`;
   paint(`<div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">The world is yours</span></div>
   <div data-z="auth">${body}</div>
   <div data-z="msg">${AUTH.err?`<div class="err" role="alert">${AUTH.err}</div>`:''}${AUTH.ok?`<div class="panel mt-3" role="status">${AUTH.ok}</div>`:''}</div>
   <div data-z="rules">${t?'':FOOT_BTNS}</div>`,'auth'+(t||''));
   flickLogo()}
+/* Mot de passe : au moins 6 caractères, indiqué en direct sous le champ. */
+function pwHint(){const n=AUTH.pw.length;return `<div class="fhint ${n>=6?'pos':n?'neg':''}" id="pwSt" role="status">${n>=6?'Mot de passe valide':'Au moins 6 caractères'+(n?` (encore ${6-n})`:'')}</div>`}
+function checkPw(){const el=$('#pwSt');if(el)el.outerHTML=pwHint()}
 function nameStTxt(){return {ok:'Pseudo disponible',taken:'Ce pseudo est déjà pris',short:'4 caractères minimum',bad:'Lettres, chiffres, tiret, point et souligné uniquement',guest:'Ce format est réservé aux invités',long:'14 caractères maximum','':''}[AUTH.nameSt]||''}
 /* Vérifie le pseudo pendant la saisie (format tout de suite, disponibilité après une courte pause). */
 let nameT=0;
