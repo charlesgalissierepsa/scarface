@@ -487,6 +487,16 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 @keyframes jr-slide{to{transform:translateX(-50%)}}
 .jr-i{display:flex;flex-direction:column;align-items:center;gap:var(--sp-1);width:var(--reel-item);margin-right:var(--sp-3);font-size:var(--fs-xs);font-weight:var(--fw-semibold);color:var(--ink-muted)}
 .jr-i .i3d{width:var(--reel-ico);height:var(--reel-ico)}
+/* Tour d'un ordinateur et préparation du solo */
+.botturn{display:flex;align-items:center;gap:var(--sp-4);margin:var(--sp-4) 0 var(--sp-2)}
+.botturn .bigav{flex:none;width:76px;height:76px;font-size:var(--fs-2xl)}
+.botturn h1{font-size:var(--fs-2xl);margin:0}
+.botturn .who-lbl{color:var(--ink-muted);font-size:var(--fs-sm)}
+.botlog div{display:flex;gap:var(--sp-2);align-items:flex-start;font-weight:var(--fw-regular);border-left-color:var(--c)}
+.botlog div.old{animation:none}
+.botlog .e{flex:none}
+.botrow{margin-bottom:var(--sp-4)}
+.botrow .prow{margin-bottom:var(--sp-2)}
 .steps{display:flex;flex-direction:column;gap:var(--sp-2);margin:var(--sp-3) 0}
 .steps div{padding:var(--sp-3);background:var(--surface-1);border-left:var(--bar-w) solid var(--neon-pink);animation:deal var(--dur-slow) var(--ease-in);font-weight:var(--fw-semibold)}
 /* ===== Poker (duel) : table néon, cartes qui se retournent. Les cartes gardent de petits coins arrondis : objet de jeu. ===== */
@@ -772,7 +782,9 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
 /* ================= AUDIO / FX ================= */
 let AC=null,SOUND=true;
 try{SOUND=localStorage.getItem('rq_sound')!=='0'}catch(e){}
-function tone(f,d=.1,type='sine',v=.07,delay=0){if(!SOUND)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+delay,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+/* Tour d'un ordinateur : il joue d'un coup, sans son, sans vibration ni toast ; ses actions sont racontées ensuite. */
+let BOTQ=false,BOT=null,BOTAMT=null;
+function tone(f,d=.1,type='sine',v=.07,delay=0){if(!SOUND||BOTQ)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+delay,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
 const sfx={
   tick:()=>tone(1200,.025,'square',.025),
   coin:()=>{tone(988,.08,'square',.04);tone(1319,.22,'square',.04,.08)},
@@ -792,18 +804,18 @@ const iosTick=(()=>{if('vibrate' in navigator)return null;try{const l=document.c
   i.type='checkbox';i.setAttribute('switch','');i.tabIndex=-1;l.className='sr';l.setAttribute('aria-hidden','true');l.appendChild(i);document.body.appendChild(l);
   return ()=>{try{l.click()}catch(e){}}}catch(e){return null}})();
 const canHaptic=('vibrate' in navigator)||!!iosTick;
-function haptic(name){if(!HAPTICS)return;const p=HAPTIC[name]||HAPTIC.action;
+function haptic(name){if(!HAPTICS||BOTQ)return;const p=HAPTIC[name]||HAPTIC.action;
   try{if(navigator.vibrate){navigator.vibrate(p);return}if(iosTick){iosTick();if(p.length>3)setTimeout(iosTick,p[0]+p[1])}}catch(e){}}
 function buzz(){haptic('action')}
 /* Toasts : une seule file, deux visibles au plus, pas de doublon consécutif, jamais d'emoji en tête. */
 let toastLast='';
-function toast(m,bad){m=stripEmo(m);const tw=$('#toast');if(m===toastLast&&tw.children.length)return;toastLast=m;
+function toast(m,bad){if(BOTQ)return;m=stripEmo(m);const tw=$('#toast');if(m===toastLast&&tw.children.length)return;toastLast=m;
   while(tw.children.length>=2)tw.firstChild.remove();
   const d=document.createElement('div');d.className='t'+(bad?' bad':'');d.textContent=m;tw.appendChild(d);if(bad)haptic('error');
   setTimeout(()=>{d.classList.add('out');setTimeout(()=>{d.remove();if(!tw.children.length)toastLast=''},150)},2600)}
-function popMoney(n){const d=document.createElement('div');d.className='pop '+(n>=0?'up':'down');d.textContent=fmt(n,true);document.body.appendChild(d);setTimeout(()=>d.remove(),1500)}
+function popMoney(n){if(BOTQ)return;const d=document.createElement('div');d.className='pop '+(n>=0?'up':'down');d.textContent=fmt(n,true);document.body.appendChild(d);setTimeout(()=>d.remove(),1500)}
 function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
-function shake(){const a=$('.sheet.open .panel2')||$('#app');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake')}
+function shake(){if(BOTQ)return;const a=$('.sheet.open .panel2')||$('#app');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake')}
 
 /* ================= DATA ================= */
 const AVATARS=['🕶️','🦩','🐊','🦈','🐍','🐯','🦅','🌴','💎','🎰','🎷','🏎️','👑','💀','🤑','🐺','🦊','🦁','🎲','🍸'];
@@ -1065,7 +1077,7 @@ let setup={players:[{name:'',av:'🦈'},{name:'',av:'🐺'},{name:'',av:'🦊'}]
 let APP={view:'home',err:'',joinCode:''};
 function save(){if(!G)return;if(ON){if(simFree()){const m=me();if(m)m.v=(m.v||0)+1;if(ON.host){G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;simCheck();pubStateSoon()}else pubMe();return}
     G.seq=(G.seq||0)+1;ON.lastSeq=G.seq;pubState();return}try{localStorage.setItem('sf_save',JSON.stringify(G))}catch(e){}}
-function addFeed(txt,p){if(!G)return;if(p===undefined)p=cur();G.feed=G.feed||[];
+function addFeed(txt,p){if(!G)return;if(p===undefined)p=cur();if(BOTQ&&BOT&&p===BOT.p)BOT.log.push({e:BOT.e,t:txt});G.feed=G.feed||[];
   /* En phase libre, plusieurs téléphones écrivent en même temps : identifiant fondé sur l'heure, fusionné par l'hôte. */
   const id=simFree()?Date.now()*100+RI(0,99):(G.feedId||0)+1;
   shared({t:'feed',item:{id,t:p?`<b>${esc(p.name)}</b> ${txt}`:txt,av:p?p.avatar:'📰',c:p?p.color:'var(--line)',by:UID,r:G.round}})}
@@ -1226,13 +1238,15 @@ function paint(html,key){const app=$('#app');
   if(app.dataset.key!==key){full();app.dataset.key=key;return}
   if(nz.length!==oz.length||nz.some((n,i)=>(n.dataset.z||'')!==(oz[i].dataset.z||''))){full();return}
   nz.forEach((n,i)=>{if(src[i]!==oz[i].__src){oz[i].replaceWith(n);n.__src=src[i]}})}
-function render(){
+function render(){if(BOTQ)return;
   /* Le décor reste en vedette sur l'accueil ; partout ailleurs, un voile sombre garantit la lisibilité du texte. */
   document.body.classList.toggle('dim',!!G||APP.view!=='home');
-  if(!G){({home:renderHome,local:renderSetup,join:renderJoin,lobby:renderLobby,connecting:renderConnecting})[APP.view]();return}
+  if(!G){({home:renderHome,local:renderSetup,solo:renderSolo,join:renderJoin,lobby:renderLobby,connecting:renderConnecting})[APP.view]();return}
   const s=G.screen;
   if(s==='free')return renderFree();
   if(ON&&(s==='pass'||s==='turn')){if(!isMyTurn())return renderSpectate();if(s==='pass')return renderMyTurn()}
+  if(!ON&&(s==='pass'||s==='turn')&&cur()&&cur().bot)return renderBot();
+  if(!ON&&s==='pass'&&G.solo)return startTurn();
   ({pass:renderPass,turn:renderTurn,recap:renderRecap,end:renderEnd})[s]();}
 /* En ligne, les états arrivent souvent : on regroupe les rendus dans une seule image. */
 let renderReq=0;
@@ -1260,6 +1274,7 @@ const RULES_BODY=`    <p><b>Le but</b> : finir avec le plus gros <b>patrimoine n
     <p><b>Ton tour</b> : <b>3 points d’action (PA)</b>. Casino, trading, immobilier, startup, boulot, coup bas : 1 PA. Entreprise, trafic, braquage : 2 PA. Bourse, banque, blanchiment et ventes sont gratuits. L’interrupteur en bas à gauche passe de l’écran <b>Manche</b> à l’écran <b>Actions</b>.</p>
     <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un <b>associé</b>, qui change tous les 4 tours, te donne un talent (+) et un défaut (−), et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
     <p><b>En ligne</b>, tout le monde joue son tour en même temps. Touche « Finir mon tour » quand tu as fini : la manche se ferme quand tout le monde a fini. Une partie publique apparaît dans « Rejoindre une partie », une privée se rejoint avec le code. Sur un seul téléphone, chacun son tour.</p>
+    <p><b>Seul contre l’ordinateur</b> : 1 à 5 adversaires, chacun avec son niveau (Facile, Moyen, Difficile) et son caractère. Ils jouent avec les mêmes règles que toi, sans connaître l’avenir, et te racontent leur tour.</p>
     <p><b>Placements</b> : en <b>trading</b>, tes positions (hausse ou baisse, levier, stop-loss) restent ouvertes d’un tour à l’autre. En <b>immobilier</b>, 7 villes sur la carte, chacune avec ses prix, ses loyers et sa tendance : Detroit est bon marché et rentable, New York cher et solide. Les <b>startups</b> lèvent des fonds ou meurent ; un audit révèle leur vraie qualité. Au <b>casino</b>, on débloque le suivant en cumulant des gains égaux à sa mise max.</p>
     <p><b>Coups bas</b> (un seul par tour) : duel au <b>poker</b> (Texas Hold’em à mise égale, en direct sur les deux écrans), arnaque, ou balancer quelqu’un à la police. En ligne, la victime le voit tout de suite.</p>
     <p><b>Crime</b> : braquages et trafic rapportent de l’<b>argent sale</b>, compté pour moitié et saisi en cas d’arrestation : blanchis-le. Les grosses cibles demandent de la réputation. Plus ta <b>jauge de police</b> est haute, plus tu risques la prison.</p>
@@ -1282,7 +1297,7 @@ function migrate(g){if(!g)return g;if(g.cities){const fresh=initCities();CITIES.
   g.players.forEach(p=>{p.re=p.re||[]});(g.props||[]).forEach(x=>{if(x.owner==null||!g.players[x.owner])return;const lc=(x.c||'').toLowerCase(),key=Object.keys(CMAP).find(k=>lc.includes(k));const ck=key?CMAP[key]:'chicago';
     const t=RTYPES.slice().sort((a,b)=>Math.abs(Math.log(a.base*cdef(ck).lvl/x.p))-Math.abs(Math.log(b.base*cdef(ck).lvl/x.p)))[0].k;g.players[x.owner].re.push({id:Math.random().toString(36).slice(2,7),c:ck,t,paid:x.p})});delete g.props}
   g.players.forEach(p=>{p.re=p.re||[]});g.assets.forEach(a=>{if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;if(a.rating==null)a.rating=0});(g.offers||[]).forEach(o=>{if(!o.aud)o.aud=[];if(o.team==null){o.team=o.trac=o.tracVis=3;o.q=.5;o.sec=0}});g.players.forEach(p=>{p.pos=p.pos||[]});return g}
-function resume(){G=migrate(loadSave());if(!G)return;if(G.screen==='turn')G.screen='pass',G.resumeTurn=true;render()}
+function resume(){G=migrate(loadSave());if(!G)return;if(G.screen==='turn'&&!(G.players[G.cur]||{}).bot)G.screen='pass',G.resumeTurn=true;render()}
 
 function buildGame(list,cash,rounds){
   return dealRoles({screen:'pass',round:1,maxRounds:rounds,cur:0,turnCount:0,reIndex:1,acted:false,ap:AP_MAX,inCasino:false,casinoLeft:3,lawyer:false,feed:[],feedId:0,seq:0,
@@ -1321,6 +1336,7 @@ function renderHome(){
   <div class="choices" data-z="choices">
     ${choice(1,'createRoom()','Créer une partie en ligne')}
     ${choice(0,"saveProfile();APP.view='join';APP.err='';render()",'Rejoindre une partie')}
+    ${choice(0,"saveProfile();APP.view='solo';render()",'Jouer seul contre l’ordinateur')}
     ${choice(0,"saveProfile();APP.view='local';render()",'Jouer sur un seul téléphone')}
   </div>
   <div data-z="err">${APP.err?`<div class="err" role="alert">${APP.err}</div>`:''}</div>
@@ -1626,6 +1642,11 @@ function startTurn(){
   if(G.mode==='sim'){/* phase des coups : les PA gardés, pas de nouvelle carte ni d'opportunité */
     G.acted=false;G.ap=(p.t&&p.t.apLeft)||0;G.inCasino=false;G.casinoLeft=0;G.lawyer=!!(p.t&&p.t.lawyer);G.opps=[];bj=null;
     const cards=p.inbox.slice();p.inbox=[];G.screen='turn';save();render();if(cards.length)showCards(cards);return}
+  const cards=beginTurn(p);save();render();
+  if(cards.length)showCards(cards);
+}
+/* Début de tour d'un joueur (humain ou ordinateur) : renvoie les cartes à montrer. */
+function beginTurn(p){
   G.acted=false;G.ap=AP_MAX;G.inCasino=false;G.casinoLeft=3;G.lawyer=false;bj=null;
   const cards=[];const pc=partnerCard(p);if(pc)cards.push(pc);
   p.inbox.forEach(m=>cards.push(m));p.inbox=[];
@@ -1636,8 +1657,7 @@ function startTurn(){
     const d=pick(DESTIN);const fx=d.f(p);cards.push({k:'CARTE DESTIN',e:d.e,t:d.t,d:d.d,fx});addFeed(`pioche une carte Destin ${d.e} « ${d.t} » : ${fx}`);
   }
   G.opps=p.jail>0?[]:genOpps(p);
-  G.screen='turn';save();render();
-  if(cards.length)showCards(cards);
+  G.screen='turn';return cards;
 }
 function arrestRisk(p){if(p.heat<25)return 0;let r=(p.heat-20)/150;if(p.shield>=G.round)r*=.5;return r}
 function arrest(p,why){
@@ -1658,7 +1678,7 @@ function serveJail(){const p=cur();if(!G||!(G.screen==='turn'||G.screen==='free'
 
 /* overlay cards */
 let ovQueue=[],ovOpener=null;
-function showCards(list){ovQueue=list.slice();if(!$('#ovWrap').children.length)ovOpener=document.activeElement;nextCard()}
+function showCards(list){if(BOTQ){botCards(list);return}ovQueue=list.slice();if(!$('#ovWrap').children.length)ovOpener=document.activeElement;nextCard()}
 function nextCard(){const c=ovQueue.shift();if(!c){closeOv();return}sfx.card();
   const fxCls=c.fx&&String(c.fx).trim().startsWith('+')?'pos':(c.fx&&String(c.fx).trim().startsWith('−')?'neg':'');
   const bad=c.bad||fxCls==='neg';
@@ -1810,7 +1830,7 @@ function amt(id,max,def){max=Math.max(0,Math.floor(max));
   <button class="chip" onclick="amtSet('${id}',${Math.floor(max/2)})" aria-label="La moitié">½</button><button class="chip gold" onclick="amtSet('${id}',${max})">MAX</button><button class="chip" onclick="amtSet('${id}',0)">0</button></div></div>`}
 function amtAdd(id,n,max){const e=$('#'+id);if(!e)return;e.value=Math.min(max,(+e.value||0)+n);e.dataset.u='1';sfx.tick()}
 function amtSet(id,n){const e=$('#'+id);if(!e)return;e.value=Math.max(0,Math.floor(n));e.dataset.u='1';sfx.tick()}
-function getAmt(id){const e=$('#'+id);return e?Math.max(0,Math.floor(+e.value||0)):0}
+function getAmt(id){if(BOTAMT&&id in BOTAMT)return Math.max(0,Math.floor(BOTAMT[id]||0));const e=$('#'+id);return e?Math.max(0,Math.floor(+e.value||0)):0}
 /* ================= CASINO ================= */
 /* Casinos à paliers : chacun a une mise maximale. On débloque le suivant en cumulant, dans le casino actuel,
    un gain net au moins égal à sa mise maximale. Empêche le « tapis » désespéré de fin de partie. */
@@ -1946,15 +1966,16 @@ async function _spinSlots(){const bet=getAmt('slAmt');if(!casinoStart(bet))retur
   const iv=setInterval(()=>{els.forEach((e,i)=>{if(e.classList.contains('spin'))e.textContent=pick(SYM)[0]});sfx.tick()},70);
   for(let i=0;i<3;i++){await sleep(i===2?900:600);els[i].classList.remove('spin');els[i].textContent=res[i];tone(500+i*200,.08,'square',.05)}
   clearInterval(iv);slotsLast=res;
-  let mult=0;
-  if(res[0]===res[1]&&res[1]===res[2])mult=SYM.find(s=>s[0]===res[0])[2];
-  else{const cnt={};res.forEach(s=>cnt[s]=(cnt[s]||0)+1);const pair=Object.keys(cnt).find(k=>cnt[k]===2);if(pair)mult=pair==='🍒'?1.5:.5}
+  const mult=slotMult(res);
   const net=bet*mult-bet;
   lastRes='';slotMsg=net>0?{k:mult>=20?'jackpot':'win',t:(mult>=20?'JACKPOT ':'Gagné ')+fmt(net,true)}:mult?{k:'push',t:'Récupéré '+fmt(bet*mult)}:{k:'lose',t:'Perdu '+fmt(-bet)};
   if(mult>=500)bigWin(cur(),net,'fait sauter la machine à sous : 7️⃣ 7️⃣ 7️⃣');
   busy=false;casinoResult(net);refreshSheet()}
 
 const spinSlots=guarded(_spinSlots);
+/* Multiplicateur d'un tirage : trois identiques, paire de cerises, autre paire. */
+function slotMult(res){if(res[0]===res[1]&&res[1]===res[2])return SYM.find(s=>s[0]===res[0])[2];
+  const cnt={};res.forEach(s=>cnt[s]=(cnt[s]||0)+1);const pair=Object.keys(cnt).find(k=>cnt[k]===2);return pair?(pair==='🍒'?1.5:.5):0}
 /* scratch */
 let scPrice=100;
 function scratchHTML(){
@@ -2196,8 +2217,8 @@ function newBiz(k){const p=cur(),d=bizDef(k);if(!canPay(p,bizCost(p,d))||!hasAP(
   openSheet('Nomme ta boîte',`<p class="muted">Comment s’appelle ta nouvelle ${d.n.toLowerCase()} ?</p>
    <div class="amtrow"><input id="bizName" maxlength="24" value="${esc(pick(d.names))}" aria-label="Nom de l’entreprise"></div>
    <div class="sheet-foot stack">${B('Créer l’entreprise',{v:'primary',on:`confirmBiz('${k}')`,cost:fmt(bizCost(p,d))+' · 2 PA'})}${B('Retour',{v:'secondary',on:'openBiz()'})}</div>`)}
-function confirmBiz(k){const p=cur(),d=bizDef(k);if(!canPay(p,bizCost(p,d))||!useAP(2))return;const name=($('#bizName').value||d.n).trim();
-  p.cash-=bizCost(p,d);p.biz.push({k,name,lvl:1});addFeed(`ouvre ${d.e} ${esc(name)} (${d.n.toLowerCase()})`);sfx.win();toast(`${name} ouvre ses portes`);save();render();openBiz()}
+function confirmBiz(k){const p=cur(),d=bizDef(k);if(!canPay(p,bizCost(p,d))||!useAP(2))return;const bn=$('#bizName'),name=((bn&&bn.value)||pick(d.names)).trim();
+  p.cash-=bizCost(p,d);p.biz.push({k,name,lvl:1});addFeed(`ouvre ${d.e} ${esc(name)} (${d.n.toLowerCase()})`);sfx.win();toast(`${name} ouvre ses portes`);save();render();if(!BOTQ)openBiz()}
 function upBiz(i){const p=cur(),b=p.biz[i],up=bizCost(p,bizDef(b.k))*.7*b.lvl;if(!canPay(p,up)||!useAP(1))return;p.cash-=up;b.lvl++;addFeed(`développe ${esc(b.name)} au niveau ${b.lvl}`);sfx.win();toast(`${b.name} passe au niveau ${b.lvl}`);after()}
 function sellBiz(i){const p=cur(),b=p.biz[i],v=bizVal(b)*R(.8,1.2);p.cash+=v;p.biz.splice(i,1);addFeed(`revend ${esc(b.name)} pour ${fmt(v)}`);sfx.coin();toast(`${b.name} revendue ${fmt(v)}`);after()}
 
@@ -2309,13 +2330,8 @@ function heistHTML(){const p=cur(),h=HEISTS[hs.t],ch=heistChance(),cut=TEAMS[hs.
   <div class="sheet-foot">${B('Lancer le braquage',{v:'danger',on:'runHeist()',cost:fmt(cost)+' · 2 PA',why})}</div>`}`}
 function doRecon(){const p=cur(),h=HEISTS[hs.t];if(rep(p)<h.rep||!useAP(1))return;p.recon={t:hs.t,until:G.round+1};p.heat=clamp(p.heat+2,0,100);
   addFeed('fait des repérages discrets');sfx.tick();toast(`${h.n} repéré(e) : +15 % jusqu’au prochain tour`);after()}
-async function _runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)return;
-  if(rep(p)<h.rep){toast(`Réputation ${h.rep} requise.`,1);return}
-  if(!canPay(p,cost)||!useAP(2))return;
-  const ch=heistChance();p.cash-=cost;busy=true;render();
-  const steps=[['🚐','Planque devant la cible…'],['🎭','Masques et gants enfilés…'],[pick(['💥','🔓','🧨']),'C’est parti !'],['🏎️','La fuite à fond sur l’autoroute…']];
-  $('#shTitle').textContent=h.n;$('#shBody').innerHTML=`<div class="steps" id="hsteps" aria-live="polite"></div><div id="hres"></div>`;
-  for(const [e,t] of steps){const d=document.createElement('div');d.textContent=e+'  '+t;$('#hsteps').appendChild(d);tone(220,.15,'triangle',.06);haptic('step');await sleep(950)}
+/* Dénouement d'un braquage déjà payé : butin, fuite ou arrestation. Renvoie le texte du résultat. */
+function heistResolve(p,h,cost,ch){
   const ok=Math.random()<ch;let html,hLoot=0;p.recon=null;
   if(ok){const loot=R(h.min,h.max)*APPS[hs.app][2]*(1-TEAMS[hs.team][2]);hLoot=loot;p.dirty+=loot;p.stats.crime+=loot;p.stats.heists++;p.rep=rep(p)+1;
     shared({t:'sec',i:hs.t,d:2});p.heat=clamp(p.heat+h.heat*APPS[hs.app][3],0,100);
@@ -2326,6 +2342,15 @@ async function _runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy
     if(p.net){p.net=0;lost+='<br>Ton réseau est démantelé.'}if(p.dirty>0){lost+=`<br>Argent sale saisi : ${fmt(p.dirty)}.`;p.dirty=0}
     html=`${resBox(-1,'Arrêté')}<p>${h.fl}</p><p class="muted small">Amende <span class="num">${fmt(fine)}</span> · ${t} tour${t>1?'s':''} de prison${lost}</p>`;sfx.siren();shake();haptic('arrest')}
   addFeed(ok?`braque ${h.e} ${h.n} et repart avec ${fmt(hLoot)}`:p.jail?`se fait arrêter en braquant ${h.e} ${h.n}`:`rate son braquage (${h.n}) mais s’enfuit`);
+  return html}
+async function _runHeist(){const p=cur(),h=HEISTS[hs.t],cost=heistCost();if(busy)return;
+  if(rep(p)<h.rep){toast(`Réputation ${h.rep} requise.`,1);return}
+  if(!canPay(p,cost)||!useAP(2))return;
+  const ch=heistChance();p.cash-=cost;busy=true;render();
+  const steps=[['🚐','Planque devant la cible…'],['🎭','Masques et gants enfilés…'],[pick(['💥','🔓','🧨']),'C’est parti !'],['🏎️','La fuite à fond sur l’autoroute…']];
+  $('#shTitle').textContent=h.n;$('#shBody').innerHTML=`<div class="steps" id="hsteps" aria-live="polite"></div><div id="hres"></div>`;
+  for(const [e,t] of steps){const d=document.createElement('div');d.textContent=e+'  '+t;$('#hsteps').appendChild(d);tone(220,.15,'triangle',.06);haptic('step');await sleep(950)}
+  const html=heistResolve(p,h,cost,ch);
   $('#hres').innerHTML=html+`<div class="mt-3">${B('Fermer',{v:'secondary',on:'busy=false;closeSheet()'})}</div>`;
   busy=false;save();render()}
 
@@ -2393,11 +2418,8 @@ function startDuel(){const p=cur(),t=G.players[dt.target],n=Math.floor(getAmt('d
     else addFeed(`remporte ${fmt(n)} au poker contre ${esc((r>0?t:p).name)} (${r>0?ha:hb} contre ${r>0?hb:ha})`,r>0?p:t);
     save();render()})}
 /* Arnaque racontée pas à pas (comme un braquage), puis le verdict. */
-async function _doScam(){const p=cur(),t=G.players[dt.target];if(busy||!cbUse(p)||!useAP(1))return;p.cbR=G.round;busy=true;save();render();let html;
-  const nm=esc(t.name),steps=[['🕶️','Costume trois pièces, montre empruntée : tu as l’air d’un banquier.'],['📱',`Tu appelles ${nm} : « Un placement en or, garanti 30 % par an. »`],
-    ['🧾','Tu sors un faux contrat, tampon officiel compris.'],['🤝',`${nm} hésite… Tu lui tends le stylo avec ton plus beau sourire.`]];
-  $('#shTitle').textContent='Arnaque';$('#shBody').innerHTML=`<div class="steps" id="ssteps" aria-live="polite"></div><div id="sres"></div>`;
-  for(const [e,x] of steps){const d=document.createElement('div');d.innerHTML=e+'  '+x;const box=$('#ssteps');if(box)box.appendChild(d);tone(260,.12,'triangle',.05);haptic('step');await sleep(950)}
+/* Dénouement d'une arnaque : réussie (on soutire 8 à 20 % du liquide) ou ratée (dédommagement, police). */
+function scamResolve(p,t){let html;
   if(Math.random()<Math.min(.85,(isMark(t)?.65:.5)+(chr(p)==='crook'?.2:0))){const x=Math.round(liquid(t)*R(.08,.2));p.cash+=x;p.stats.scam+=x;p.stats.scams=(p.stats.scams||0)+1;
     hitPlayer(t,{take:x,card:{k:'Mauvaise nouvelle',e:'🃏',t:'Tu t’es fait arnaquer',bad:1,d:`Un faux placement en or « garanti » : ${esc(p.name)} t’a eu en beauté.`,fx:fmt(-x)}});
     addFeed(`arnaque ${esc(t.name)} et lui soutire ${fmt(x)}`);
@@ -2406,6 +2428,13 @@ async function _doScam(){const p=cur(),t=G.players[dt.target];if(busy||!cbUse(p)
     hitPlayer(t,{cash:x,card:{k:'Bonne nouvelle',e:'🕵️',t:'Tentative d’arnaque déjouée',d:`${esc(p.name)} a essayé de t’arnaquer. Raté : il te verse un dédommagement.`,fx:fmt(x,true)}});
     addFeed(`tente d’arnaquer ${esc(t.name)}, raté : il doit le dédommager`);
     html=resBox(-1,`${esc(t.name)} a flairé l’arnaque. Tu lui dois <span class="num">${fmt(x)}</span>.`);sfx.lose();shake()}
+  return html}
+async function _doScam(){const p=cur(),t=G.players[dt.target];if(busy||!cbUse(p)||!useAP(1))return;p.cbR=G.round;busy=true;save();render();let html;
+  const nm=esc(t.name),steps=[['🕶️','Costume trois pièces, montre empruntée : tu as l’air d’un banquier.'],['📱',`Tu appelles ${nm} : « Un placement en or, garanti 30 % par an. »`],
+    ['🧾','Tu sors un faux contrat, tampon officiel compris.'],['🤝',`${nm} hésite… Tu lui tends le stylo avec ton plus beau sourire.`]];
+  $('#shTitle').textContent='Arnaque';$('#shBody').innerHTML=`<div class="steps" id="ssteps" aria-live="polite"></div><div id="sres"></div>`;
+  for(const [e,x] of steps){const d=document.createElement('div');d.innerHTML=e+'  '+x;const box=$('#ssteps');if(box)box.appendChild(d);tone(260,.12,'triangle',.05);haptic('step');await sleep(950)}
+  html=scamResolve(p,t);
   const r=$('#sres');if(r)r.innerHTML=html+`<div class="mt-3">${B('Fermer',{v:'secondary',on:'closeSheet()'})}</div>`;busy=false;save();render()}
 const doScam=guarded(_doScam);
 /* Balancer : 2 % du patrimoine de la victime (3 000 € minimum), moitié prix contre la cible du moment. Une fois par tour et par victime. */
@@ -2657,12 +2686,13 @@ function renderEnd(){const rk=ranked(),top=[rk[1],rk[0],rk[2]];
 /* Mêmes joueurs, mêmes réglages, nouvelle partie (associés et objectifs retirés au sort). */
 function rematch(){if(!G)return;sfx.coin();
   if(ON){if(!ON.host)return;ON.lobby.started=false;startOnline();return}
+  if(G.solo){solo.bots=G.players.filter(q=>q.bot).map(q=>({name:q.name,av:q.avatar,lv:q.bot.lv}));setup.cash=G.players[0].hist[0];setup.rounds=G.maxRounds;clearSave();newSolo();window.scrollTo(0,0);return}
   const list=G.players.map(q=>({name:q.name,av:q.avatar})),cash=G.players[0].hist[0],rounds=G.maxRounds;
   setup.players=list;setup.cash=cash;setup.rounds=rounds;clearSave();newGame();window.scrollTo(0,0)}
 /* ================= LIGUE ENTRE POTES =================
    Chaque partie terminée sur ce téléphone est notée : 3 points au premier, 2 au deuxième, 1 au troisième. */
 function getLeague(){try{return JSON.parse(localStorage.getItem('sf_league')||'[]')}catch(e){return []}}
-function saveLeague(){if(!G||!G.gameId)return;const L=getLeague();if(L.some(x=>x.id===G.gameId))return;
+function saveLeague(){if(!G||!G.gameId||G.solo)return;const L=getLeague();if(L.some(x=>x.id===G.gameId))return;
   L.push({id:G.gameId,d:Date.now(),pl:ranked().map((q,i)=>({n:q.name,a:q.avatar,w:Math.round(netWorth(q)),r:i+1}))});
   try{localStorage.setItem('sf_league',JSON.stringify(L.slice(-200)))}catch(e){}}
 function leagueTable(){const t={};getLeague().forEach(g=>{const n=g.pl.length;g.pl.forEach(q=>{const k=q.n.trim().toLowerCase();const e=t[k]=t[k]||{n:q.n,a:q.a,pts:0,g:0,w:0,last:0,best:0};
@@ -2728,6 +2758,320 @@ applyMotion();try{RM.addEventListener('change',applyMotion)}catch(e){}
     if(run&&last){y=(y+Math.min(t-last,100)/period*cell)%cell;g.style.transform=`perspective(${per}) rotateX(${tilt}) translateY(${(y-cell).toFixed(2)}px)`}
     last=t};
   requestAnimationFrame(frame)})();
+/* ================= JEU EN SOLO : LES ORDINATEURS =================
+   Un ordinateur est un joueur ordinaire (p.bot = {lv, pe}) qui joue sur le même téléphone, sans connexion.
+   Il passe par les vraies fonctions du jeu (mêmes règles, mêmes coûts, même hasard) et ne voit que ce qu'un
+   joueur voit : signaux de la Bourse, rumeur, tendances des villes, notes d'audit qu'il a payées. Il ne connaît
+   ni l'événement réel de fin de manche, ni la qualité cachée d'une startup non auditée.
+   À chaque tour : actions gratuites (blanchiment, avocat, Bourse, enchère), puis ses 3 PA, action par action :
+   il estime ce que chaque action possible lui rapporte (gain espéré, risque de prison, police, objectif secret),
+   et joue la meilleure. Le niveau règle la finesse de l'estimation et la part de hasard dans ses choix ;
+   le caractère penche vers le casino, le crime, la prudence ou la Bourse. */
+const BOT_LV=[null,
+  {n:'Facile',t:'Petit joueur',noise:.7,heat:.35,rand:.25},
+  {n:'Moyen',t:'Caïd',noise:.45,heat:1,rand:.12},
+  {n:'Difficile',t:'Parrain',noise:.1,heat:1,rand:0}];
+const BOT_PERS={
+  prudent:{n:'prudent',crime:.45,casino:.3,heat:1.5,immo:1.25,trade:.8,biz:1.15},
+  flambeur:{n:'flambeur',crime:.9,casino:2.2,heat:.8,immo:.85,trade:1.3,biz:.9},
+  mafieux:{n:'mafieux',crime:1.8,casino:.8,heat:.6,immo:.9,trade:.8,biz:1.05},
+  trader:{n:'trader',crime:.6,casino:.6,heat:1.1,immo:1,trade:1.9,biz:.9}};
+const BOT_NAMES=['Rico','Lola','Vince','Carmen','Dante','Nina','Raul','Bianca','Marco','Paloma','Santos','Inès'];
+const blv=p=>(p.bot&&p.bot.lv)||2, bpe=p=>BOT_PERS[p.bot&&p.bot.pe]||BOT_PERS.prudent;
+const botLeft=()=>Math.max(1,G.maxRounds-G.round+1);
+/* Réserve de cash gardée pour les tours suivants. */
+const botReserve=p=>Math.max(1500,netWorth(p)*(p.bot.pe==='prudent'?.08:.04));
+/* Ce que « coûte » un point de police, en euros : risque d'arrestation (amende, argent sale saisi, tours perdus). */
+function botHeatPrice(p){const W=Math.max(10000,netWorth(p)),lv=blv(p);
+  let v=(.25*liquid(p)+(p.dirty||0)+.08*W+(p.net?NET[p.net].max*2:0))/150*3*(p.heat>=15?1:.5);
+  if(lv>=3&&p.obj==='clean'&&G.round>G.maxRounds-4)v*=2;
+  return v*BOT_LV[lv].heat*bpe(p).heat}
+/* Bonus d'objectif secret : une étape franchie vaut une part des 15 % promis. */
+function botObj(p,k,steps){if(p.obj!==k)return 0;const lv=blv(p);if(lv<2)return 0;return Math.max(0,netWorth(p))*OBJ_BONUS/Math.max(1,steps)*(lv>=3?1:.5)}
+/* Effet de la rumeur sur le marché (seulement les événements qui ne touchent qu'aux cours). */
+function botRumorFx(){const e=EVENTS[G.rumor];if(!e||e.f.length!==1)return null;const m={stock:{},all:0,crypto:0,re:0,city:{},cityYld:{},restoOff:0,bizMult:1,rentMult:1};try{e.f(m)}catch(x){return null}return m}
+const RUMOR_TRUST=.55;
+/* Rendement espéré d'un actif sur un tour, d'après ce qui est visible. */
+function botEdge(p,a){const d=adef(a.sym),lv=blv(p);
+  if(lv===1)return clamp(a.chg*.4,-.08,.08)+R(-.03,.03);
+  let e=d.drift+REG_K*d.vol*(.5*(a.rating||0)+.2*trendOf(a));
+  if(lv>=3){e-=MR_K*valuation(a);const m=botRumorFx();if(m)e+=RUMOR_TRUST*((d.crypto?m.crypto:m.all)+(m.stock[a.sym]||0));
+    if(p.botTip&&p.botTip.r===G.round&&p.botTip.sym===a.sym)e+=.06}
+  return e}
+/* Exécute une action réelle du jeu avec des montants choisis (à la place des champs de saisie). */
+function botDo(e,amts,fn){BOT.e=e;BOTAMT=amts||{};try{return fn()}finally{BOTAMT=null}}
+function botSay(e,t){BOT.log.push({e,t})}
+/* Cartes produites pendant le tour : le résultat est ajouté à la ligne du journal correspondante. */
+function botCards(list){if(BOT.noCards)return;list.forEach(c=>{const fx=String(c.fx||'').replace(/<[^>]+>/g,'');const l=BOT.log[BOT.log.length-1];
+  if(BOT.merge&&l)l.t+=fx?' : '+fx:'';else botSay(c.e,`${c.t}${fx?' : '+fx:''}`)})}
+/* Trouve du cash en vendant des actions (les moins prometteuses d'abord). */
+function botRaise(p,need){if(p.cash>=need)return true;const lv=blv(p);if(lv<2)return false;
+  const hs=Object.keys(p.stocks).sort((x,y)=>botEdge(p,asset(x))-botEdge(p,asset(y)));
+  for(const s of hs){if(p.cash>=need)break;const v=p.stocks[s]*asset(s).price;mSel=s;botDo('📈',{sellAmt:Math.min(v,need-p.cash+50)},sellAsset)}
+  return p.cash>=need}
+const botAvail=p=>Math.max(0,p.cash)+(blv(p)>=2?stockVal(p):0);
+
+/* ---------- Actions gratuites ---------- */
+function botFree(p,fin){const lv=blv(p),W=Math.max(10000,netWorth(p));
+  if(p.cash<0){const n=Math.min(-p.cash+500,maxBorrow(p));if(n>0){botDo('🏦',{borAmt:n},borrow)}}
+  /* blanchiment : par les commerces (10 %), puis le blanchisseur (30 %, police +5) */
+  if(p.dirty>0&&(lv>=2||Math.random()<.5)){const cap=Math.max(0,launderCap(p)-(p.laund||0));
+    if(cap>=100)botDo('🧼',{lnA:Math.min(cap,p.dirty)},()=>launder(0));
+    const late=G.round>=G.maxRounds-1,lot=p.dirty>Math.max(6000,W*.08);
+    if(p.dirty>=500&&(lv>=3&&(lot||late||p.heat>=40)||lv===2&&(p.dirty>Math.max(12000,W*.15)||late)||lv===1&&Math.random()<.25))
+      botDo('🧼',{lnB:p.dirty},()=>launder(1))}
+  /* avocat : police −30 */
+  const lc=lawyerCost(p);
+  if(!G.lawyer&&p.cash>lc*2&&p.heat>=30&&(lv>=2?30*botHeatPrice(p)>lc*1.2&&p.heat>=(lv>=3?35:55):p.heat>=75&&Math.random()<.5)){
+    botDo('⚖️',{},lawyer);botSay('⚖️',`paie un avocat : police −30 (${fmt(lc)})`)}
+  /* réseau trop chaud : on le ferme */
+  if(lv>=2&&p.net&&p.heat>=(lv>=3?70:82)&&chr(p)!=='godfather'){botDo('💊',{},closeNet);botSay('💊','ferme son réseau de trafic pour se faire oublier')}
+  /* Bourse : vente des titres qui s'annoncent mal, clôture des positions qui ont tourné */
+  if(!fin){
+    for(const s of Object.keys(p.stocks)){const a=asset(s),e=botEdge(p,a);
+      if(lv>=2&&e<-.004||lv===1&&Math.random()<.15){mSel=s;botDo('📈',{sellAmt:p.stocks[s]*a.price+1},sellAsset)}}
+    for(const o of (p.pos||[]).slice()){const e=botEdge(p,asset(o.sym))*o.dir,g=posVal(o)-o.m0;
+      if(lv>=2&&(e<-.003||g>o.m0*(lv>=3?.8:1.2))||lv===1&&Math.random()<.2)botDo('⚡',{},()=>closePos(o.id))}
+    botBid(p)}
+  else{
+    /* le cash qui dort part en Bourse ; dette remboursée si elle coûte cher */
+    const rate=debtRate(p),res=botReserve(p)*2;
+    if(p.debt>0&&lv>=2&&(rate>=.04||p.obj==='nodebt'&&G.round>=G.maxRounds-2)){const n=Math.min(p.debt,p.cash-res);if(n>500){botDo('🏦',{repAmt:n},repay);botSay('🏦',`rembourse ${fmt(n)} à la banque`)}}
+    const idle=p.cash-res;
+    if(idle>2000&&(lv>=2||Math.random()<.35)){
+      const cand=G.assets.map(a=>({a,e:botEdge(p,a)})).sort((x,y)=>y.e-x.e);const best=cand[0];
+      const tip=p.botTip&&p.botTip.r===G.round?cand.find(x=>x.a.sym===p.botTip.sym):null,pickA=tip||best;
+      if(pickA&&(pickA.e>.006||lv===1)){const f=lv>=3?.6:lv===2?.4:R(.1,.4);mSel=pickA.a.sym;botDo('📈',{buyAmt:Math.floor(idle*f*(bpe(p).trade>1.5?1.2:1))},buyAsset)}}}
+}
+/* Enchère de la manche : offre secrète, selon la valeur du lot. */
+function botBid(p){const a=G.auction;if(!a||myBid(p))return;const lv=blv(p),room=(p.cash-botReserve(p))*.6;
+  const ev=a.kind==='prop'?a.v*(1+(rrent(a.c,a.t)/a.v)*Math.min(botLeft(),6)):(G.round+2<=G.maxRounds?a.v*1.325:a.v);
+  let f=lv>=3?R(.6,.85):lv===2?R(.45,.75):(Math.random()<.4?R(.3,.7):0);
+  let n=niceRound(Math.min(room,ev*f));if(n<a.min)return;
+  botDo('💸',{bidAmt:n},()=>placeBid());botSay('💸','dépose une offre secrète à l’enchère')}
+
+/* ---------- Actions à points d'action : on estime chaque option ---------- */
+function botCands(p){const lv=blv(p),pe=bpe(p),left=botLeft(),hp=botHeatPrice(p),W=Math.max(10000,netWorth(p)),avail=botAvail(p),c=[];
+  const add=(k,cat,ap,v,go,fit)=>{if(G.ap<ap)return;c.push({k,cat,ap,v,go})};
+  /* boulot honnête */
+  add('job','job',1,1900+Math.min(p.heat,JOB_HEAT)*hp-BLACK_P*BLACK_HEAT*hp,()=>{BOT.noCards=true;botDo('🧑‍🍳',{},doJob);BOT.noCards=false});
+  /* opportunités du tour */
+  (G.opps||[]).forEach(o=>{const d=oppDef(o.k);if(d.ok&&!d.ok(o,p))return;if(o.cost>p.cash)return;const v=botOppValue(p,o,hp,left,W);if(v==null)return;
+    add('opp:'+o.k,'opp',1,v,()=>{if(o.k==='tip')p.botTip={sym:o.sym,r:G.round};BOT.merge=true;botDo(d.e,{},()=>takeOpp(o.id));BOT.merge=false})});
+  /* casino */
+  if(p.cash>=200){let v=-.01*Math.min(p.cash*.1,CASINOS[casLvl(p)].max)+(pe.casino-1)*Math.max(1500,W*.02);
+    if(casLvl(p)<3)v+=botObj(p,'casino',3-casLvl(p)+1)*.5;if(lv===1)v+=R(0,2500);add('casino','casino',1,v,()=>botCasino(p))}
+  /* trading avec levier */
+  const tm=botTrade(p);if(tm)add('trade','trade',1,tm.v,tm.go);
+  /* immobilier */
+  const im=botImmo(p,avail,left,W);if(im)add('immo','immo',1,im.v,im.go);
+  /* entreprises : créer (2 PA) ou développer (1 PA) */
+  const bz=botBiz(p,avail,left,W);bz.forEach(b=>add(b.k,'biz',b.ap,b.v,b.go));
+  /* startups */
+  const vc=botVC(p,avail,left);vc.forEach(x=>add(x.k,'vc',1,x.v,x.go));
+  /* braquage (2 PA, ou 3 avec repérage) et trafic (2 PA) */
+  if(chr(p)!=='banker'){const hz=botHeists(p,hp,left,W);hz.forEach(h=>add(h.k,'crime',h.ap,h.v,h.go))}
+  const nx=NET[(p.net||0)+1];if(nx&&nx.cost<=avail){const inc=(nx.min+nx.max)/2-(p.net?(NET[p.net].min+NET[p.net].max)/2:0),dh=nx.heat-(p.net?NET[p.net].heat:0);
+    const v=inc*.8*left-nx.cost-(dh*Math.min(left,4)+5)*hp;add('net','crime',2,v,()=>{if(botRaise(p,nx.cost))botDo('💊',{},upNet)})}
+  /* coups bas (un par tour) */
+  if(!cbDone(p))botDirty(p,hp,W).forEach(x=>add(x.k,'dirty',1,x.v,x.go));
+  return c}
+function botOppValue(p,o,hp,left,W){const k=o.k,c=o.cost,r=G.round,M=G.maxRounds;
+  switch(k){
+    case 'yacht':return r+2<=M?c*.525:0;
+    case 'tip':return .08*Math.min(botAvail(p),W*.5)*(blv(p)>=3?1:.5)-8*hp;
+    case 'cop':return p.heat>=15?26.75*hp-c:null;
+    case 'truck':return c*.56-10*hp;
+    case 'fore':return rprice(o.c,o.t)*.2+rrent(o.c,o.t)*.93*Math.min(left,6)+botObj(p,'immo4',Math.max(1,4-myProps(p).length));
+    case 'poker':return -c*.01-1.8*hp+(bpe(p).casino-1)*1000;
+    case 'contract':return r+1<=M?c*.8-6*hp:null;
+    case 'paint':return r+2<=M?c*.8-12*hp:null;
+    case 'guard':return 3*arrestRisk(p)*.5*(liquid(p)*.25+(p.dirty||0)+W*.05)-c;
+    case 'shark':return p.cash<3000?o.gain*.05:null;
+    case 'century':return c;
+    case 'legend':return c*9;
+    case 'mule':return Math.min(p.dirty||0,o.u*4)*.22;
+    case 'buyout':{const b=p.biz.find(x=>x.name===o.bn);return b?o.offer-bizVal(b)-(bizDef(b.k).min+bizDef(b.k).max)/2*bizMult(b.lvl)*Math.min(left,3)*.3:null}
+    case 'fight':return c*.75-5*hp;
+  }return null}
+/* Casino : 1 PA = 3 parties (4 avec le Flambeur). Les bons joueurs jouent le blackjack, les autres un peu de tout. */
+function botCasino(p){const lv=blv(p);cSel=casLvl(p);let games=0;BOT.e='🎰';
+  const unlock=lv>=2&&p.obj==='casino'&&casLvl(p)<3;
+  do{const max=CASINOS[cSel].max;let bet=lv===1?p.cash*R(.08,.3):p.cash*(unlock?.1:bpe(p).casino>1.5?.06:.03);
+    bet=Math.floor(Math.min(max,p.cash,Math.max(bet,Math.min(100,p.cash))));if(bet<20)break;
+    const g=lv>=2&&bpe(p).casino<1.5?'bj':pick(['bj','roulette','slots']);cTab=g;
+    if(!(g==='bj'?botBJ(p,bet):g==='slots'?botSlots(p,bet):botRoulette(p,bet)))break;games++}
+  while(G.inCasino&&G.casinoLeft>0&&games<6)}
+function botRoulette(p,bet){if(!casinoStart(bet))return false;const t=pick(['rouge','noir','pair','impair']),n=RI(0,36),won=RBETS[t][2](n);casinoResult(won?bet*(RBETS[t][1]-1):-bet);return true}
+function botSlots(p,bet){if(!casinoStart(bet))return false;const res=[rollSym(),rollSym(),rollSym()],mult=slotMult(res),net=bet*mult-bet;
+  if(mult>=500)bigWin(p,net,'fait sauter la machine à sous : 7️⃣ 7️⃣ 7️⃣');casinoResult(net);return true}
+/* Blackjack, stratégie de base simplifiée (le Facile tire au feeling). */
+function botBJ(p,bet){if(!casinoStart(bet))return false;const d=newDeck(),lv=blv(p);bj={d,p:[d.pop(),d.pop()],dl:[d.pop(),d.pop()],bet,bet0:bet,over:false,msg:''};
+  const c0=bj.dl[0].r,up=c0==='A'?11:['J','Q','K','10'].includes(c0)?10:+c0;
+  if(hv(bj.p)<21){const t0=hv(bj.p);
+    if(lv>=2&&(t0===10||t0===11)&&up<=9&&p.cash>=bet*2){bj.bet*=2;bj.p.push(bj.d.pop())}
+    else for(let i=0;i<8;i++){const t=hv(bj.p);if(t>21)break;if(lv===1?t>=R(13,17):(t>=17||t>=13&&up<=6||t===12&&up>=4&&up<=6))break;bj.p.push(bj.d.pop())}
+    if(hv(bj.p)<=21)while(hv(bj.dl)<17)bj.dl.push(bj.d.pop())}
+  bjFinish();bj=null;return true}
+/* Trading à levier : seulement avec un signal net (le levier coûte 1,5 % par tour). */
+function botTrade(p){const lv=blv(p);if((p.pos||[]).length>=maxPos(p))return null;const tf=chr(p)==='trader'?.5:1,h=Math.min(botLeft(),2);
+  let best=null;for(const a of G.assets){if((p.pos||[]).some(o=>o.sym===a.sym))continue;const e=botEdge(p,a);for(const dir of [1,-1])for(const lev of (lv===1?[pick(LEVS)]:lv===2?[2]:[2,3])){
+    const room=Math.max(0,(tradeCap(p)-notional(p))/lev),m=Math.floor(Math.min(room,(p.cash-botReserve(p))*(lv===1?R(.1,.4):.25)));if(m<500)continue;
+    const vol=adef(a.sym).vol,v=m*lev*(dir*e-FUND*tf)*h-m*lev*OPEN_FEE*tf-m*lev*vol*.08*(p.bot.pe==='prudent'?2:1)+(lv===1?R(-500,1500):0)+botObj(p,'trader',4)*.3;
+    if(!best||v>best.v)best={v,a,dir,lev,m}}}
+  if(!best)return null;
+  return {v:best.v*bpe(p).trade,go:()=>{Object.assign(tr,{sym:best.a.sym,dir:best.dir,lev:best.lev,sl:.5,tp:0});botDo('⚡',{trAmt:best.m},openPos)}}}
+/* Immobilier : loyers sur les tours restants, tendance de la ville, frais, coût du crédit. */
+function botImmo(p,avail,left,W){const lv=blv(p),fee=reFee(p),h=Math.min(left,8);let best=null;const m=lv>=3?botRumorFx():null;
+  for(const cd of CITIES){const c=city(cd.k);for(const t of RTYPES){const v0=rprice(cd.k,t.k),rent=rrent(cd.k,t.k)*(1-VACANCY);
+    for(const credit of [false,true]){if(credit&&(chr(p)==='trader'||lv<3||p.debt>W*.6))continue;
+      const pay=credit?v0*(.25+fee):v0*(1+fee);if(pay>avail*(lv>=3?.9:.7))continue;
+      let v=rent*h-fee*v0;if(lv>=2)v+=v0*(trendCity(c)*.02*Math.min(left,3)+(cd.drift||0)*h*.5);
+      if(m)v+=RUMOR_TRUST*v0*((m.re||0)+(m.city[cd.k]||0))+RUMOR_TRUST*rent*((m.cityYld[cd.k]||1)-1);
+      if(credit)v-=debtRate(p)*v0*.75*h;
+      v+=botObj(p,'immo4',Math.max(1,4-myProps(p).length));if(lv===1)v=v*R(.3,1.6);
+      if(!best||v>best.v)best={v,ck:cd.k,tk:t.k,credit,pay}}}}
+  if(!best)return null;
+  return {v:best.v*bpe(p).immo,go:()=>{if(!botRaise(p,best.pay))return;imSel=best.ck;botDo('🌴',{},()=>buyRE(best.tk,best.credit))}}}
+/* Entreprises : revenu moyen sur les tours restants, valeur de revente, faillite, capacité de blanchiment. */
+function botBiz(p,avail,left,W){const lv=blv(p),out=[],h=Math.min(left,8);
+  for(const d of BIZ){const cost=bizCost(p,d);if(cost>avail*(lv>=3?.85:.6))continue;const avg=(d.min+d.max)/2,val=Math.max(d.cost*.3,d.cost*.5+3*avg);
+    let v=val-cost+avg*h*(1-d.fail*h/2)-(d.heat||0)*h*botHeatPrice(p)+((p.dirty||0)>0||bpe(p).crime>1.5?Math.min(d.cost*.3,20000)*.2*h:0)+botObj(p,'biz3',Math.max(1,3-p.biz.length));
+    if(lv===1)v*=R(.3,1.6);
+    out.push({k:'biz:'+d.k,ap:2,v:v*bpe(p).biz,go:()=>{if(!botRaise(p,cost))return;BOT.e=d.e;botDo(d.e,{},()=>confirmBiz(d.k))}})}
+  p.biz.forEach((b,i)=>{if(b.lvl>=5)return;const d=bizDef(b.k),up=bizCost(p,d)*.7*b.lvl;if(up>avail*.7)return;const avg=(d.min+d.max)/2;
+    let v=.6*avg*h*(1-d.fail*h/2)+1.8*avg-up;if(lv===1)v*=R(.3,1.6);
+    out.push({k:'up:'+i,ap:1,v:v*bpe(p).biz,go:()=>{if(!botRaise(p,up))return;botDo(d.e,{},()=>upBiz(i))}})});
+  out.sort((a,b)=>b.v/b.ap-a.v/a.ap);return out.slice(0,2)}
+/* Startups : qualité estimée (ou connue après audit, que le Difficile paie). */
+function botVC(p,avail,left){const lv=blv(p),out=[],h=Math.min(left,4);
+  G.offers.forEach(o=>{if(o.min>avail*.5)return;
+    const n0=Math.floor(Math.max(o.min,Math.min(avail*.18,p.cash-botReserve(p))));
+    if(lv>=3&&!audited(p,o)&&n0>=o.min&&auditCost(o)<n0*.08&&entryRatio(o)>.7&&o.team+o.tracVis>=6)botDo('🦄',{},()=>auditVC(o.id));
+    const q=audited(p,o)?o.q:lv===1?R(.1,.9):clamp(.45*(o.team-1)/4+.35*(o.tracVis-1)/4+.1,0,1);
+    const n=Math.floor(Math.max(o.min,Math.min(avail*(lv>=3?.18:.12),p.cash-botReserve(p))));if(n<o.min||n>p.cash)return;
+    let v=n*(entryRatio(o)*Math.pow(.6+.86*q,h)-1);if(lv===1)v=v*R(.2,1.5)+R(0,1500);
+    out.push({k:'vc:'+o.id,ap:1,v,go:()=>botDo(o.e,{['vc_'+o.id]:n},()=>investVC(o.id))})});
+  p.deals.filter(d=>d.kind==='vc'&&d.raise===G.round&&d.follow<=p.cash).forEach(d=>{const q=.55;
+    out.push({k:'follow:'+d.id,ap:1,v:d.follow*(Math.pow(.6+.86*q,h)-1),go:()=>botDo(d.e,{},()=>followVC(d.id))})});
+  return out}
+/* Braquages : chances réelles (repérage, équipe, approche, police, sécurité), butin, et le prix d'un échec. */
+function botHeists(p,hp,left,W){const lv=blv(p),out=[],save={...hs};
+  const jailCost=t=>t*Math.max(2500,W*.035);
+  for(let i=0;i<HEISTS.length;i++){const h=HEISTS[i];if(rep(p)<h.rep)continue;
+    const teams=lv>=3?[0,1,2]:lv===2?[1]:[RI(0,2)],apps=lv>=3?[0,1,2]:lv===2?[1]:[RI(0,2)];
+    for(const team of teams)for(const app of apps){Object.assign(hs,{t:i,team,app});const cost=heistCost();if(cost>botAvail(p))continue;
+      const evOf=ch=>{const loot=(h.min+h.max)/2*APPS[app][2]*(1-TEAMS[team][2]);
+        return ch*(loot*.8+W*.01+botObj(p,'heist2',Math.max(1,2-(p.stats.heists||0))))-cost-ch*h.heat*APPS[app][3]*hp
+          -(1-ch)*(.8*(liquid(p)*.3+(p.dirty||0)+(p.net?NET[p.net].cost*.5:0)+jailCost(h.jail+.5))+.2*h.heat*.6*hp)};
+      const ch=heistChance();let v=evOf(ch);if(lv===1)v=v*R(.4,1.6)+R(0,2500);
+      const k='heist:'+i+':'+team+':'+app;
+      const go=()=>{Object.assign(hs,{t:i,team,app});const c2=heistCost();if(!botRaise(p,c2)||!useAP(2))return;p.cash-=c2;BOT.e=h.e;heistResolve(p,h,c2,heistChance())};
+      out.push({k,ap:2,v:v*bpe(p).crime,go});
+      /* le Difficile repère d'abord la cible quand il lui reste 3 PA */
+      if(lv>=3&&!reconBonus(p,i)){const v2=evOf(clamp(ch+.15,.02,.9))-2*hp;
+        out.push({k:k+':r',ap:3,v:v2*bpe(p).crime,go:()=>{Object.assign(hs,{t:i,team,app});botDo('🕶️',{},doRecon);go()}})}}}
+  Object.assign(hs,save);out.sort((a,b)=>b.v/b.ap-a.v/a.ap);return out.slice(0,3)}
+/* Coups bas : arnaque, balance ou duel au poker. Le Moyen et le Difficile visent le premier du classement. */
+function botDirty(p,hp,W){const lv=blv(p),others=G.players.filter(q=>q!==p),out=[];if(!others.length)return out;
+  const rk=ranked(),lead=rk[0]!==p?rk[0]:rk[1];const t=lv===1?pick(others):lead,crook=chr(p)==='crook';
+  const ch=Math.min(.85,(isMark(t)?.65:.5)+(crook?.2:0));
+  let v=ch*.14*liquid(t)*(lv>=3?1.4:1)-(1-ch)*(Math.max(1000,liquid(p)*.05)+(crook?20:10)*hp)+ch*botObj(p,'scam2',Math.max(1,2-(p.stats.scams||0)));
+  if(lv===1)v=v*R(.3,1.5)+R(-500,1500);
+  out.push({k:'scam',ap:1,v,go:()=>{if(!cbUse(p)||!useAP(1))return;p.cbR=G.round;BOT.e='🃏';scamResolve(p,t)}});
+  const c=snitchCost(t);if(c<p.cash*.5&&!snitched(t)){const r0=arrestRisk(t),r1=arrestRisk({heat:Math.min(100,t.heat+35-7),shield:t.shield});
+    let v2=(r1-r0)*(liquid(t)*.25+(t.dirty||0)+netWorth(t)*.05)*(lv>=3?(t===rk[0]?.9:.4):.35)-c;if(lv===1)v2=v2*R(.3,1.5)+R(-500,1000);
+    out.push({k:'snitch',ap:1,v:v2,go:()=>{dt.target=t.id;botDo('🐀',{},doSnitch);if(p.cbR===G.round)botSay('🐀',`balance ${esc(t.name)} à la police (${fmt(c)})`)}})}
+  const mx=Math.min(p.cash,t.cash);if(mx>=500){const n=niceRound(mx*(lv===1?R(.1,.4):.2));
+    let v3=(bpe(p).casino-1)*Math.max(1000,W*.01)+(lv===1?R(-1000,1500):0);
+    if(lv>=3&&G.round>=G.maxRounds-2&&t===rk[0]&&netWorth(t)>netWorth(p)*1.3)v3+=n*.3;
+    if(n>0)out.push({k:'duel',ap:1,v:v3,go:()=>botDuel(p,t,n)})}
+  return out}
+/* Duel au poker lancé par un ordinateur : même donne que startDuel ; la partie s'affiche si l'adversaire est le joueur. */
+function botDuel(p,t,n){if(!cbUse(p)||!useAP(1))return;p.cbR=G.round;BOT.e='🎱';
+  const deck=pkDeal(),r=pkResult(deck),d=r>0?n:r<0?-n:0;p.cash+=d;
+  const show={id:rid(8),a:pkSeat(p),b:pkSeat(t),deck,stake:n};hitPlayer(t,{cash:-d,show});
+  const ha=pkName(pkEval(pkHand(deck,0)).s),hb=pkName(pkEval(pkHand(deck,1)).s);
+  botSay('🎱',`défie ${esc(t.name)} au poker pour ${fmt(n)}`);if(!t.bot)BOT.log[BOT.log.length-1].show=show;
+  const was=BOT.p;BOT.p=null;
+  if(!r)addFeed(`fait match nul au poker contre ${esc(t.name)} (${ha} partout)`,p);
+  else addFeed(`remporte ${fmt(n)} au poker contre ${esc((r>0?t:p).name)} (${r>0?ha:hb} contre ${r>0?hb:ha})`,r>0?p:t);
+  BOT.p=was;botSay('🎱',r?(r>0?`gagne ${fmt(n)} (${ha} contre ${hb})`:`perd ${fmt(n)} (${ha} contre ${hb})`):`match nul (${ha} partout)`)}
+
+/* ---------- Le tour complet ---------- */
+function botActions(p){const lv=blv(p),L=BOT_LV[lv];let guard=0;
+  while(G.ap>0&&guard++<8){const cs=botCands(p).filter(x=>x.ap<=G.ap);if(!cs.length)break;
+    cs.forEach(x=>{const n=L.noise;x.s=x.v/x.ap*(1+R(-n,n))});
+    let ch=cs.reduce((a,b)=>b.s>a.s?b:a);
+    if(Math.random()<L.rand)ch=pick(cs);
+    if(ch.s<=0&&!(ch.k==='job'))ch=cs.find(x=>x.k==='job')||ch;
+    /* une action qui n'a pas pu se faire coûte quand même un PA : pas de boucle sans fin */
+    const ap0=G.ap;try{ch.go()}catch(e){console.error('bot',ch.k,e)}
+    if(G.ap===ap0)G.ap=Math.max(0,G.ap-1)}}
+function botJail(p){const b=bailCost(p),lv=blv(p);
+  if(p.cash>=b&&(lv>=2&&p.cash>=b*1.3&&b<=netWorth(p)*(lv>=3?.3:.15)||lv===1&&Math.random()<.3)){p.cash-=b;p.jail=0;addFeed(`paie sa caution (${fmt(b)}) et sort de prison`,p);return false}
+  p.jail--;p.stats.jailTurns++;addFeed('purge sa peine en prison 🔒',p);return true}
+function botPlay(){const p=cur();if(!G||!p||!p.bot||G.screen!=='pass'||ON)return;
+  const keep={cSel,cTab,imSel,mSel,tr:{...tr},hs:{...hs},dt:{...dt}};
+  BOTQ=true;BOT={p,log:[],e:'🎲'};
+  try{const cards=beginTurn(p);BOT.e='🔒';
+    cards.forEach(c=>{if(/ASSOCI/.test(c.k||''))botSay(c.e,`travaille avec un nouvel associé : <b>${esc(c.t)}</b>`)});
+    let jailed=p.jail>0&&botJail(p);
+    if(!jailed&&!(p.jail>0)){BOT.e='';botFree(p);botActions(p);botFree(p,1)}}
+  catch(e){console.error('bot',e)}
+  finally{BOTQ=false;cSel=keep.cSel;cTab=keep.cTab;imSel=keep.imSel;mSel=keep.mSel;Object.assign(tr,keep.tr);Object.assign(hs,keep.hs);Object.assign(dt,keep.dt);bj=null}
+  G.botLog={pid:p.id,r:G.round,lines:BOT.log};BOT=null;botShown=0;save();render()}
+
+/* ---------- Écran : l'ordinateur raconte son tour ---------- */
+let botShown=0,botTimer=0,botPk=false;
+function botLogNow(){const p=cur(),l=G.botLog;return G.screen==='turn'&&l&&l.pid===p.id&&l.r===G.round?l:null}
+function renderBot(){if(G.screen==='turn'&&!botLogNow())G.botLog={pid:cur().id,r:G.round,lines:[]};const p=cur(),lg=botLogNow(),lines=lg?lg.lines:[],n=Math.min(botShown,lines.length),done=!!lg&&n>=lines.length&&!botPk,L=BOT_LV[blv(p)];
+  if(!lg&&G.screen==='pass'&&!botTimer)botTimer=setTimeout(()=>{botTimer=0;botPlay()},900);
+  paint(`<div class="top" data-z="top"><span class="pill num">Tour ${G.round}/${G.maxRounds}</span>${topActs(1)}</div>
+  <div class="botturn" style="--c:${p.color}" data-z="bot"><div class="bigav">${p.avatar}</div>
+    <div><div class="who-lbl">Ordinateur · ${L.n} · ${bpe(p).n}</div><h1>${esc(p.name)}</h1>
+    <div class="muted small" role="status">${!lg?'réfléchit '+waitDots():done?'a fini son tour':'joue '+waitDots()}</div></div></div>
+  <div data-z="log"><div class="steps botlog" style="--c:${p.color}" aria-live="polite">${lines.slice(0,n).map((l,k)=>`<div${k<n-1?' class="old"':''}>${l.e?`<span class="e" aria-hidden="true">${l.e}</span>`:''}<span>${l.t}</span></div>`).join('')}
+    ${done&&!lines.length?'<div><span>Ne fait rien de spécial ce tour-ci.</span></div>':''}</div></div>
+  <div class="dock" data-z="dock">${done?B('Continuer',{v:'primary',on:'botDone()'}):lg?B('Tout voir',{v:'secondary',on:'botSkip()'}):''}</div>`,'bot'+G.round+G.cur);
+  if(lg&&n<lines.length&&!botPk&&!botTimer)botTimer=setTimeout(botNext,n?800:350)}
+/* Ligne suivante ; un duel contre le joueur s'affiche en grand, sur la table de poker. */
+function botNext(){botTimer=0;const lg=G&&cur()&&cur().bot?botLogNow():null;if(!lg)return;const l=lg.lines[botShown++];sfx.tick();
+  if(l&&l.show&&!l.seen)botPoker(l);render()}
+function botPoker(l){l.seen=1;save();botPk=true;pokerShow(l.show,'b');
+  const wait=()=>{if($('#pk')){setTimeout(wait,300);return}botPk=false;render()};setTimeout(wait,1500)}
+function botSkip(){const lg=botLogNow();if(!lg)return;clearTimeout(botTimer);botTimer=0;
+  const l=lg.lines.find((x,k)=>k>=botShown&&x.show&&!x.seen);botShown=lg.lines.length;if(l)botPoker(l);render()}
+function botDone(){if(busy||botPk||!botLogNow())return;clearTimeout(botTimer);botTimer=0;G.botLog=null;botShown=0;endTurn(true)}
+
+/* ---------- Préparer une partie en solo ---------- */
+let solo={bots:[{name:'',av:'🐍',lv:2},{name:'',av:'🐯',lv:2}]};
+function soloFixAv(){const used=[profile.av];solo.bots.forEach(b=>{if(used.includes(b.av))b.av=AVATARS.find(a=>!used.includes(a)&&!solo.bots.some(x=>x!==b&&x.av===a));used.push(b.av)})}
+function soloAv(i){const used=[profile.av,...solo.bots.map(b=>b.av)];let k=AVATARS.indexOf(solo.bots[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));solo.bots[i].av=AVATARS[k];sfx.tick();renderSolo()}
+function soloAdd(){if(solo.bots.length>=5)return;const used=[profile.av,...solo.bots.map(b=>b.av)];solo.bots.push({name:'',av:AVATARS.find(a=>!used.includes(a)),lv:solo.bots.length?solo.bots[solo.bots.length-1].lv:2});renderSolo()}
+function soloRm(i){if(solo.bots.length>1){solo.bots.splice(i,1);renderSolo()}}
+function renderSolo(){soloFixAv();const sv=loadSave();
+  paint(`${topBar(iconBtn('back','Retour à l’accueil',"APP.view='home';render()"))}
+  ${sv&&sv.solo&&sv.screen!=='end'?`<div class="panel mt-4" data-z="resume"><b>Partie en cours</b><div class="muted small">Tour ${sv.round}/${sv.maxRounds} · ${sv.players.map(p=>esc(p.name)).join(', ')}</div>
+    <div class="row mt-3">${B('Reprendre la partie',{v:'secondary',on:'resume()'})}${B('Effacer',{v:'text',inline:1,on:'clearSave();renderSolo()'})}</div></div>`:''}
+  <div data-z="bots">${label(`Tes adversaires <span class="num">(${solo.bots.length}/5)</span>`)}
+  ${solo.bots.map((b,i)=>`<div class="botrow"><div class="prow">
+     <button class="av" style="--c:${COLORS[i+1]}" onclick="soloAv(${i})" aria-label="Changer l’avatar de l’adversaire ${i+1}">${b.av}</button>
+     <input id="bn${i}" maxlength="14" placeholder="${BOT_NAMES[i]}" aria-label="Nom de l’adversaire ${i+1}" value="${esc(b.name)}" oninput="solo.bots[${i}].name=this.value">
+     ${solo.bots.length>1?iconBtn('close','Retirer l’adversaire '+(i+1),`soloRm(${i})`):''}</div>
+     <div class="seg" role="group" aria-label="Niveau de l’adversaire ${i+1}">${[1,2,3].map(l=>`<button class="${b.lv===l?'on':''}" aria-pressed="${b.lv===l}" onclick="solo.bots[${i}].lv=${l};renderSolo()">${BOT_LV[l].n}<small>${BOT_LV[l].t}</small></button>`).join('')}</div></div>`).join('')}
+  ${solo.bots.length<5?B('Ajouter un adversaire',{v:'secondary',on:'soloAdd()'}):''}</div>
+  <div data-z="cash">${label('Cash de départ')}
+  <div class="seg">${[[5000,'5 000 €','Galère'],[10000,'10 000 €','Classique'],[50000,'50 000 €','Fils à papa']].map(([v,l,s])=>`<button class="${setup.cash===v?'on':''}" aria-pressed="${setup.cash===v}" onclick="setup.cash=${v};renderSolo()">${l}<small>${s}</small></button>`).join('')}</div></div>
+  <div data-z="rounds">${label('Durée de la partie')}
+  <div class="seg">${[[8,'8 tours','Rapide'],[12,'12 tours','Normal'],[20,'20 tours','La soirée']].map(([v,l,s])=>`<button class="${setup.rounds===v?'on':''}" aria-pressed="${setup.rounds===v}" onclick="setup.rounds=${v};renderSolo()">${l}<small>${s}</small></button>`).join('')}</div></div>
+  <div class="dock" data-z="dock">${B('Lancer la partie',{v:'primary',on:'newSolo()'})}</div>`,'solo')}
+function newSolo(){soloFixAv();const pers=Object.keys(BOT_PERS).sort(()=>Math.random()-.5);
+  const list=[{name:profile.name||'Toi',av:profile.av},...solo.bots.map((b,i)=>({name:(b.name||'').trim()||BOT_NAMES[i],av:b.av}))];
+  G=buildGame(list,setup.cash,setup.rounds);G.solo=true;G.gameId=rid(8);
+  G.players.forEach((p,i)=>{if(i)p.bot={lv:solo.bots[i-1].lv,pe:pers[(i-1)%pers.length]}});
+  botShown=0;save();sfx.coin();haptic('start');render()}
+
 render();
 /* Écran de démarrage : visible au moins 600 ms, retiré dès que les polices sont prêtes (2,5 s au plus). */
 (()=>{const s=document.getElementById('splash');if(!s)return;const t0=performance.now();let gone=false;

@@ -11,6 +11,7 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
 - **Parties publiques ou privées** : dans le salon, l'hôte choisit. Une partie publique apparaît dans « Rejoindre une
   partie » (« Partie de … »), il suffit de la toucher ; une partie privée ne se rejoint qu'avec le code.
 - **Sur un seul téléphone** : on se passe le téléphone à tour de rôle.
+- **Seul contre l’ordinateur** : sans connexion, contre 1 à 5 adversaires. Chacun a un niveau (Facile, Moyen, Difficile) et un caractère tiré au sort (prudent, flambeur, mafieux, trader). Les ordinateurs jouent avec les mêmes règles que les humains, sans connaître l’avenir, et racontent leur tour à l’écran. Les parties en solo ne comptent pas dans la ligue.
 
 ## Les règles en bref
 - **3 points d'action (PA) par tour.** Casino, trading, immobilier, startup, boulot ou coup bas : 1 PA.
