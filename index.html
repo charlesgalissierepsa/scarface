@@ -68,6 +68,8 @@
   --map-sea:#0a0418; --map-edge:rgba(25,230,255,.25);
   /* Table de poker */
   --pk-felt-1:#1d0a3d; --pk-felt-2:#07021a; --pk-seat:rgba(0,0,0,.28); --pk-line:rgba(255,255,255,.16); --card-face:#f7f2ff; --card-ink:#1b0b33; --card-red:#e0115f; --card-edge:#cfc4e6;
+  /* Machine à sous */
+  --slot-glass:#06020f; --slot-reel-edge:#0b0420; --slot-reel-mid:#1d0b3a; --slot-lcd:#03010a; --slot-inner:rgba(255,42,138,.12);
   --tap:44px; --btn-h:48px; --row-h:56px; --head-h:56px; --tag-h:20px; --chip-h:32px; --bar-w:3px;
   --av:44px; --av-sm:40px; --av-lg:72px; --av-xl:128px; --dot:8px; --icon:20px; --tile-emoji-box:32px;
   --sheet-max:88dvh; --app-max:480px; --ico-tile:1.6em; --ico-inline:1.15em;
@@ -87,7 +89,7 @@
 
   /* ---- Tailles propres à un composant ---- */
   --slant:8px; --slant-sm:4px; --stripes:8px; --pip-w:24px; --pip-h:10px; --choice-h:72px; --pill-h:28px; --free-h:64px;
-  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --switch-w:128px; --dur-reel:16s; --reel-item:72px; --reel-ico:48px; --switch-ico:24px; --card-w:44px; --card-h:62px; --card-r:4px; --dur-flip:420ms; --pin:10px;
+  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --switch-w:128px; --dur-jobreel:16s; --reel-item:72px; --reel-ico:48px; --switch-ico:24px; --pk-card-w:50px; --pk-card-h:72px; --card-r:4px; --dur-flip:420ms; --pin:10px;
   --wheel:144px; --card-w:50px; --card-h:72px; --reel-w:76px; --reel-h:86px; --ticket-h:150px; --chart-h:180px;
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
@@ -446,11 +448,28 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .cards{display:flex;gap:var(--sp-2);flex-wrap:wrap;min-height:var(--card-h)}
 .pc{width:var(--card-w);height:var(--card-h);background:var(--card-face);color:var(--card-black);display:flex;flex-direction:column;justify-content:space-between;padding:var(--sp-1) var(--sp-2);font-weight:var(--fw-bold);animation:deal var(--dur-slow) var(--ease-in)}
 .pc.red{color:var(--card-red)}
+.cards{perspective:600px}.pc.flipin{animation:pc-flip var(--dur-flip) var(--ease-in)}
+@keyframes pc-flip{from{transform:rotateY(90deg)}}
 .pc .big{font-size:var(--fs-xl);text-align:center;line-height:1}
 .pc.back{background:repeating-linear-gradient(45deg,var(--card-back-a) 0 6px,var(--card-back-b) 6px 8px);border:var(--ring-lg) solid var(--card-face)}
 @keyframes deal{from{transform:translateY(calc(-1 * var(--sp-4)));opacity:0}}
-.reels{display:flex;gap:var(--sp-2);justify-content:center;margin:var(--sp-2) 0 var(--sp-4);padding:var(--sp-3);background:var(--surface-3);border:1px solid var(--neon-pink)}
-.reel{width:var(--reel-w);height:var(--reel-h);background:var(--card-face);display:grid;place-items:center;font-size:var(--fs-3xl)}
+/* Machine à sous : meuble néon, trois rouleaux derrière une vitre, ligne de gain, écran à cristaux. */
+.slot{position:relative;margin:var(--sp-2) 0 var(--sp-4);padding:var(--sp-3);background:linear-gradient(180deg,var(--surface-2),var(--bg-scene));border:1px solid var(--neon-pink);box-shadow:0 0 var(--glow-sm) var(--halo-pink),inset 0 0 var(--glow-lg) var(--slot-inner)}
+.slot-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-3);font:var(--fw-regular) var(--fs-sm)/1 var(--font-display);color:var(--neon-cyan);text-transform:uppercase;letter-spacing:var(--ls-caps);text-shadow:0 0 var(--glow-xs) var(--halo-cyan)}
+.slot-top b{display:flex;align-items:center;gap:2px;color:var(--cash);text-shadow:0 0 var(--glow-xs) var(--halo-cash)}
+.slot-top .i3d{width:18px;height:18px}
+.slot-win{position:relative;display:flex;gap:var(--sp-2);justify-content:center;padding:var(--sp-2);background:var(--slot-glass);border:1px solid var(--line)}
+.slot-win::after{content:"";position:absolute;left:var(--sp-1);right:var(--sp-1);top:50%;height:2px;background:var(--neon-pink);opacity:.55;box-shadow:0 0 var(--glow-xs) var(--halo-pink);pointer-events:none}
+.reel{flex:1;max-width:var(--reel-w);height:var(--reel-h);display:grid;place-items:center;font-size:var(--fs-3xl);background:linear-gradient(180deg,var(--slot-reel-edge),var(--slot-reel-mid) 45%,var(--slot-reel-mid) 55%,var(--slot-reel-edge));border:1px solid var(--line);transition:box-shadow var(--dur-base),border-color var(--dur-base)}
+.slot-win.lit .reel{border-color:var(--cash);box-shadow:0 0 var(--glow-sm) var(--halo-cash),inset 0 0 var(--glow-sm) var(--halo-cash)}
+.slot.jackpot .slot-win.lit .reel{animation:pin-pulse 1s ease-in-out infinite}
+.slot-screen{margin-top:var(--sp-3);padding:var(--sp-2) var(--sp-3);text-align:center;background:var(--slot-lcd);border:1px solid var(--neon-cyan);font:var(--fw-regular) var(--fs-lg)/1.2 var(--font-display);font-variant-numeric:tabular-nums;color:var(--neon-cyan);text-shadow:0 0 var(--glow-xs) var(--halo-cyan);min-height:calc(var(--fs-lg) * 1.2 + var(--sp-4))}
+.slot.win .slot-screen,.slot.jackpot .slot-screen{color:var(--cash);border-color:var(--cash);text-shadow:0 0 var(--glow-sm) var(--halo-cash)}
+.slot.lose .slot-screen{color:var(--loss);border-color:var(--loss);text-shadow:0 0 var(--glow-xs) var(--halo-pink)}
+.slot.spin .slot-screen{color:var(--ink-muted);animation:flicker var(--dur-flicker) steps(1) infinite}
+.paytable{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-1) var(--sp-4);padding:var(--sp-2) var(--sp-3);background:var(--surface-3);border:var(--border);font-size:var(--fs-sm)}
+.paytable div{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-2);color:var(--ink-muted)}
+.paytable span{display:flex;align-items:center;gap:1px}.paytable .i3d{width:18px;height:18px}.paytable b{color:var(--ink)}
 .reel.spin{animation:blur var(--dur-reel) linear infinite}
 @keyframes blur{50%{transform:translateY(var(--sp-1))}}
 .ticket{position:relative;height:var(--ticket-h);overflow:hidden;background:linear-gradient(135deg,var(--neon-cyan),var(--seg-b) 50%,var(--neon-pink));color:var(--on-neon);display:grid;place-items:center;text-align:center;font:var(--fw-regular) var(--fs-xl)/1.2 var(--font-display);margin:var(--sp-2) 0 var(--sp-3)}
@@ -458,7 +477,7 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .ticket .cover.gone{opacity:0;transform:scale(1.15);pointer-events:none}
 .jreel{overflow:hidden;margin:0 0 var(--sp-4);padding:var(--sp-3) 0;border-top:var(--border);border-bottom:var(--border);
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
-.jr-track{display:flex;width:max-content;animation:jr-slide var(--dur-reel) linear infinite}
+.jr-track{display:flex;width:max-content;animation:jr-slide var(--dur-jobreel) linear infinite}
 @keyframes jr-slide{to{transform:translateX(-50%)}}
 .jr-i{display:flex;flex-direction:column;align-items:center;gap:var(--sp-1);width:var(--reel-item);margin-right:var(--sp-3);font-size:var(--fs-xs);font-weight:var(--fw-semibold);color:var(--ink-muted)}
 .jr-i .i3d{width:var(--reel-ico);height:var(--reel-ico)}
@@ -480,7 +499,7 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .pk-seat.lose{opacity:.6}
 .pk-cards{display:flex;gap:var(--sp-1);flex:none}
 .pk-board{display:flex;justify-content:center;gap:var(--sp-1);padding:var(--sp-3) 0;border-top:1px dashed var(--pk-line);border-bottom:1px dashed var(--pk-line)}
-.pkc{width:var(--card-w);height:var(--card-h);perspective:600px;flex:none;transition:opacity var(--dur-slow)}
+.pkc{width:var(--pk-card-w);height:var(--pk-card-h);perspective:600px;flex:none;transition:opacity var(--dur-slow)}
 .pkc .in{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform var(--dur-flip) var(--ease-in)}
 .pkc.up .in{transform:rotateY(180deg)}
 .pkc .bk,.pkc .fr{position:absolute;inset:0;border-radius:var(--card-r);-webkit-backface-visibility:hidden;backface-visibility:hidden}
@@ -1853,19 +1872,23 @@ async function _spinRoulette(){const bet=getAmt('rlAmt');if(!casinoStart(bet))re
 /* blackjack */
 function newDeck(){const d=[];for(const s of['♠','♥','♦','♣'])for(const r of['A','2','3','4','5','6','7','8','9','10','J','Q','K'])d.push({r,s});for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}return d}
 function hv(h){let t=0,a=0;h.forEach(c=>{if(c.r==='A'){t+=11;a++}else if(['J','Q','K','10'].includes(c.r))t+=10;else t+=+c.r});while(t>21&&a){t-=10;a--}return t}
-function cardH(c,hide){if(hide)return `<div class="pc back"></div>`;const red=c.s==='♥'||c.s==='♦';return `<div class="pc ${red?'red':''}"><span>${c.r}</span><span class="big">${c.s}</span></div>`}
+function cardH(c,hide,flip){if(hide)return `<div class="pc back"></div>`;const red=c.s==='♥'||c.s==='♦';return `<div class="pc ${red?'red':''}${flip?' flipin':''}"><span>${c.r}</span><span class="big">${c.s}</span></div>`}
 function bjHTML(){const p=cur();
   if(!bj||bj.over){return `${bj?`<div class="small muted">Croupier <span class="num">(${hv(bj.dl)})</span></div><div class="cards">${bj.dl.map(c=>cardH(c)).join('')}</div><div class="small muted mt-2">Toi <span class="num">(${hv(bj.p)})</span></div><div class="cards">${bj.p.map(c=>cardH(c)).join('')}</div>${bj.msg}`:note('Le croupier tire jusqu’à 17. Blackjack payé 3 pour 2. Tu peux doubler sur tes deux premières cartes.')}
     <h3 class="sec">Ta mise</h3>${amt('bjAmt',casMax(p),Math.min(bj?bj.bet0:1000,casMax(p)))}
     <div class="sheet-foot">${B('Distribuer les cartes',{v:'primary',on:'bjDeal()',why:casWhy()})}</div>`}
-  return `<div class="small muted">Croupier</div><div class="cards">${bj.dl.map((c,i)=>cardH(c,i===1)).join('')}</div>
+  return `<div class="small muted">Croupier${bj.rv?` · <b class="gold num">${hv(bj.dl)}</b>`:''}</div><div class="cards">${bj.dl.map((c,i)=>cardH(c,!bj.rv&&i===1,bj.rv&&i===bj.rvLast)).join('')}</div>
   <div class="small muted mt-2">Toi · <b class="gold num">${hv(bj.p)}</b> · mise <span class="num">${fmt(bj.bet)}</span></div><div class="cards">${bj.p.map(c=>cardH(c)).join('')}</div>
-  <div class="sheet-foot"><div class="row">${B('Tirer une carte',{v:'secondary',on:'bjHit()'})}${B('Rester',{v:'primary',on:'bjStand()'})}</div>${bj.p.length===2?`<div class="mt-2">${B('Doubler la mise',{v:'secondary',on:'bjDouble()',why:p.cash<bj.bet*2?'Pas assez de cash pour doubler':''})}</div>`:''}</div>`}
+  <div class="sheet-foot">${bj.rv?`<p class="center muted" role="status">Le croupier joue…</p>`:`<div class="row">${B('Tirer une carte',{v:'secondary',on:'bjHit()'})}${B('Rester',{v:'primary',on:'bjStand()'})}</div>`}${bj.p.length===2&&!bj.rv?`<div class="mt-2">${B('Doubler la mise',{v:'secondary',on:'bjDouble()',why:p.cash<bj.bet*2?'Pas assez de cash pour doubler':''})}</div>`:''}</div>`}
 function bjDeal(){const bet=getAmt('bjAmt');if(!casinoStart(bet))return;const d=newDeck();bj={d,p:[d.pop(),d.pop()],dl:[d.pop(),d.pop()],bet,bet0:bet,over:false,msg:''};sfx.card();
   if(hv(bj.p)===21){bjFinish()}else{render();refreshSheet()}}
 function bjHit(){if(!bj||bj.over)return;bj.p.push(bj.d.pop());sfx.card();if(hv(bj.p)>21)bjFinish();else if(hv(bj.p)===21)bjStand();else refreshSheet()}
 function bjDouble(){if(!bj||bj.over||bj.p.length!==2)return;if(cur().cash<bj.bet*2){toast('Pas assez de cash pour doubler.',1);return}bj.bet*=2;bj.p.push(bj.d.pop());sfx.card();if(hv(bj.p)>21)bjFinish();else bjStand()}
-function bjStand(){if(!bj||bj.over)return;while(hv(bj.dl)<17)bj.dl.push(bj.d.pop());bjFinish()}
+/* Le croupier joue sous tes yeux : sa carte cachée se retourne, puis il tire carte par carte jusqu'à 17. */
+async function _bjStand(){if(!bj||bj.over||bj.rv)return;busy=true;bj.rv=1;bj.rvLast=1;sfx.card();refreshSheet();await sleep(850);
+  while(hv(bj.dl)<17){bj.dl.push(bj.d.pop());bj.rvLast=bj.dl.length-1;sfx.card();refreshSheet();await sleep(850)}
+  await sleep(250);busy=false;bjFinish()}
+const bjStand=guarded(_bjStand);
 function bjFinish(){if(!bj||bj.over)return;const ps=hv(bj.p),ds=hv(bj.dl),nat=ps===21&&bj.p.length===2,dnat=ds===21&&bj.dl.length===2;let net,msg;
   if(ps>21){net=-bj.bet;msg='Tu as sauté.'}
   else if(nat&&!dnat){net=bj.bet*1.5;msg='Blackjack !'}
@@ -1880,15 +1903,21 @@ function bjFinish(){if(!bj||bj.over)return;const ps=hv(bj.p),ds=hv(bj.dl),nat=ps
 const SYM=[['🍒',30,5],['🍋',25,8],['🔔',18,12],['🍀',12,20],['💎',8,40],['7️⃣',5,500]];
 let slotsLast=['🍒','💎','7️⃣'];
 function rollSym(){let t=Math.random()*98;for(const s of SYM){t-=s[1];if(t<=0)return s[0]}return '🍒'}
-function slotsHTML(){const p=cur();
-  return `<div class="reels" aria-live="polite">${slotsLast.map((s,i)=>`<div class="reel" id="reel${i}">${s}</div>`).join('')}</div>
-  ${note('Trois identiques : 🍒 x5 · 🍋 x8 · 🔔 x12 · 🍀 x20 · 💎 x40 · 7️⃣ <b>x500</b>. Deux cerises : x1,5. Une autre paire : x0,5.')}
+/* Écran de la machine : message affiché sous les rouleaux (attente, gain, perte). */
+let slotMsg={k:'idle',t:'Bonne chance'};
+function slotsHTML(){const p=cur(),win=slotMsg.k==='win'||slotMsg.k==='jackpot';
+  return `<div class="slot ${slotMsg.k}">
+    <div class="slot-top"><span>Machine à sous</span><b>${emoIcon('7️⃣','inline')}${emoIcon('7️⃣','inline')}${emoIcon('7️⃣','inline')} x500</b></div>
+    <div class="slot-win${win?' lit':''}">${slotsLast.map((s,i)=>`<div class="reel" id="reel${i}">${s}</div>`).join('')}</div>
+    <div class="slot-screen" id="slScr" role="status" aria-live="polite">${slotMsg.t}</div></div>
+  <div class="paytable">${SYM.map(([e,,m])=>`<div><span>${emoIcon(e,'inline')}${emoIcon(e,'inline')}${emoIcon(e,'inline')}</span><b class="num">x${m}</b></div>`).join('')}
+    <div><span>${emoIcon('🍒','inline')}${emoIcon('🍒','inline')}</span><b class="num">x1,5</b></div><div><span>Autre paire</span><b class="num">x0,5</b></div></div>
   <h3 class="sec">Ta mise</h3>${amt('slAmt',casMax(p),Math.min(500,casMax(p)))}
-  <div id="cres">${lastRes}</div>
   <div class="sheet-foot">${B('Tirer le levier',{v:'primary',on:'spinSlots()',why:casWhy()})}</div>`}
 const spinRoulette=guarded(_spinRoulette);
 async function _spinSlots(){const bet=getAmt('slAmt');if(!casinoStart(bet))return;busy=true;
-  const res=[rollSym(),rollSym(),rollSym()];
+  const res=[rollSym(),rollSym(),rollSym()];slotMsg={k:'spin',t:'Mise '+fmt(bet)};
+  const sc=$('#slScr');if(sc){sc.textContent=slotMsg.t;sc.parentElement.className='slot spin'}const sw=$('.slot-win');if(sw)sw.classList.remove('lit');
   const els=[0,1,2].map(i=>$('#reel'+i));els.forEach(e=>e.classList.add('spin'));
   const iv=setInterval(()=>{els.forEach((e,i)=>{if(e.classList.contains('spin'))e.textContent=pick(SYM)[0]});sfx.tick()},70);
   for(let i=0;i<3;i++){await sleep(i===2?900:600);els[i].classList.remove('spin');els[i].textContent=res[i];tone(500+i*200,.08,'square',.05)}
@@ -1897,7 +1926,7 @@ async function _spinSlots(){const bet=getAmt('slAmt');if(!casinoStart(bet))retur
   if(res[0]===res[1]&&res[1]===res[2])mult=SYM.find(s=>s[0]===res[0])[2];
   else{const cnt={};res.forEach(s=>cnt[s]=(cnt[s]||0)+1);const pair=Object.keys(cnt).find(k=>cnt[k]===2);if(pair)mult=pair==='🍒'?1.5:.5}
   const net=bet*mult-bet;
-  lastRes=resBox(net,`${mult>=20?'Jackpot ! ':''}${net>0?'gagné <span class="num">'+fmt(net,true)+'</span>':mult?'tu récupères <span class="num">'+fmt(bet*mult)+'</span>':'perdu'}`);
+  lastRes='';slotMsg=net>0?{k:mult>=20?'jackpot':'win',t:(mult>=20?'JACKPOT ':'Gagné ')+fmt(net,true)}:mult?{k:'push',t:'Récupéré '+fmt(bet*mult)}:{k:'lose',t:'Perdu '+fmt(-bet)};
   if(mult>=500)bigWin(cur(),net,'fait sauter la machine à sous : 7️⃣ 7️⃣ 7️⃣');
   busy=false;casinoResult(net);refreshSheet()}
 
@@ -1905,14 +1934,14 @@ const spinSlots=guarded(_spinSlots);
 /* scratch */
 let scPrice=100;
 function scratchHTML(){
-  return `${note('Ticket « Millionnaire » : 1 chance sur 5 de gagner x1,5, 1 sur 40 de gagner x10, 1 sur 500 de gagner x100, et 1 sur 50 000 de toucher <b>x10 000</b>.')}
+  return `${note('Ticket « Millionnaire » : 1 chance sur 4 de gagner x2, 1 sur 25 de gagner x5, 1 sur 500 de gagner x40, et 1 sur 50 000 de toucher <b>x10 000</b>.')}
   ${scratch?`<div class="ticket"><div class="num">${scratch.label}</div><button class="cover ${scratch.open?'gone':''}" onclick="scratchOpen()">Gratte ici</button></div>${scratch.open?lastRes:''}`:'<div class="ticket">MILLIONNAIRE</div>'}
   <h3 class="sec">Prix du ticket</h3>
   <div class="seg">${scPrices().map(v=>`<button class="${scPrice===v?'on':''} num" aria-pressed="${scPrice===v}" onclick="scPrice=${v};refreshSheet()">${fmt(v)}</button>`).join('')}</div>
   <div class="sheet-foot">${B('Acheter un ticket',{v:'primary',on:'buyScratch()',why:scratch&&!scratch.open?'Gratte d’abord ton ticket':casWhy()})}</div>`}
 function scPrices(){const m=CASINOS[cSel].max,l=[.02,.1,.5,1].map(f=>Math.round(m*f));if(!l.includes(scPrice))scPrice=l[1];return l}
 function buyScratch(){if(!casinoStart(scPrice))return;const pp=cur();pp.cash-=scPrice;pp.stats.casino-=scPrice;const r=Math.random();let m=0;
-  if(r<1/50000)m=10000;else if(r<1/50000+1/500)m=100;else if(r<1/50000+1/500+1/40)m=10;else if(r<1/50000+1/500+1/40+1/5)m=1.5;
+  if(r<1/50000)m=10000;else if(r<1/50000+1/500)m=40;else if(r<1/50000+1/500+1/25)m=5;else if(r<1/50000+1/500+1/25+1/4)m=2;
   scratch={m,price:scPrice,open:false,label:m?fmt(scPrice*m):'PERDU'};lastRes='';sfx.card();save();render();refreshSheet()}
 function scratchOpen(){if(!scratch||scratch.open)return;scratch.open=true;const won=scratch.price*scratch.m,net=won-scratch.price;
   lastRes=resBox(net>0?1:net<0?-1:0,net>0?'gagné <span class="num">'+fmt(net,true)+'</span>':net===0?'ticket remboursé':'pas de chance');
