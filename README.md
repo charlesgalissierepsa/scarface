@@ -19,6 +19,8 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
 - **Gratuit** : Bourse, banque, blanchiment, vente de ses biens.
 - **Associé** : tous les 4 tours, chacun fait équipe avec un nouvel associé (Banquier, Parrain, Escroc, Flambeur,
   Trader, Promoteur) qui apporte un talent et un défaut pendant ces 4 tours.
+  Il est affiché en permanence sous ta fortune, et une carte l'annonce à chaque changement.
+- **Durée** : en ligne, 15, 25 ou 40 tours (tout le monde joue en même temps) ; sur un seul téléphone, 8, 12 ou 20 tours.
 - **Objectif secret** : un par joueur pour toute la partie, +15 % de patrimoine à la fin s'il est réussi.
 - **Enchère de la manche** : un lot par tour, offre secrète et gratuite en PA, la plus haute gagne.
 - **Rumeurs** : l'événement de fin de manche est annoncé à l'avance, mais une rumeur peut être fausse.

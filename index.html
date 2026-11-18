@@ -267,6 +267,12 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .hero .who{display:flex;gap:var(--sp-3);align-items:center}
 .hero .who b{font-size:var(--fs-lg)}
 .hero .meta{color:var(--ink-muted);font-size:var(--fs-sm)}
+.assoc{display:flex;align-items:center;gap:var(--sp-3);width:100%;margin-top:var(--sp-4);padding:var(--sp-3);background:var(--surface-2);border:1px solid var(--neon-cyan);box-shadow:0 0 var(--glow-sm, 8px) rgba(25,230,255,.35);color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+.assoc>.e{font-size:2rem;line-height:1}
+.assoc .bd{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.assoc .k{font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;color:var(--neon-cyan)}
+.assoc .pro{display:flex;flex-direction:column;font-size:var(--fs-sm)}
+.assoc .pos{color:var(--gain)}.assoc .neg{color:var(--loss)}
 .cash{font:var(--fw-regular) var(--fs-2xl)/1 var(--font-display);margin-top:var(--sp-4);color:var(--cash)}
 .cash.lit{text-shadow:0 0 var(--glow-sm) var(--halo-cash)}
 .cash.neg{color:var(--loss)}
@@ -926,28 +932,31 @@ const LEGENDS=[
 const PARTNER_SPAN=4;
 const partnerUntil=()=>Math.min(G.maxRounds,Math.ceil(G.round/PARTNER_SPAN)*PARTNER_SPAN);
 const CHARS=[
-<<<<<<< Updated upstream
  {k:'banker',e:'🏦',n:'Le Banquier',t:'Intérêts de tes emprunts : 1 % par tour au lieu de 4 %.',f:'Braquages interdits.'},
  {k:'godfather',e:'👑',n:'Le Parrain',t:'Réseau de trafic offert si tu n’en as pas (1 000 à 3 000 € d’argent sale par tour).',f:'+3 de police en fin de tour.'},
  {k:'crook',e:'🃏',n:'L’Escroc',t:'Arnaques réussies à 70 % au lieu de 50 % (85 % contre la cible du moment).',f:'Arnaque ratée : +20 de police au lieu de +10.'},
  {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Intérêts de tes emprunts : 6 % par tour au lieu de 4 %.'},
  {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2, 5 positions ouvertes au lieu de 4.',f:'Pas d’achat immobilier à crédit.'},
  {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier : 2 % au lieu de 7 %.',f:'Créer ou développer une entreprise coûte 20 % plus cher.'},
-=======
- {k:'banker',e:'🏦',n:'Le Banquier',t:'Ses emprunts ne coûtent que 2 % par tour au lieu de 4 % : bouton Banque (gratuit) ou achat immobilier à crédit.',f:'Trop propre sur lui pour braquer quoi que ce soit.'},
- {k:'godfather',e:'🎩',n:'Le Parrain',t:'Démarre avec un petit réseau de trafic.',f:'Toujours surveillé : +3 de police à chaque fin de tour.'},
- {k:'crook',e:'🃏',n:'L’Escroc',t:'Ses arnaques réussissent 20 points plus souvent.',f:'Quand une arnaque rate, la police prend +20 au lieu de +10.'},
- {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Les banques se méfient : ses emprunts (Banque, immobilier à crédit) coûtent 6 % par tour.'},
- {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2 et 5 positions ouvertes au lieu de 4.',f:'Aucune banque ne lui prête pour l’immobilier : pas d’achat à crédit.'},
- {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier de 2 % au lieu de 7 %.',f:'Ses entreprises lui coûtent 20 % plus cher à créer et développer.'},
->>>>>>> Stashed changes
 ];
 const chr=p=>p&&p.chr||'';
 /* Taux d'intérêt des emprunts par tour, selon l'associé du tour. */
 const debtRate=p=>chr(p)==='banker'?.01:chr(p)==='gambler'?.06:.04;
-function dealPartners(ps){let cs;for(let k=0;k<12;k++){cs=CHARS.slice().sort(()=>Math.random()-.5);if(ps.every((p,i)=>p.chr!==cs[i%cs.length].k))break}
-  ps.forEach((p,i)=>{p.chr=cs[i%cs.length].k;if(p.chr==='godfather'&&!(p.net>0))p.net=1})}
+function dealPartners(ps,round){let cs;for(let k=0;k<12;k++){cs=CHARS.slice().sort(()=>Math.random()-.5);if(ps.every((p,i)=>p.chr!==cs[i%cs.length].k))break}
+  ps.forEach((p,i)=>{p.chr=cs[i%cs.length].k;p.chrFrom=round||1;if(p.chr==='godfather'&&!(p.net>0))p.net=1})}
 const chrDef=p=>CHARS.find(c=>c.k===chr(p));
+/* Carte « Nouvel associé », montrée une fois au début du tour où l'associé arrive. */
+function partnerCard(p){const cd=chrDef(p);if(!cd||p.chrShown===p.chrFrom)return null;p.chrShown=p.chrFrom;
+  return {k:p.chrFrom>1?'NOUVEL ASSOCIÉ':'TON ASSOCIÉ',e:cd.e,t:cd.n,d:`<span class="pos">+ ${cd.t}</span><br><span class="neg">− ${cd.f}</span>`,fx:`Avec toi jusqu’au tour ${partnerUntil()}`}}
+/* Bandeau de l'associé, en haut de l'écran de tour (visible sur « Manche » comme sur « Actions »). */
+function partnerChip(p){const cd=chrDef(p);if(!cd)return '';const left=partnerUntil()-G.round;
+  return `<button class="assoc" onclick="openPartner()" aria-label="Ton associé : ${cd.n}. Voir son talent et son défaut"><span class="e" aria-hidden="true">${cd.e}</span>
+    <span class="bd"><span class="k">Ton associé${left<=0?' · dernier tour avec toi':left===1?' · encore 1 tour':` · encore ${left} tours`}</span><b>${cd.n}</b>
+    <span class="pro"><span class="pos">+ ${cd.t}</span><span class="neg">− ${cd.f}</span></span></span>${icon('arrow')}</button>`}
+/* Fiche des associés : le mien en détail, et ceux des autres (ils sont publics). */
+function openPartner(){const p=ON&&G.screen==='free'?me():cur(),cd=chrDef(p);if(!cd)return;
+  openModal('partner','Les associés',`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>${cd.n} · ton associé</b><span class="small pro"><span class="pos">+ ${cd.t}</span><span class="neg">− ${cd.f}</span><span class="muted">Avec toi jusqu’au tour ${partnerUntil()}, puis un nouvel associé est tiré au sort. Tous les ${PARTNER_SPAN} tours, chacun change d’associé.</span></span></span></div>
+  <h3 class="sec">Les associés des autres</h3><div class="list">${G.players.filter(q=>q!==p).map(q=>{const c=chrDef(q);return c?`<div class="item"><div class="av sm" style="--c:${q.color}">${q.avatar}</div><span class="bd"><b>${esc(q.name)} · ${c.e} ${c.n}</b><span class="small pro"><span class="pos">+ ${c.t}</span><span class="neg">− ${c.f}</span></span></span></div>`:''}).join('')}</div>`)}
 /* Objectifs secrets : un par joueur, révélé à la fin. Réussi = +15 % de patrimoine. */
 const OBJS=[
  {k:'immo4',t:'Posséder au moins 4 biens immobiliers à la fin.',ok:p=>myProps(p).length>=4},
@@ -1047,7 +1056,6 @@ function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span c
 function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
   return `${label('Infos du tour')}<div class="list">${rumorHTML()}
   ${a?`<${mine?'button':'div'} class="item${mine?'':' ro'}" ${mine?'onclick="openAuction()"':''}><span class="ic">💸</span><span class="bd"><b>Enchère : ${noEmo(a.title)}</b><span class="small muted">Offre secrète, 0 PA · ${mb?'ton offre : <b class="gold num">'+fmt(mb)+'</b>':'minimum '+fmt(a.min)}</span></span>${mine?`<span class="rt muted">${icon('arrow')}</span>`:''}</${mine?'button':'div'}>`:''}
-  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>Associé : ${cd.n}</b><span class="small pro"><span>+ ${cd.t}</span><span>− ${cd.f}</span><span class="muted">Avec toi jusqu’au tour ${partnerUntil()}.</span></span></span></div>`:''}
   ${od&&mine?`<div class="item"><span class="ic">🎯</span><span class="bd"><b>Objectif secret</b><span class="small muted">${od.t} Réussi : +15 % de patrimoine à la fin.${od.ok(p)?' <b class="pos">Atteint pour l’instant.</b>':''}</span></span></div>`:''}</div>`}
 
 /* ================= STATE ================= */
@@ -1126,7 +1134,7 @@ function simSkip(i){if(!ON||!ON.host||G.screen!=='free')return;const q=G.players
 /* Début de mon tour : carte Destin, police, opportunités. */
 function simStart(){if(!simFree()||simStarted())return;const p=me();if(!p)return;sfx.coin();haptic('turn');turnTab='manche';
   p.t={round:G.round,ap:AP_MAX,acted:false,inCasino:false,casinoLeft:3,lawyer:false,opps:[],done:false};bj=null;scratch=null;
-  const cards=[];p.inbox.forEach(m=>cards.push(m));p.inbox=[];
+  const cards=[];const pc=partnerCard(p);if(pc)cards.push(pc);p.inbox.forEach(m=>cards.push(m));p.inbox=[];
   if(p.jail>0)cards.push(jailCard(p));
   else if(p.heat>=25&&Math.random()<arrestRisk(p)){cards.push(arrest(p,'Les flics débarquent chez toi à 6 h du matin.'));cards.push(jailCard(p))}
   else if(Math.random()<.42){const d=pick(DESTIN.filter(x=>x.f!==robin&&x.f!==bday));const fx=d.f(p);cards.push({k:'CARTE DESTIN',e:d.e,t:d.t,d:d.d,fx});addFeed(`pioche une carte Destin ${d.e} « ${d.t} » : ${fx}`)}
@@ -1287,7 +1295,7 @@ function buildGame(list,cash,rounds){
 }
 /* Associés du tour, objectifs secrets, cagnotte, enchère et rumeur : posés une fois la partie construite. */
 function dealRoles(g){const os=OBJS.slice().sort(()=>Math.random()-.5);
-  g.players.forEach((p,i)=>{p.obj=os[i%os.length].k});dealPartners(g.players);
+  g.players.forEach((p,i)=>{p.obj=os[i%os.length].k});dealPartners(g.players,1);
   g.pot=0;g.highlights=[];const G0=G;G=g;try{g.auction=genAuction();planEvent()}finally{G=G0}return g}
 function newGame(){G=buildGame(setup.players,setup.cash,setup.rounds);G.gameId=rid(8);save();sfx.coin();haptic('start');render()}
 
@@ -1434,7 +1442,7 @@ async function createRoom(){
   if(connAbort){client&&client.end(true);return}
   if(!client){APP.view='home';APP.err='Impossible de joindre le serveur de jeu. Vérifie ta connexion internet et réessaie.';render();return}
   const code=rid(4);newON(client,broker,code);ON.host=true;
-  ON.lobby={host:UID,ver:APP_VER,code,settings:{cash:10000,rounds:12,pub:false},players:[{uid:UID,name:profile.name,av:profile.av}],started:false,gameId:null};
+  ON.lobby={host:UID,ver:APP_VER,code,settings:{cash:10000,rounds:25,pub:false},players:[{uid:UID,name:profile.name,av:profile.av}],started:false,gameId:null};
   ON.wasIn=true;pubLobby();persistSession();startPing();APP.view='lobby';sfx.coin();render();
 }
 async function joinRoom(code){
@@ -1552,9 +1560,11 @@ function renderLobby(){
   <div data-z="cash">${label('Cash de départ')}
   <div class="seg">${[[5000,'5 000 €','Galère'],[10000,'10 000 €','Classique'],[50000,'50 000 €','Fils à papa']].map(([v,l,s])=>`<button class="${S.cash===v?'on':''}" aria-pressed="${S.cash===v}" ${h?`onclick="setLobby('cash',${v})"`:'disabled'}>${l}<small>${s}</small></button>`).join('')}</div></div>
   <div data-z="rounds">${label('Durée de la partie')}
-  <div class="seg">${[[8,'8 tours','Rapide'],[12,'12 tours','Normal'],[20,'20 tours','La soirée']].map(([v,l,s])=>`<button class="${S.rounds===v?'on':''}" aria-pressed="${S.rounds===v}" ${h?`onclick="setLobby('rounds',${v})"`:'disabled'}>${l}<small>${s}</small></button>`).join('')}</div></div>
+  <div class="seg">${ONLINE_ROUNDS.map(([v,l,s])=>`<button class="${S.rounds===v?'on':''}" aria-pressed="${S.rounds===v}" ${h?`onclick="setLobby('rounds',${v})"`:'disabled'}>${l}<small>${s}</small></button>`).join('')}</div></div>
   <div class="dock" data-z="dock">${h?B('Démarrer la partie',{v:'primary',quiet:1,on:'startOnline()',why:L.players.length<2?'Il faut au moins deux joueurs':''}):`<div class="center muted small" role="status">En attente de l’hôte ${waitDots()}</div>`}</div>`,'lobby');
 }
+/* En ligne, tout le monde joue en même temps : un tour dure à peu près le temps d'un seul joueur, d'où des parties plus longues. */
+const ONLINE_ROUNDS=[[15,'15 tours','Rapide'],[25,'25 tours','Normal'],[40,'40 tours','La soirée']];
 function setLobby(k,v){if(!ON.host)return;ON.lobby.settings[k]=v;sfx.tick();pubLobby();render()}
 function kick(uid){if(!ON.host)return;ON.lobby.players=ON.lobby.players.filter(p=>p.uid!==uid);pubLobby();render()}
 function copyTxt(t){try{navigator.clipboard.writeText(t).then(()=>toast('Copié : '+t),()=>toast('Code : '+t))}catch(e){toast('Code : '+t)}}
@@ -1617,7 +1627,7 @@ function startTurn(){
     G.acted=false;G.ap=(p.t&&p.t.apLeft)||0;G.inCasino=false;G.casinoLeft=0;G.lawyer=!!(p.t&&p.t.lawyer);G.opps=[];bj=null;
     const cards=p.inbox.slice();p.inbox=[];G.screen='turn';save();render();if(cards.length)showCards(cards);return}
   G.acted=false;G.ap=AP_MAX;G.inCasino=false;G.casinoLeft=3;G.lawyer=false;bj=null;
-  const cards=[];
+  const cards=[];const pc=partnerCard(p);if(pc)cards.push(pc);
   p.inbox.forEach(m=>cards.push(m));p.inbox=[];
   if(p.jail>0){cards.push(jailCard(p))}
   else if(p.heat>=25&&Math.random()<arrestRisk(p)){
@@ -1700,12 +1710,15 @@ function renderTurn(){
     <div class="cash lit num ${p.cash<0?'neg':''}">${fmt(p.cash)}</div>
     <div class="sub"><span>Patrimoine net <b class="num">${fmt(nw)}</b></span>${p.dirty>0?`<span>Argent sale <b class="dirty num">${fmt(p.dirty)}</b></span>`:''}${p.debt>0?`<span>Dette <b class="num">${fmt(p.debt)}</b></span>`:''}</div>
     <div class="heat"><div class="lbl"><span>Police : ${heatLabel(p.heat)}</span><span class="num">${Math.round(p.heat)}/100</span></div><div class="bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p.heat)}" aria-label="Jauge de police"><i style="width:${p.heat}%"></i></div></div>
+    ${partnerChip(p)}
   </div>
   <div class="ap" data-z="ap"><div class="pips" aria-hidden="true">${Array.from({length:AP_MAX},(_,i)=>`<i class="${i<G.ap?'on':''}"></i>`).join('')}</div><span role="status">${apMsg}</span></div>
   ${turnTab==='manche'?`<div data-z="intel">${intelHTML(p,true)}</div>
   <div data-z="opps">${opps.length?`${label('Opportunités du tour')}<div class="opps">${opps.map(oppHTML).join('')}</div>`:''}</div>`:`<div data-z="tiles">${label('Actions')}
   <div class="tiles">${MAIN.map(t=>{const live=t.k==='casino'&&G.inCasino&&G.casinoLeft>0;const minAp=t.k==='heist'||t.k==='biz'||t.k==='traf'?1:t.ap;
     if(t.k==='casino'&&G.pot>=1000)t={...t,s:'Cagnotte '+fmt(G.pot)};
+    if(t.k==='casino'&&chr(p)==='gambler'&&!(G.pot>=1000))t={...t,s:'4 parties (Flambeur)'};
+    if(t.k==='heist'&&chr(p)==='banker')t={...t,s:'Interdit (Banquier)'};
     return `<button class="tile ${t.dark?'dark':''} ${!live&&(G.ap<minAp||t.k==='dirty'&&cbDone(p))?'used':''} ${live?'live':''}" onclick="${t.fn}" aria-label="${t.n}, ${t.s}, ${live?G.casinoLeft+' parties restantes':(t.cl||t.ap)+' PA'}${t.dark?', illégal':''}">${t.dark?'<span class="ill">Illégal</span>':''}<span class="c num">${live?G.casinoLeft+'/3':(t.cl||t.ap)+' PA'}</span><span class="e">${t.e}</span><span class="n">${t.n}</span><span class="s">${t.s}</span></button>`}).join('')}</div></div>
   <div data-z="free">${label('Gestion · sans PA')}
   <div class="freebar">
@@ -2130,7 +2143,6 @@ function openImmo(){openSheet('Immobilier',immoHTML(),()=>setBody(immoHTML()))}
 function reItem(x,mine){const rt=rdef(x.t),cd=cdef(x.c),v=rprice(x.c,x.t),g=v-x.paid;
   return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n} · ${cd.n}</b><span class="small muted">Valeur <b class="num">${fmt(v)}</b> · <span class="num ${g>=0?'pos':'neg'}">${fmt(g,true)}</span> · loyer ≈ <span class="num">${fmt(rrent(x.c,x.t))}</span> par tour</span>
     ${mine?`<div class="btns">${B('Vendre',{v:'secondary',inline:1,on:`sellRE('${x.id}')`,cost:fmt(v*.95)})}</div>`:''}</span></div>`}
-<<<<<<< Updated upstream
 /* Position des villes sur la carte (en % de la carte) et côté de leur étiquette. */
 const MAP_POS={detroit:[72.3,37.1,'t'],nola:[62.5,76,'r'],miami:[83.2,85.3,'b'],ny:[87.9,38.3,'b'],la:[10.3,57.7,'bl'],vegas:[16.8,53.1,'r'],chicago:[65,39.5,'l']};
 const US_PATH='M33.5 36.6 44.8 34.4 208.8 57.2 211.2 53.6 242.9 64.8 273.5 75.4 289.8 84.1 292.1 104.8 289.4 114.3 315.0 102.9 312.8 97.8 329.8 87.1 337.0 78.2 358.0 73.0 363.1 55.8 366.1 48.4 375.1 48.6 386.0 66.8 369.4 83.1 369.2 92.5 375.2 99.3 366.9 104.3 352.4 115.5 354.0 125.4 348.7 133.1 345.3 150.6 352.1 164.9 342.7 173.4 330.4 184.1 318.8 200.7 316.3 214.0 325.7 233.4 333.0 247.6 331.9 261.4 326.4 263.2 318.7 250.8 309.7 239.5 306.0 230.0 294.9 223.3 286.7 227.0 277.5 221.6 265.9 222.7 253.7 225.4 255.9 234.3 247.3 235.7 235.3 231.8 221.2 231.4 213.5 235.1 200.1 244.2 194.4 250.4 194.2 265.6 178.9 259.9 176.0 250.8 164.9 233.3 154.1 229.0 148.2 235.8 137.6 229.5 124.3 208.2 111.4 206.7 110.8 211.2 88.8 208.0 63.1 192.3 46.1 188.7 39.3 175.1 25.3 164.0 21.0 144.0 19.9 132.4 16.3 112.4 14.0 106.0 19.5 92.5 27.6 70.4 32.4 56.8 33.3 49.6Z';
@@ -2155,19 +2167,6 @@ function immoHTML(){const p=viewer(),RO=ro(),d=imSel&&cdef(imSel),mine=(p.re||[]
   return `${RO?RO_NOTE:''}${note(`Chaque ville a son niveau de prix, son rendement locatif et sa tendance, qui changent à chaque tour. Le loyer tombe en fin de tour, mais un logement peut rester vide. Frais d’acquisition ${Math.round(reFee(p)*100)} %. À crédit, tu avances 25 % plus les frais et la banque prête le reste à 4 % par tour.`)}
   <h3 class="sec">La carte</h3>${usMapHTML(p)}
   ${d?`<h3 class="sec">Acheter à ${d.n}</h3><div class="list">${RTYPES.map(rt=>{const v=rprice(imSel,rt.k),cash=v*(1+reFee(p)),down=v*(.25+reFee(p));
-=======
-function immoHTML(){const p=viewer(),RO=ro(),c=city(imSel),d=cdef(imSel),t=trendCity(c),mine=(p.re||[]);
-  return `${RO?RO_NOTE:''}${note('Choisis ta ville : chacune a son niveau de prix, son rendement locatif et sa tendance, qui changent à chaque tour. Le loyer tombe en fin de tour, mais un logement peut rester vide. Frais d’acquisition ${Math.round(reFee(p)*100)} %. À crédit, tu avances 25 % plus les frais et la banque prête le reste à ${pctRate(p)} par tour.')}
-  <h3 class="sec">Les villes</h3><div class="list">${G.cities.map(x=>{const dd=cdef(x.k);
-    return `<button class="item pick ${x.k===imSel?'sel':''}" aria-pressed="${x.k===imSel}" onclick="imSel='${x.k}';refreshSheet()"><span class="ic">${dd.e}</span><span class="bd"><b>${dd.n}</b><span class="small muted">Rendement <b class="num">${pctY(x.yld)}</b> par tour · prix <span class="num ${x.chg>=0?'pos':'neg'}">${pct(x.chg)}</span></span></span>${spark(x.hist)}</button>`}).join('')}</div>
-  <h3 class="sec">${d.n}</h3><div class="panel tight"><p class="small muted">${d.d}</p>
-    <div class="kv"><span>Prix depuis le début</span><b class="num ${c.idx>=c.idx0?'pos':'neg'}">${pct(c.idx/c.idx0-1)}</b></div>
-    <div class="kv"><span>Rendement locatif</span><b class="num">${pctY(c.yld)} par tour</b></div>
-    <div class="kv"><span>Tendance (3 tours)</span><b class="${t>0?'pos':t<0?'neg':''}">${['↘ Baissière','→ Stable','↗ Haussière'][t+1]}</b></div>
-    <div class="kv"><span>Demande selon les agents</span><b class="${c.rating>0?'pos':c.rating<0?'neg':''}">${['Faible','Normale','Forte'][c.rating+1]}</b></div>
-    <div class="kv"><span>Volatilité des prix</span><span>${d.vol>.055?'élevée':d.vol>.04?'moyenne':'faible'}</span></div></div>
-  <h3 class="sec">Acheter à ${d.n}</h3><div class="list">${RTYPES.map(rt=>{const v=rprice(imSel,rt.k),cash=v*(1+reFee(p)),down=v*(.25+reFee(p));
->>>>>>> Stashed changes
     return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n}</b><span class="small muted"><b class="num">${fmt(v)}</b> · loyer ≈ <span class="num">${fmt(rrent(imSel,rt.k))}</span> par tour</span>
       ${RO?'':`<div class="btns duo">${B('Acheter cash',{v:'secondary',quiet:1,on:`buyRE('${rt.k}',0)`,cost:fmt(cash)+' · 1 PA',why:whyNot(1,cash,p)})}${B('À crédit',{v:'secondary',quiet:1,on:`buyRE('${rt.k}',1)`,cost:'apport '+fmt(down)+' · 1 PA',why:chr(p)==='trader'?'Pas de crédit pour le Trader':whyNot(1,down,p)})}</div>`}</span></div>`}).join('')}</div>`:note('Touche une ville sur la carte pour voir son marché et y acheter.','mt-3')}
   ${mine.length?`<h3 class="sec">Tes biens <span class="num">(${mine.length})</span></h3><div class="list">${mine.map(x=>reItem(x,!RO)).join('')}</div>`:''}`}
@@ -2480,17 +2479,10 @@ async function pokerShow(o,side){const run=++pkRun;ovOpener=document.activeEleme
   setTimeout(()=>{const b=$('#pkF .btn');b&&b.focus({preventScroll:true})},60)}
 /* ================= BANK ================= */
 function maxBorrow(p){return Math.max(0,Math.floor(grossAssets(p)*.6+5000-p.debt))}
-/* Taux d'intérêt par tour, selon le personnage (Banquier 2 %, Flambeur 6 %, les autres 4 %). */
-function debtRate(p){return chr(p)==='banker'?.02:chr(p)==='gambler'?.06:.04}
-const pctRate=p=>Math.round(debtRate(p)*100)+' %';
 function lawyerCost(p){return Math.round(Math.max(2000,netWorth(p)*.04))}
 function openBank(){openSheet('Banque',bankHTML(),()=>setBody(bankHTML()))}
 function bankHTML(){const p=cur(),mb=maxBorrow(p),lc=lawyerCost(p),rp=Math.min(Math.max(p.cash,0),p.debt);
-<<<<<<< Updated upstream
   return `<div class="panel tight"><div class="kv"><span>Dette actuelle</span><b class="num">${fmt(p.debt)}</b></div><div class="kv"><span>Intérêts</span><span class="num">${Math.round(debtRate(p)*100)} % par tour</span></div><div class="kv"><span>Capacité d’emprunt</span><b class="num">${fmt(mb)}</b></div></div>
-=======
-  return `<div class="panel tight"><div class="kv"><span>Dette actuelle</span><b class="num">${fmt(p.debt)}</b></div><div class="kv"><span>Intérêts</span><span class="num">${pctRate(p)} par tour${chr(p)==='banker'?' (talent du Banquier)':chr(p)==='gambler'?' (défaut du Flambeur)':''}</span></div><div class="kv"><span>Capacité d’emprunt</span><b class="num">${fmt(mb)}</b></div></div>
->>>>>>> Stashed changes
   <h3 class="sec">Emprunter</h3>${amt('borAmt',mb,Math.min(10000,mb))}<div class="mt-3">${B('Emprunter',{v:'secondary',on:'borrow()',why:mb<=0?'Plus de capacité d’emprunt':''})}</div>
   ${p.debt>0?`<h3 class="sec">Rembourser</h3>${amt('repAmt',rp,rp)}<div class="mt-3">${B('Rembourser',{v:'secondary',on:'repay()',why:rp<=0?'Plus de cash':''})}</div>`:''}
   <h3 class="sec">Services spéciaux</h3>
@@ -2524,7 +2516,7 @@ function viewerP(){return ON?me():cur()}
 function blind(q){return blindRound()&&q!==viewerP()}
 function rankingHTML(){if(blindRound()){return `${note('<b>Dernière manche à l’aveugle.</b> Les fortunes sont cachées jusqu’au journal final : personne ne sait s’il est déjà battu. Tout peut encore basculer.')}<div class="list mt-3">${G.players.map(p=>`<div class="item"><div class="av sm" style="--c:${p.color}">${p.avatar}</div><span class="bd"><b>${esc(p.name)}</b><span class="small muted">${p===viewerP()?'toi · '+fmt(netWorth(p)):'fortune cachée'}${p.jail?' · en prison':''}</span></span></div>`).join('')}</div>`}
   return `<div class="list">${ranked().map((p,i)=>`<button class="item" onclick="closeOv();openAssets(${p.id})"><span class="rank num">${i+1}</span><div class="av sm" style="--c:${p.color}">${p.avatar}</div>
-  <span class="bd"><b>${esc(p.name)}${p.jail?` <span class="tag r">En prison</span>`:''}${isMark(p)?` <span class="tag y">Cible</span>`:''}</b><span class="small muted">cash <span class="num">${fmt(p.cash)}</span>${p.dirty>0?` · sale <span class="dirty num">${fmt(p.dirty)}</span>`:''} · police <span class="num">${Math.round(p.heat)}</span> · réputation <span class="num">${rep(p)}</span></span></span><span class="rt"><b class="num gold">${fmt(netWorth(p))}</b></span></button>`).join('')}</div><p class="small muted mt-3">Touche un joueur pour voir son patrimoine.</p>`}
+  <span class="bd"><b>${esc(p.name)}${p.jail?` <span class="tag r">En prison</span>`:''}${isMark(p)?` <span class="tag y">Cible</span>`:''}</b>${chrDef(p)?`<span class="small muted">Associé : ${chrDef(p).e} ${chrDef(p).n}</span>`:''}<span class="small muted">cash <span class="num">${fmt(p.cash)}</span>${p.dirty>0?` · sale <span class="dirty num">${fmt(p.dirty)}</span>`:''} · police <span class="num">${Math.round(p.heat)}</span> · réputation <span class="num">${rep(p)}</span></span></span><span class="rt"><b class="num gold">${fmt(netWorth(p))}</b></span></button>`).join('')}</div><p class="small muted mt-3">Touche un joueur pour voir son patrimoine.</p>`}
 function openRanking(){openModal('ranking','Classement',rankingHTML())}
 /* Réglages partagés par l'accueil et le menu en partie. */
 function settingsHTML(){return `<div class="stack">
@@ -2629,7 +2621,7 @@ function scoreObjectives(){if(G.objScored)return;G.objScored=true;G.players.forE
 function canAdvance(){return !ON||ON.host||!isOnline(ON.lobby&&ON.lobby.host)}
 function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){scoreObjectives();G.screen='end';save();render();haptic('jackpot');setTimeout(()=>sfx.big(),300);return}
   haptic('round');
-  G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';if((G.round-1)%PARTNER_SPAN===0)dealPartners(G.players);
+  G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';if((G.round-1)%PARTNER_SPAN===0)dealPartners(G.players,G.round);
   if(G.mode==='sim'){G.screen='free';G.opsSeen={};G.coupsQ=[]}save();render();window.scrollTo(0,0)}
 
 /* ================= END ================= */
