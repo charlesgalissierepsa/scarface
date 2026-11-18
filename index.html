@@ -2520,6 +2520,7 @@ function liquidate(p,add){
   for(const x of myProps(p).slice().sort((a,b)=>rprice(a.c,a.t)-rprice(b.c,b.t))){if(p.cash>=0)break;const v=rprice(x.c,x.t)*.85;p.cash+=v;p.re=p.re.filter(y=>y!==x);add(p,'🔻 Saisie : '+rdef(x.t).n+' à '+cdef(x.c).n,v)}
   while(p.cash<0&&p.biz.length){const b=p.biz.pop(),v=bizVal(b)*.7;p.cash+=v;add(p,'🔻 Liquidation : '+b.name,v)}
 }
+const PAPER_PRICE=2;
 function endRound(){
   const ev=G.nextEv==null?(Math.random()<.8?pick(EVENTS):null):G.nextEv>=0?EVENTS[G.nextEv]:null;
   const rumorWas=G.rumor,rumorTrue=G.rumor!=null&&G.rumor===G.nextEv;
@@ -2528,6 +2529,8 @@ function endRound(){
   const m={stock:{},all:0,crypto:0,re:0,city:{},cityYld:{},restoOff:0,bizMult:1,rentMult:1};
   G.laundBoost=1;
   if(ev)ev.f(m,add);
+  /* « Le Néon du Soir » coûte 2 € : prélevé discrètement à chacun, sans ligne dans le journal. */
+  G.players.forEach(p=>{p.cash-=PAPER_PRICE});
   const bias=G.bias||{};G.bias={};
   const paths={};
   G.assets.forEach(a=>{const d=adef(a.sym),s=(d.crypto?m.crypto:m.all)+(m.stock[a.sym]||0)+(bias[a.sym]||0);paths[a.sym]=stepAsset(a,Math.log(Math.max(.15,1+s)))});
@@ -2575,7 +2578,7 @@ function renderRecap(){const rc=G.recap,last=G.round>=G.maxRounds;
   const ln=x=>{const m=String(x.l).match(EMO_LEAD),e=m?m[0].trim():'',t=noEmo(x.l);
     return `<div class="ln"><span>${e?`<span aria-hidden="true">${e}</span> `:''}${esc(t)}</span><b class="num ${x.dv?'dirty':x.a>0?'pos':x.a<0?'neg':''}">${x.dv?fmt(x.dv,true)+' sale':x.a?fmt(x.a,true):''}</b></div>`};
   paint(`${topBar('',1)}<div class="paper" data-z="paper">
-    <div class="mast">${PAPERS[(rc.round-1)%PAPERS.length]}</div><div class="dateline"><span>Édition du tour <span class="num">${rc.round}</span></span><span>Prix : 2 €</span></div>
+    <div class="mast">${PAPERS[(rc.round-1)%PAPERS.length]}</div><div class="dateline"><span>Édition du tour <span class="num">${rc.round}</span></span><span>Prix : ${PAPER_PRICE} €</span></div>
     ${rc.ev?`<div class="ev-e" aria-hidden="true">${rc.ev.e}</div><div class="headline">${rc.ev.t}</div><p>${rc.ev.d}</p>`:`<div class="headline">Calme plat sur les marchés</div><p>Rien à signaler. Les journalistes sont partis en RTT.</p>`}
     ${rc.rumor?`<p><b>La rumeur disait :</b> ${rc.rumor.t.toLowerCase()}. ${rc.rumor.ok?'Elle disait vrai.':'Fausse piste.'}</p>`:''}
     ${rc.nextRumor!=null&&EVENTS[rc.nextRumor]&&!last?`<p><b>On murmure déjà pour le prochain tour :</b> ${EVENTS[rc.nextRumor].t.toLowerCase()}.</p>`:''}
