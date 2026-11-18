@@ -230,6 +230,15 @@ h3.sec::after{content:"";flex:1;height:1px;background:var(--line)}
 .sh-body>h3.sec:first-child{margin-top:var(--sp-2)}
 
 /* ===== Champs, profil ===== */
+/* Comptes */
+.authform{display:flex;flex-direction:column;gap:var(--sp-3)}
+.authform input{width:100%;min-height:var(--tap);padding:0 var(--sp-3);border:0;border-bottom:2px solid var(--neon-cyan);background:var(--surface-3);font-weight:var(--fw-semibold)}
+.fhint{min-height:1.2em;margin-top:calc(-1 * var(--sp-2));font-size:var(--fs-xs);color:var(--ink-muted)}
+.fhint.pos{color:var(--cash)}.fhint.neg{color:var(--loss)}
+.acc-name{flex:1;min-width:0;min-height:var(--tap);display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);padding:var(--sp-1) var(--sp-3);border-bottom:2px solid var(--neon-cyan);background:var(--surface-3);text-align:left}
+.acc-name>span{display:flex;flex-direction:column;min-width:0}
+.acc-name b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-name.static{border-bottom-color:var(--line)}
 .prow{display:flex;gap:var(--sp-3);align-items:center;margin-bottom:var(--sp-3)}
 .prow input{flex:1;min-width:0;min-height:var(--tap);padding:0 var(--sp-3);border:0;border-bottom:2px solid var(--neon-cyan);background:var(--surface-3);font-weight:var(--fw-semibold)}
 .av{width:var(--av);height:var(--av);flex:none;border-radius:var(--round);display:grid;place-items:center;font-size:var(--fs-xl);background:var(--surface-3);border:2px solid var(--c,var(--line))}
@@ -676,6 +685,7 @@ canvas#trc{width:100%;height:var(--chart-h);background:var(--surface-3);border:v
 <div id="toast" role="status" aria-live="polite"></div>
 <canvas id="fx"></canvas>
 <div class="scan" aria-hidden="true"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="mqtt.min.js"></script>
 <script>
 /* ================= UTILS ================= */
@@ -1241,7 +1251,7 @@ function paint(html,key){const app=$('#app');
 function render(){if(BOTQ)return;
   /* Le décor reste en vedette sur l'accueil ; partout ailleurs, un voile sombre garantit la lisibilité du texte. */
   document.body.classList.toggle('dim',!!G||APP.view!=='home');
-  if(!G){({home:renderHome,local:renderSetup,solo:renderSolo,join:renderJoin,lobby:renderLobby,connecting:renderConnecting})[APP.view]();return}
+  if(!G){({auth:renderAuth,home:renderHome,local:renderSetup,solo:renderSolo,join:renderJoin,lobby:renderLobby,connecting:renderConnecting})[APP.view]();return}
   const s=G.screen;
   if(s==='free')return renderFree();
   if(ON&&(s==='pass'||s==='turn')){if(!isMyTurn())return renderSpectate();if(s==='pass')return renderMyTurn()}
@@ -1253,7 +1263,7 @@ let renderReq=0;
 function scheduleRender(){if(renderReq)return;renderReq=requestAnimationFrame(()=>{renderReq=0;render();const mr=$('#mBody[data-m="ranking"]');if(mr&&G)mr.innerHTML=rankingHTML();if(G&&(!isMyTurn()||G.screen==='recap'))refreshSheet()})}
 /* ================= SETUP ================= */
 function renderSetup(){
-  const sv=loadSave();
+  const sv=loadSave();if(ACC)setup.players[0]={...setup.players[0],name:ACC.username,av:profile.av,acc:true};
   paint(`
   ${topBar(iconBtn('back','Retour à l’accueil',"APP.view='home';render()"))}
   ${sv&&sv.screen!=='end'?`<div class="panel mt-4" data-z="resume"><b>Partie en cours</b><div class="muted small">Tour ${sv.round}/${sv.maxRounds} · ${sv.players.map(p=>esc(p.name)).join(', ')}</div>
@@ -1261,8 +1271,8 @@ function renderSetup(){
   <div data-z="players">${label(`Les joueurs <span class="num">(${setup.players.length}/6)</span>`)}
   <div id="plist">${setup.players.map((p,i)=>`<div class="prow">
      <button class="av" style="--c:${COLORS[i]}" onclick="cycleAv(${i})" aria-label="Changer l’avatar du joueur ${i+1}">${p.av}</button>
-     <input id="pn${i}" maxlength="14" placeholder="Joueur ${i+1}" aria-label="Nom du joueur ${i+1}" value="${esc(p.name)}" oninput="setup.players[${i}].name=this.value">
-     ${setup.players.length>2?iconBtn('close','Retirer le joueur '+(i+1),`rmPlayer(${i})`):''}</div>`).join('')}</div>
+     ${p.acc?`<div class="acc-name static"><span><b>${esc(p.name)}</b><span class="small muted">Toi</span></span></div>`:`<input id="pn${i}" maxlength="14" placeholder="Joueur ${i+1}" aria-label="Nom du joueur ${i+1}" value="${esc(p.name)}" oninput="setup.players[${i}].name=this.value">`}
+     ${setup.players.length>2&&!p.acc?iconBtn('close','Retirer le joueur '+(i+1),`rmPlayer(${i})`):''}</div>`).join('')}</div>
   ${setup.players.length<6?B('Ajouter un joueur',{v:'secondary',on:'addPlayer()'}):''}</div>
   <div data-z="cash">${label('Cash de départ')}
   <div class="seg">${[[5000,'5 000 €','Galère'],[10000,'10 000 €','Classique'],[50000,'50 000 €','Fils à papa']].map(([v,l,s])=>`<button class="${setup.cash===v?'on':''}" aria-pressed="${setup.cash===v}" onclick="setup.cash=${v};renderSetup()">${l}<small>${s}</small></button>`).join('')}</div></div>
@@ -1290,7 +1300,7 @@ function openModal(id,title,body,noFoot){ovOpener=document.activeElement;ovQueue
     ${noFoot?'':`<div class="modal-foot">${B('Fermer',{v:'primary',on:'closeOv()'})}</div>`}</div></div>`;
   document.body.classList.add('paused');setTimeout(()=>{const b=$('#ovWrap .modal .iconbtn');b&&b.focus({preventScroll:true})},60)}
 function openRules(){openModal('rules','Les règles',RULES_BODY)}
-function cycleAv(i){const used=setup.players.map(p=>p.av);let k=AVATARS.indexOf(setup.players[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));setup.players[i].av=AVATARS[k];sfx.tick();renderSetup()}
+function cycleAv(i){if(setup.players[i].acc)return;const used=setup.players.map(p=>p.av);let k=AVATARS.indexOf(setup.players[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));setup.players[i].av=AVATARS[k];sfx.tick();renderSetup()}
 function addPlayer(){const used=setup.players.map(p=>p.av);setup.players.push({name:'',av:AVATARS.find(a=>!used.includes(a))});renderSetup();setTimeout(()=>{const el=$('#pn'+(setup.players.length-1));el&&el.focus()},50)}
 function rmPlayer(i){setup.players.splice(i,1);renderSetup()}
 function migrate(g){if(!g)return g;if(g.cities){const fresh=initCities();CITIES.forEach(d=>{if(!g.cities.some(c=>c.k===d.k))g.cities.push(fresh.find(c=>c.k===d.k))})}if(g.pot==null){g.pot=0;g.highlights=g.highlights||[]}if(!g.cities){g.cities=initCities();const CMAP={paris:'ny','saint-tropez':'miami','morbihan':'miami',chamonix:'la',lyon:'chicago',bordeaux:'la','émilion':'la',montpellier:'miami',marseille:'vegas',lille:'chicago'};
@@ -1304,7 +1314,7 @@ function buildGame(list,cash,rounds){
     assets:(()=>{const as=initAssets(),pool=as.filter(a=>!adef(a.sym).crypto);for(let i=0;i<2;i++)pool.splice(Math.floor(Math.random()*pool.length),1)[0].earn=true;return as})(),
     cities:initCities(),
     offers:genOffers(),recap:null,opps:[],sec:HEISTS.map(()=>0),bias:{},laundBoost:1,
-    players:list.map((s,i)=>({id:i,uid:s.uid||null,name:(s.name||'').trim()||'Joueur '+(i+1),avatar:s.av,color:COLORS[i],cash,dirty:0,debt:0,stocks:{},cost:{},biz:[],deals:[],heat:0,jail:0,net:0,inbox:[],
+    players:list.map((s,i)=>({id:i,uid:s.uid||null,acc:!!s.acc,name:(s.name||'').trim()||'Joueur '+(i+1),avatar:s.av,color:COLORS[i],cash,dirty:0,debt:0,stocks:{},cost:{},biz:[],deals:[],heat:0,jail:0,net:0,inbox:[],
       rep:0,recon:null,shield:0,laund:0,pos:[],
       stats:{casino:0,trading:0,crime:0,jailTurns:0,biz:0,rent:0,scam:0,vc:0,laund:0,heists:0,scams:0},hist:[cash]}))});
 }
@@ -1329,8 +1339,9 @@ function renderHome(){
   paint(`
   <div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">The world is yours</span></div>
   <div data-z="profile">${label('Ton profil')}
-  <div class="prow"><button class="av" style="--c:var(--cash)" onclick="saveProfile();profile.av=AVATARS[(AVATARS.indexOf(profile.av)+1)%AVATARS.length];sfx.tick();renderHome()" aria-label="Changer d’avatar">${profile.av}</button>
-    <input id="myName" maxlength="14" placeholder="Ton pseudo" aria-label="Ton pseudo" value="${esc(profile.name)}" oninput="profile.name=this.value"></div></div>
+  <div class="prow"><button class="av" style="--c:var(--cash)" onclick="saveProfile();profile.av=AVATARS[(AVATARS.indexOf(profile.av)+1)%AVATARS.length];saveProfile();accAvatar();sfx.tick();renderHome()" aria-label="Changer d’avatar">${profile.av}</button>
+    ${ACC?`<button class="acc-name" onclick="openAccount()" aria-label="Mon profil et mes statistiques"><span><b>${esc(ACC.username)}</b><span class="small muted">${ACC.guest?'Invité · ':''}Mon profil et mes stats</span></span>${icon('arrow')}</button>`
+    :`<input id="myName" maxlength="14" placeholder="Ton pseudo" aria-label="Ton pseudo" value="${esc(profile.name)}" oninput="profile.name=this.value">`}</div></div>
   ${ses?`<div class="panel mt-4" data-z="session"><b>Partie en ligne en cours</b><div class="muted small">Salon <span class="num">${ses.code}</span></div>
     <div class="row mt-3">${B('Revenir dans la partie',{v:'primary',on:`joinRoom('${ses.code}')`})}${B('Oublier',{v:'text',inline:1,on:"try{localStorage.removeItem('sf_online')}catch(e){};renderHome()"})}</div></div>`:''}
   <div class="choices" data-z="choices">
@@ -2680,14 +2691,14 @@ function renderEnd(){const rk=ranked(),top=[rk[1],rk[0],rk[2]];
   <div class="dock" data-z="dock"><div class="row">${
     !ON?B('Revanche',{v:'primary',on:'rematch()'})+B('Accueil',{v:'secondary',on:"clearSave();G=null;APP.view='home';render()"}):
     ON.host?B('Revanche',{v:'primary',on:'rematch()'})+B('Retour au salon',{v:'secondary',on:'backToLobby()'}):B('Quitter',{v:'secondary',on:'leaveOnline(true)'})}</div>${ON&&!ON.host?'<p class="center muted small mt-2">L’hôte peut lancer une revanche.</p>':''}</div>`,'end');
-  saveLeague();
+  saveLeague();recordResult();
   setTimeout(()=>{const c=$('#chart');if(c)spreadChartLabels(c)},0)}
 /* ================= REVANCHE ================= */
 /* Mêmes joueurs, mêmes réglages, nouvelle partie (associés et objectifs retirés au sort). */
 function rematch(){if(!G)return;sfx.coin();
   if(ON){if(!ON.host)return;ON.lobby.started=false;startOnline();return}
   if(G.solo){solo.bots=G.players.filter(q=>q.bot).map(q=>({name:q.name,av:q.avatar,lv:q.bot.lv}));setup.cash=G.players[0].hist[0];setup.rounds=G.maxRounds;clearSave();newSolo();window.scrollTo(0,0);return}
-  const list=G.players.map(q=>({name:q.name,av:q.avatar})),cash=G.players[0].hist[0],rounds=G.maxRounds;
+  const list=G.players.map(q=>({name:q.name,av:q.avatar,acc:!!q.acc})),cash=G.players[0].hist[0],rounds=G.maxRounds;
   setup.players=list;setup.cash=cash;setup.rounds=rounds;clearSave();newGame();window.scrollTo(0,0)}
 /* ================= LIGUE ENTRE POTES =================
    Chaque partie terminée sur ce téléphone est notée : 3 points au premier, 2 au deuxième, 1 au troisième. */
@@ -2758,6 +2769,165 @@ applyMotion();try{RM.addEventListener('change',applyMotion)}catch(e){}
     if(run&&last){y=(y+Math.min(t-last,100)/period*cell)%cell;g.style.transform=`perspective(${per}) rotateX(${tilt}) translateY(${(y-cell).toFixed(2)}px)`}
     last=t};
   requestAnimationFrame(frame)})();
+/* ================= COMPTES (Supabase) =================
+   Trois façons d'entrer : invité (compte anonyme, pseudo imposé SCAR-123456, statistiques gardées sur ce téléphone),
+   inscription (pseudo unique de 4 à 14 caractères, email, mot de passe), connexion (pseudo ou email + mot de passe).
+   La connexion par pseudo passe par la fonction serveur « login », qui retrouve l'email sans jamais le dévoiler.
+   La clé ci-dessous est la clé publique du projet : elle peut être dans la page, ce sont les règles de la base
+   (RLS) qui protègent les données. Sans réseau, on peut toujours jouer en invité, sans statistiques. */
+const SB_URL='https://kkcgeabirljtojoqwnvs.supabase.co',SB_KEY='sb_publishable_4Eq7xqyotAQu8uEV0kaA2Q_eT4LH69q';
+let SB=null;
+try{if(window.supabase&&window.supabase.createClient)SB=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'sf_auth'}})}catch(e){SB=null}
+/* Compte du téléphone : {id, username, avatar, guest, local}. local : invité hors ligne, sans statistiques. */
+let ACC=null;try{ACC=JSON.parse(localStorage.getItem('sf_acc')||'null')}catch(e){}
+let AUTH={tab:null,err:'',ok:'',busy:false,id:'',pw:'',name:'',email:'',nameSt:''};
+const NAME_RE=/^[\p{L}\p{N}_.-]{4,14}$/u,GUEST_RE=/^scar-\d+$/i;
+function accSave(){try{ACC?localStorage.setItem('sf_acc',JSON.stringify(ACC)):localStorage.removeItem('sf_acc')}catch(e){}}
+/* Le pseudo du compte devient le nom du joueur partout (salon en ligne, solo, téléphone partagé). */
+function accApply(){if(!ACC)return;profile.name=ACC.username;if(ACC.avatar&&AVATARS.includes(ACC.avatar))profile.av=ACC.avatar;try{localStorage.setItem('rq_profile',JSON.stringify(profile))}catch(e){}}
+function localGuestName(){let n='';try{n=localStorage.getItem('sf_guest_name')||''}catch(e){}
+  if(!GUEST_RE.test(n)){n='SCAR-'+String(RI(0,999999)).padStart(6,'0');try{localStorage.setItem('sf_guest_name',n)}catch(e){}}return n}
+async function accLoad(user){const {data,error}=await SB.from('profiles').select('username,avatar,is_guest').eq('id',user.id).single();if(error)throw error;
+  ACC={id:user.id,username:data.username,avatar:data.avatar,guest:data.is_guest,local:false};accSave();accApply()}
+const authMsg=e=>{const m=String(e&&(e.message||e.error||e)||'');
+  if(/Failed to fetch|NetworkError|network/i.test(m))return 'Pas de connexion internet. Tu peux jouer en invité.';
+  if(/already registered|already been registered|email_exists/i.test(m))return 'Cette adresse email a déjà un compte. Connecte-toi.';
+  if(/username_taken|duplicate key|profiles_username/i.test(m))return 'Ce pseudo est déjà pris.';
+  if(/Database error saving new user/i.test(m))return 'Ce pseudo vient d’être pris, choisis-en un autre.';
+  if(/password/i.test(m)&&/(short|least|weak|characters)/i.test(m))return 'Mot de passe trop court : 6 caractères minimum.';
+  if(/invalid.*email|email.*invalid/i.test(m))return 'Adresse email invalide.';
+  if(/rate|too many|429/i.test(m))return 'Trop d’essais. Réessaie dans quelques minutes.';
+  if(/not confirmed/i.test(m))return 'Confirme d’abord ton adresse email (lien reçu par email).';
+  return 'Ça n’a pas marché. Réessaie dans un instant.'};
+function authSet(o){Object.assign(AUTH,o);renderAuth()}
+
+/* ---------- Page d'entrée ---------- */
+function renderAuth(){const t=AUTH.tab,up=!!(ACC&&ACC.guest&&!ACC.local);
+  const f=(id,type,ph,key,extra)=>`<input id="${id}" type="${type}" placeholder="${ph}" aria-label="${ph}" value="${esc(AUTH[key])}" oninput="AUTH.${key}=this.value${extra||''}" ${type==='password'?'autocomplete="'+(t==='login'?'current-password':'new-password')+'"':''} ${key==='email'||key==='id'?'autocapitalize="off" autocomplete="'+(key==='email'?'email':'username')+'"':''} onkeydown="if(event.key==='Enter')${t==='login'?'doLogin()':t==='reset'?'doReset()':'doSignup()'}">`;
+  const back=up?B('Retour',{v:'text',on:"AUTH.err='';APP.view='home';render()"}):B('Retour',{v:'text',on:"authSet({tab:null,err:'',ok:''})"});
+  let body='';
+  if(!t)body=`<div class="choices">
+    <button class="choice main" onclick="guestStart()" ${AUTH.busy?'disabled':''}><span><b>Jouer en tant qu’invité</b></span>${icon('arrow')}</button>
+    <button class="choice" onclick="authSet({tab:'login',err:'',ok:''})"><span><b>Se connecter</b></span>${icon('arrow')}</button>
+    <button class="choice" onclick="authSet({tab:'signup',err:'',ok:''})"><span><b>S’inscrire</b></span>${icon('arrow')}</button></div>`;
+  else if(t==='login')body=`<h2 class="mt-6 mb-3">Se connecter</h2><div class="authform">
+    ${f('authId','text','Pseudo ou email','id')}${f('authPw','password','Mot de passe','pw')}
+    <div class="mt-2">${B(AUTH.busy?'Connexion…':'Se connecter',{v:'primary',on:'doLogin()',quiet:1,why:AUTH.busy?'…':''})}</div>
+    <div class="row between">${back}${B('Mot de passe oublié ?',{v:'text',inline:1,on:'doForgot()'})}</div></div>`;
+  else if(t==='signup')body=`<h2 class="mt-6 mb-3">${up?'Crée ton compte':'S’inscrire'}</h2>
+    ${up?note(`Tu gardes tes statistiques d’invité (<b>${esc(ACC.username)}</b>) et tu choisis ton vrai pseudo.`,'mb-3'):''}<div class="authform">
+    ${f('authName','text','Pseudo (4 caractères minimum)','name',';checkName()')}<div class="fhint ${AUTH.nameSt==='ok'?'pos':AUTH.nameSt?'neg':''}" id="nameSt" role="status">${nameStTxt()}</div>
+    ${f('authEmail','email','Adresse email','email')}${f('authPw','password','Mot de passe (6 caractères minimum)','pw')}
+    <div class="mt-2">${B(AUTH.busy?'Création…':'Créer mon compte',{v:'primary',on:'doSignup()',quiet:1,why:AUTH.busy?'…':''})}</div>
+    <div class="row">${back}</div></div>`;
+  else if(t==='reset')body=`<h2 class="mt-6 mb-3">Nouveau mot de passe</h2><div class="authform">
+    ${f('authPw','password','Nouveau mot de passe (6 caractères minimum)','pw')}
+    <div class="mt-2">${B('Enregistrer',{v:'primary',on:'doReset()'})}</div></div>`;
+  paint(`<div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">The world is yours</span></div>
+  <div data-z="auth">${body}</div>
+  <div data-z="msg">${AUTH.err?`<div class="err" role="alert">${AUTH.err}</div>`:''}${AUTH.ok?`<div class="panel mt-3" role="status">${AUTH.ok}</div>`:''}</div>
+  <div data-z="rules">${t?'':FOOT_BTNS}</div>`,'auth'+(t||''));
+  flickLogo()}
+function nameStTxt(){return {ok:'Pseudo disponible',taken:'Ce pseudo est déjà pris',short:'4 caractères minimum',bad:'Lettres, chiffres, tiret, point et souligné uniquement',guest:'Ce format est réservé aux invités',long:'14 caractères maximum','':''}[AUTH.nameSt]||''}
+/* Vérifie le pseudo pendant la saisie (format tout de suite, disponibilité après une courte pause). */
+let nameT=0;
+function nameLocal(n){n=n.trim();return !n?'':n.length<4?'short':n.length>14?'long':GUEST_RE.test(n)?'guest':!NAME_RE.test(n)?'bad':''}
+function checkName(){clearTimeout(nameT);const n=AUTH.name.trim(),loc=nameLocal(n);const show=st=>{AUTH.nameSt=st;const el=$('#nameSt');if(el){el.textContent=nameStTxt();el.className='fhint '+(st==='ok'?'pos':st?'neg':'')}};
+  if(loc||!n){show(loc);return}show('');if(!SB)return;
+  nameT=setTimeout(async()=>{try{const {data}=await SB.rpc('username_available',{p_name:n});if(AUTH.name.trim()===n)show(data?'ok':'taken')}catch(e){}},400)}
+
+async function guestStart(){if(AUTH.busy)return;authSet({busy:true,err:''});
+  try{if(!SB)throw new Error('offline');const {data,error}=await SB.auth.signInAnonymously({options:{data:{avatar:profile.av}}});if(error)throw error;await accLoad(data.user)}
+  catch(e){ACC={id:null,username:localGuestName(),avatar:profile.av,guest:true,local:true};accSave();accApply();
+    setTimeout(()=>toast('Hors ligne : tes statistiques ne seront pas enregistrées.',1),400)}
+  AUTH.busy=false;APP.view='home';render()}
+async function doLogin(){if(AUTH.busy)return;const id=AUTH.id.trim(),pw=AUTH.pw;
+  if(!id||!pw){authSet({err:'Entre ton pseudo (ou ton email) et ton mot de passe.'});return}
+  if(!SB){authSet({err:'Pas de connexion internet. Tu peux jouer en invité.'});return}
+  authSet({busy:true,err:'',ok:''});
+  try{const r=await fetch(SB_URL+'/functions/v1/login',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:JSON.stringify({identifier:id,password:pw})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){authSet({busy:false,err:r.status===429?'Trop d’essais. Réessaie dans quelques minutes.':'Pseudo, email ou mot de passe incorrect.'});return}
+    const {data,error}=await SB.auth.setSession({access_token:d.access_token,refresh_token:d.refresh_token});if(error)throw error;
+    await accLoad(data.user);AUTH={...AUTH,busy:false,pw:'',tab:null};flushResults();APP.view='home';render()}
+  catch(e){authSet({busy:false,err:authMsg(e)})}}
+async function doSignup(){if(AUTH.busy)return;const name=AUTH.name.trim(),email=AUTH.email.trim(),pw=AUTH.pw,loc=nameLocal(name);
+  if(!name||loc){AUTH.nameSt=loc||'short';authSet({err:'Choisis un pseudo valide : '+nameStTxt().toLowerCase()+'.'});return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){authSet({err:'Adresse email invalide.'});return}
+  if(pw.length<6){authSet({err:'Mot de passe trop court : 6 caractères minimum.'});return}
+  if(!SB){authSet({err:'Pas de connexion internet.'});return}
+  authSet({busy:true,err:'',ok:''});
+  try{const {data:free,error:e0}=await SB.rpc('username_available',{p_name:name});if(e0)throw e0;if(!free){AUTH.nameSt='taken';authSet({busy:false,err:'Ce pseudo est déjà pris.'});return}
+    if(ACC&&ACC.guest&&!ACC.local){/* invité qui crée son compte : on garde le même utilisateur, donc ses statistiques */
+      const {error}=await SB.auth.updateUser({email,password:pw});if(error)throw error;
+      const {data:u}=await SB.auth.getUser();
+      if(!u||!u.user||!u.user.email){try{localStorage.setItem('sf_claim',name)}catch(x){}authSet({busy:false,ok:'Presque fini : confirme ton adresse email grâce au lien reçu, puis reviens ici.'});return}
+      const {error:e2}=await SB.rpc('claim_username',{p_name:name});if(e2)throw e2;await accLoad(u.user)}
+    else{const {data,error}=await SB.auth.signUp({email,password:pw,options:{data:{username:name,avatar:profile.av},emailRedirectTo:location.origin+location.pathname}});if(error)throw error;
+      if(!data.session){authSet({busy:false,tab:'login',id:email,ok:'Compte créé ! Confirme ton adresse email grâce au lien reçu, puis connecte-toi.'});return}
+      await accLoad(data.user)}
+    AUTH={...AUTH,busy:false,pw:'',tab:null,name:'',nameSt:''};toast('Bienvenue, '+ACC.username+' !');APP.view='home';render()}
+  catch(e){authSet({busy:false,err:authMsg(e)})}}
+async function doForgot(){const id=AUTH.id.trim();if(!/@/.test(id)){authSet({err:'Entre ton adresse email dans le premier champ, puis touche « Mot de passe oublié ? ».'});return}
+  if(!SB){authSet({err:'Pas de connexion internet.'});return}
+  try{await SB.auth.resetPasswordForEmail(id,{redirectTo:location.origin+location.pathname})}catch(e){}
+  authSet({err:'',ok:'Si un compte existe avec cette adresse, un email vient de partir avec un lien pour changer ton mot de passe.'})}
+async function doReset(){if(AUTH.pw.length<6){authSet({err:'Mot de passe trop court : 6 caractères minimum.'});return}
+  try{const {data,error}=await SB.auth.updateUser({password:AUTH.pw});if(error)throw error;await accLoad(data.user);AUTH={...AUTH,pw:'',tab:null};toast('Mot de passe changé.');APP.view='home';render()}
+  catch(e){authSet({err:authMsg(e)})}}
+async function accLogout(){try{if(SB&&ACC&&!ACC.local)await SB.auth.signOut()}catch(e){}
+  ACC=null;accSave();closeOv();AUTH={tab:null,err:'',ok:'',busy:false,id:'',pw:'',name:'',email:'',nameSt:''};if(!G){APP.view='auth';render()}}
+/* L'avatar choisi sur l'accueil est gardé sur le compte. */
+let avT=0;
+function accAvatar(){if(!ACC)return;ACC.avatar=profile.av;accSave();if(!SB||!ACC.id)return;clearTimeout(avT);const id=ACC.id,av=profile.av;avT=setTimeout(()=>{SB.from('profiles').update({avatar:av}).eq('id',id).then(()=>{},()=>{})},800)}
+
+/* ---------- Mon profil : statistiques ---------- */
+const MODE_N={solo:'Solo',local:'Un téléphone',online:'En ligne'};
+function openAccount(){if(!ACC)return;const g=ACC.guest;
+  openModal('account','Mon profil',`<div class="item"><div class="av" style="--c:var(--cash)">${profile.av}</div><span class="bd"><b>${esc(ACC.username)}</b>
+    <span class="small muted">${ACC.local?'Invité hors ligne · statistiques non enregistrées':g?'Invité · pseudo attribué automatiquement':'Compte inscrit'}</span></span></div>
+  <div id="accStats" class="mt-3">${ACC.local||!SB?note('Connecte-toi à internet et crée un compte pour garder tes statistiques.'):`<p class="muted small center">Chargement des statistiques ${waitDots()}</p>`}</div>
+  <div class="stack mt-4">${g?B('Créer mon compte',{v:'primary',on:"closeOv();AUTH.tab='signup';AUTH.err='';AUTH.ok='';APP.view='auth';render()"}):''}
+    ${B(g?'Quitter le mode invité':'Se déconnecter',{v:'secondary',on:'confirmLogout()'})}</div>`,true);
+  if(!ACC.local&&SB&&ACC.id)loadStats()}
+async function loadStats(){const id=ACC.id;try{
+  const [{data:s},{data:last}]=await Promise.all([SB.from('player_stats').select('games,wins,best_net_worth,avg_rank').eq('id',id).maybeSingle(),
+    SB.from('game_results').select('mode,rank,players,net_worth,created_at').eq('user_id',id).order('created_at',{ascending:false}).limit(5)]);
+  const el=$('#accStats');if(!el||!ACC||ACC.id!==id)return;const st=s||{games:0,wins:0,best_net_worth:0,avg_rank:null};
+  const kv=(l,v)=>`<div class="kv"><span class="muted">${l}</span><b class="num">${v}</b></div>`;
+  el.innerHTML=st.games?`<div class="panel tight">${kv('Parties jouées',st.games)}${kv('Victoires',`${st.wins} (${Math.round(st.wins/st.games*100)} %)`)}${kv('Meilleure fortune',fmt(st.best_net_worth))}${kv('Rang moyen',String(st.avg_rank).replace('.',','))}</div>
+    <h3 class="sec">Dernières parties</h3><div class="list">${(last||[]).map(r=>`<div class="item"><span class="rank num">${r.rank}<small>/${r.players}</small></span><span class="bd"><b>${MODE_N[r.mode]||r.mode}</b><span class="small muted">${new Date(r.created_at).toLocaleDateString('fr-FR')}</span></span><span class="rt num gold">${fmt(r.net_worth)}</span></div>`).join('')}</div>`
+    :note('Aucune partie terminée pour l’instant. Finis une partie pour voir tes statistiques ici.')}
+  catch(e){const el=$('#accStats');if(el)el.innerHTML=note('Statistiques indisponibles (pas de connexion ?).')}}
+function confirmLogout(){const g=ACC&&ACC.guest&&!ACC.local;
+  if(g&&!window.__lo){window.__lo=1;toast('Invité : tu perdras ce pseudo et tes statistiques. Touche encore pour confirmer.',1);setTimeout(()=>window.__lo=0,3500);return}
+  window.__lo=0;accLogout()}
+
+/* ---------- Résultats de fin de partie ---------- */
+/* Le joueur du compte : moi en ligne, le joueur humain en solo, la ligne du compte sur un téléphone partagé. */
+function accPlayer(){if(!G)return null;if(ON)return me();if(G.solo)return G.players[0];return G.players.find(p=>p.acc)||null}
+function recordResult(){if(!G||G.resSent||!ACC||ACC.local||!ACC.id)return;const p=accPlayer();if(!p)return;G.resSent=true;save();
+  const rk=ranked(),row={user_id:ACC.id,game_id:String(G.gameId||rid(8)),mode:ON?'online':G.solo?'solo':'local',rank:rk.indexOf(p)+1,players:G.players.length,rounds:G.maxRounds,
+    net_worth:Math.round(netWorth(p)),details:{start:p.hist&&p.hist[0],obj:!!p.objOk,bots:G.solo?G.players.filter(q=>q.bot).map(q=>q.bot.lv):undefined}};
+  let q=[];try{q=JSON.parse(localStorage.getItem('sf_results')||'[]')}catch(e){}q.push(row);try{localStorage.setItem('sf_results',JSON.stringify(q.slice(-30)))}catch(e){}
+  flushResults()}
+/* Les résultats en attente (pas de réseau en fin de partie) partent dès que possible. */
+async function flushResults(){if(!SB||!ACC||!ACC.id)return;let q=[];try{q=JSON.parse(localStorage.getItem('sf_results')||'[]')}catch(e){}
+  const mine=q.filter(r=>r.user_id===ACC.id);if(!mine.length)return;
+  try{const {error}=await SB.from('game_results').upsert(mine,{onConflict:'user_id,game_id',ignoreDuplicates:true});if(error)throw error;
+    const left=q.filter(r=>r.user_id!==ACC.id);try{localStorage.setItem('sf_results',JSON.stringify(left))}catch(e){}}catch(e){}}
+
+/* ---------- Démarrage ---------- */
+if(ACC)accApply();
+APP.view=ACC?'home':'auth';
+if(SB){SB.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY'){AUTH.tab='reset';AUTH.err='';if(!G){APP.view='auth';render()}}});
+  SB.auth.getSession().then(async({data,error})=>{const s=data&&data.session;
+    if(s){try{await accLoad(s.user);
+      let c='';try{c=localStorage.getItem('sf_claim')||''}catch(e){}
+      if(c&&ACC.guest&&s.user.email){const {error}=await SB.rpc('claim_username',{p_name:c});if(!error){try{localStorage.removeItem('sf_claim')}catch(e){}await accLoad(s.user)}}
+      flushResults();if(!G&&(APP.view==='auth'||APP.view==='home')){if(AUTH.tab!=='reset')APP.view='home';render()}}catch(e){}}
+    else if(!error&&ACC&&!ACC.local){ACC=null;accSave();if(!G&&APP.view==='home'){APP.view='auth';render()}}}).catch(()=>{})}
+
 /* ================= JEU EN SOLO : LES ORDINATEURS =================
    Un ordinateur est un joueur ordinaire (p.bot = {lv, pe}) qui joue sur le même téléphone, sans connexion.
    Il passe par les vraies fonctions du jeu (mêmes règles, mêmes coûts, même hasard) et ne voit que ce qu'un

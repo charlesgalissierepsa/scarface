@@ -13,6 +13,15 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
 - **Sur un seul téléphone** : on se passe le téléphone à tour de rôle.
 - **Seul contre l’ordinateur** : sans connexion, contre 1 à 5 adversaires. Chacun a un niveau (Facile, Moyen, Difficile) et un caractère tiré au sort (prudent, flambeur, mafieux, trader). Les ordinateurs jouent avec les mêmes règles que les humains, sans connaître l’avenir, et racontent leur tour à l’écran. Les parties en solo ne comptent pas dans la ligue.
 
+## Comptes joueurs
+
+La première page propose trois entrées :
+- **Jouer en tant qu’invité** : un pseudo est attribué (SCAR-123456) et ne se modifie pas. Les statistiques sont gardées sur ce téléphone ; l’invité peut ensuite créer un vrai compte en les gardant.
+- **S’inscrire** : pseudo unique (4 à 14 caractères), adresse email et mot de passe.
+- **Se connecter** : avec le pseudo ou l’email, et le mot de passe.
+
+Les comptes et les statistiques sont gérés par Supabase (projet « scarface »). La structure de la base est dans `supabase/migrations/` et la fonction de connexion par pseudo dans `supabase/functions/login/`. Sans réseau, on peut toujours jouer en invité, sans statistiques.
+
 ## Les règles en bref
 - **3 points d'action (PA) par tour.** Casino, trading, immobilier, startup, boulot ou coup bas : 1 PA.
   Créer une entreprise, monter un réseau de trafic ou braquer : 2 PA.
