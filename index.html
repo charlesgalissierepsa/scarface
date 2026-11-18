@@ -348,6 +348,7 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .sheet.open .bg{opacity:1;transition:opacity var(--dur-slow) var(--ease-in)}
 .sheet.open .panel2{transform:translateY(var(--drag,0px));transition:transform var(--dur-slow) var(--ease-in)}
 .sheet.dragging .panel2{transition:none}
+.sheet.tall .panel2{height:min(var(--sheet-max),calc(var(--vvh,100dvh) - var(--sp-4)))}
 .sh-head{flex:none;display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);min-height:var(--head-h);padding:var(--sp-3) var(--sp-4) 0;touch-action:none}
 .sh-head h2{font-size:var(--fs-lg);min-width:0}
 .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:var(--sp-2) var(--sp-4) var(--sp-4)}
@@ -1814,7 +1815,7 @@ document.addEventListener('focusout',e=>{if(!e.target||!e.target.matches||!e.tar
 /* Feuille : en-tête fixe, corps qui défile, pied fixe. Un élément .sheet-foot rendu dans le corps est déplacé dans le pied. */
 let sheetOpener=null;
 function moveFoot(){const f=$('#shFoot'),s=$('#shBody .sheet-foot');f.innerHTML='';if(s)f.appendChild(s)}
-function openSheet(title,html,fn){const sh=$('#sheet'),was=sh.classList.contains('open');
+function openSheet(title,html,fn){const sh=$('#sheet'),was=sh.classList.contains('open');sh.classList.remove('tall');
   $('#shTitle').textContent=noEmo(title);setBody(html);sheetFn=fn||null;
   if(!was){sheetOpener=document.activeElement;sh.classList.add('open');sh.setAttribute('aria-hidden','false');$('#shBody').scrollTop=0;
     lockPage();document.body.classList.add('paused');setTimeout(()=>{try{$('#shClose').focus({preventScroll:true})}catch(e){}},60)}
@@ -2447,7 +2448,8 @@ function suBar(v){return `<span class="subar" aria-hidden="true"><i style="width
 
 /* --- Écran --- */
 let suTab='all',suSel=null;
-function openVC(){suSel=null;openSheet('Startups',vcHTML(),()=>setBody(vcHTML()))}
+/* Hauteur fixe : la feuille ne rétrécit pas quand un onglet est vide (Favoris, Nouvelles…), le haut ne saute pas. */
+function openVC(){suSel=null;openSheet('Startups',vcHTML(),()=>setBody(vcHTML()));$('#sheet').classList.add('tall')}
 function suOpen(id){suSel=id;sfx.tick();refreshSheet();const b=$('#shBody');if(b)b.scrollTop=0}
 function suBack(){suSel=null;refreshSheet()}
 function vcHTML(){if(!G.su)suInit();const p=viewer();const s=suSel&&suGet(suSel);if(s)return suDetail(p,s);return suList(p)}
