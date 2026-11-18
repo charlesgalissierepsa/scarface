@@ -2836,7 +2836,8 @@ function settingsHTML(){return `<div class="stack">
   </div>${pwFormHTML()}`}
 /* Changer de mot de passe : seulement pour un compte inscrit et connecté. */
 let PWF={c:'',a:'',b:'',err:'',ok:'',busy:false};
-function pwFormHTML(){if(!ACC||ACC.guest||ACC.local||!SB)return '';
+/* Seulement hors partie (accueil et menus) : pas depuis une partie en cours ni depuis un salon en ligne. */
+function pwFormHTML(){if(!ACC||ACC.guest||ACC.local||!SB||G||ON)return '';
   return `<h3 class="sec">Mon compte · ${esc(ACC.username)}</h3><div class="authform" id="pwForm">
   <input id="pwC" type="password" autocomplete="current-password" placeholder="Mot de passe actuel" aria-label="Mot de passe actuel" value="${esc(PWF.c)}" oninput="PWF.c=this.value">
   <input id="pwA" type="password" autocomplete="new-password" placeholder="Nouveau (6 caractères minimum)" aria-label="Nouveau mot de passe, 6 caractères minimum" value="${esc(PWF.a)}" oninput="PWF.a=this.value">
