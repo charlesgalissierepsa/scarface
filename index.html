@@ -412,6 +412,8 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .panel{padding:var(--sp-4);background:var(--surface-1);border:var(--border)}
 .panel.tight{padding:var(--sp-3) var(--sp-4)}
 .offer{margin-top:var(--sp-3)}
+.subar{display:inline-block;width:64px;height:6px;background:var(--surface-2,#222);vertical-align:middle;margin-right:var(--sp-1)}
+.subar i{display:block;height:100%;background:var(--neon-cyan)}
 .offer .head{display:flex;gap:var(--sp-3);align-items:center;margin-bottom:var(--sp-2)}
 .offer .head .e{font-size:var(--fs-2xl);line-height:1}
 .offer .head b{display:block;font-size:var(--fs-md)}
@@ -829,7 +831,9 @@ function shake(){if(BOTQ)return;const a=$('.sheet.open .panel2')||$('#app');a.cl
 
 /* ================= DATA ================= */
 const AVATARS=['🕶️','🦩','🐊','🦈','🐍','🐯','🦅','🌴','💎','🎰','🎷','🏎️','👑','💀','🤑','🐺','🦊','🦁','🎲','🍸'];
-const COLORS=['#ff2a8a','#19e6ff','#ffd23f','#39ff9c','#b26bff','#ff8a3d'];
+const COLORS=['#ff2a8a','#19e6ff','#ffd23f','#39ff9c','#b26bff','#ff8a3d','#4d7cff','#ff6bd6'];
+/* Jusqu'à 8 joueurs, sur un téléphone comme en ligne (et 7 adversaires en solo). */
+const MAX_PLAYERS=8;
 const ASSETS=[
  {sym:'BAG',tk:'VIV',name:'Vivral Agroalimentaire',e:'🌾',price:52,vol:.06,drift:.012,desc:'Agroalimentaire. Une valeur refuge, avec peu de surprises.'},
  {sym:'LUX',tk:'VLC',name:'Maison Valcourt',e:'👜',price:310,vol:.09,drift:.015,desc:'Luxe et maroquinerie. Des marges confortables et une clientèle fidèle.'},
@@ -960,6 +964,7 @@ const CHARS=[
  {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Intérêts de tes emprunts : 6 % par tour au lieu de 4 %.'},
  {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2, 5 positions ouvertes au lieu de 4.',f:'Pas d’achat immobilier à crédit.'},
  {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier : 2 % au lieu de 7 %.',f:'Créer ou développer une entreprise coûte 20 % plus cher.'},
+ {k:'angel',e:'👼',n:'Le Business Angel',t:'Audits de startups gratuits, mentorat 1,6 fois plus efficace.',f:'Revente de parts de startups à 60 % de leur valeur au lieu de 75 %.'},
 ];
 const chr=p=>p&&p.chr||'';
 /* Taux d'intérêt des emprunts par tour, selon l'associé du tour. */
@@ -1207,7 +1212,7 @@ function stockVal(p){let v=0;for(const s in p.stocks)v+=p.stocks[s]*asset(s).pri
 function myProps(p){return p.re||[]}
 function propsVal(p){return myProps(p).reduce((a,x)=>a+rprice(x.c,x.t),0)}
 function bizTotal(p){return p.biz.reduce((a,b)=>a+bizVal(b),0)}
-function dealsVal(p){return p.deals.reduce((a,d)=>a+(d.kind==="vc"?d.value:d.amt),0)}
+function dealsVal(p){return p.deals.reduce((a,d)=>a+(d.kind==="su"?suValue(p,d):d.kind==="vc"?d.value:d.amt),0)+suOrdSum(p)}
 function grossAssets(p){return Math.max(0,p.cash)+posTotal(p)+stockVal(p)+propsVal(p)+bizTotal(p)+dealsVal(p)}
 /* L'argent sale ne compte que pour moitié tant qu'il n'est pas blanchi. */
 const DIRTY_VALUE=.5;
@@ -1268,12 +1273,12 @@ function renderSetup(){
   ${topBar(iconBtn('back','Retour à l’accueil',"APP.view='home';render()"))}
   ${sv&&sv.screen!=='end'?`<div class="panel mt-4" data-z="resume"><b>Partie en cours</b><div class="muted small">Tour ${sv.round}/${sv.maxRounds} · ${sv.players.map(p=>esc(p.name)).join(', ')}</div>
     <div class="row mt-3">${B('Reprendre la partie',{v:'secondary',on:'resume()'})}${B('Effacer',{v:'text',inline:1,on:'clearSave();renderSetup()'})}</div></div>`:''}
-  <div data-z="players">${label(`Les joueurs <span class="num">(${setup.players.length}/6)</span>`)}
+  <div data-z="players">${label(`Les joueurs <span class="num">(${setup.players.length}/${MAX_PLAYERS})</span>`)}
   <div id="plist">${setup.players.map((p,i)=>`<div class="prow">
      <button class="av" style="--c:${COLORS[i]}" onclick="cycleAv(${i})" aria-label="Changer l’avatar du joueur ${i+1}">${p.av}</button>
      ${p.acc?`<div class="acc-name static"><span><b>${esc(p.name)}</b><span class="small muted">Toi</span></span></div>`:`<input id="pn${i}" maxlength="14" placeholder="Joueur ${i+1}" aria-label="Nom du joueur ${i+1}" value="${esc(p.name)}" oninput="setup.players[${i}].name=this.value">`}
      ${setup.players.length>2&&!p.acc?iconBtn('close','Retirer le joueur '+(i+1),`rmPlayer(${i})`):''}</div>`).join('')}</div>
-  ${setup.players.length<6?B('Ajouter un joueur',{v:'secondary',on:'addPlayer()'}):''}</div>
+  ${setup.players.length<MAX_PLAYERS?B('Ajouter un joueur',{v:'secondary',on:'addPlayer()'}):''}</div>
   <div data-z="cash">${label('Cash de départ')}
   <div class="seg">${[[5000,'5 000 €','Galère'],[10000,'10 000 €','Classique'],[50000,'50 000 €','Fils à papa']].map(([v,l,s])=>`<button class="${setup.cash===v?'on':''}" aria-pressed="${setup.cash===v}" onclick="setup.cash=${v};renderSetup()">${l}<small>${s}</small></button>`).join('')}</div></div>
   <div data-z="rounds">${label('Durée de la partie')}
@@ -1284,8 +1289,8 @@ const RULES_BODY=`    <p><b>Le but</b> : finir avec le plus gros <b>patrimoine n
     <p><b>Ton tour</b> : <b>3 points d’action (PA)</b>. Casino, trading, immobilier, startup, boulot, coup bas : 1 PA. Entreprise, trafic, braquage : 2 PA. Bourse, banque, blanchiment et ventes sont gratuits. L’interrupteur en bas à gauche passe de l’écran <b>Manche</b> à l’écran <b>Actions</b>.</p>
     <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un <b>associé</b>, qui change tous les 4 tours, te donne un talent (+) et un défaut (−), et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
     <p><b>En ligne</b>, tout le monde joue son tour en même temps. Touche « Finir mon tour » quand tu as fini : la manche se ferme quand tout le monde a fini. Une partie publique apparaît dans « Rejoindre une partie », une privée se rejoint avec le code. Sur un seul téléphone, chacun son tour.</p>
-    <p><b>Seul contre l’ordinateur</b> : 1 à 5 adversaires, chacun avec son niveau (Facile, Moyen, Difficile) et son caractère. Ils jouent avec les mêmes règles que toi, sans connaître l’avenir, et te racontent leur tour.</p>
-    <p><b>Placements</b> : en <b>trading</b>, tes positions (hausse ou baisse, levier, stop-loss) restent ouvertes d’un tour à l’autre. En <b>immobilier</b>, 7 villes sur la carte, chacune avec ses prix, ses loyers et sa tendance : Detroit est bon marché et rentable, New York cher et solide. Les <b>startups</b> lèvent des fonds ou meurent ; un audit révèle leur vraie qualité. Au <b>casino</b>, on débloque le suivant en cumulant des gains égaux à sa mise max.</p>
+    <p><b>Seul contre l’ordinateur</b> : 1 à 7 adversaires, chacun avec son niveau (Facile, Moyen, Difficile) et son caractère. Ils jouent avec les mêmes règles que toi, sans connaître l’avenir, et te racontent leur tour.</p>
+    <p><b>Placements</b> : en <b>trading</b>, tes positions (hausse ou baisse, levier, stop-loss) restent ouvertes d’un tour à l’autre. En <b>immobilier</b>, 7 villes sur la carte, chacune avec ses prix, ses loyers et sa tendance : Detroit est bon marché et rentable, New York cher et solide. Les <b>startups</b> forment un vivier commun qui vit d’un tour à l’autre : elles lèvent des fonds, se font racheter, entrent en Bourse ou ferment quand leur trésorerie est vide. L’audit révèle leur potentiel ; avec 10 % du capital tu sièges au conseil (stratégie, recrutement, offres de rachat), et le mentorat ou un prêt relais peuvent les sauver. Au <b>casino</b>, on débloque le suivant en cumulant des gains égaux à sa mise max.</p>
     <p><b>Coups bas</b> (un seul par tour) : duel au <b>poker</b> (Texas Hold’em à mise égale, en direct sur les deux écrans), arnaque, ou balancer quelqu’un à la police. En ligne, la victime le voit tout de suite.</p>
     <p><b>Crime</b> : braquages et trafic rapportent de l’<b>argent sale</b>, compté pour moitié et saisi en cas d’arrestation : blanchis-le. Les grosses cibles demandent de la réputation. Plus ta <b>jauge de police</b> est haute, plus tu risques la prison.</p>
     <p><b>Retournements</b> : jackpots, cagnotte commune du casino, coup du siècle pour le dernier. Le premier attire la police et les coups bas. La dernière manche se joue à l’aveugle.</p>`;
@@ -1301,23 +1306,25 @@ function openModal(id,title,body,noFoot){ovOpener=document.activeElement;ovQueue
   document.body.classList.add('paused');setTimeout(()=>{const b=$('#ovWrap .modal .iconbtn');b&&b.focus({preventScroll:true})},60)}
 function openRules(){openModal('rules','Les règles',RULES_BODY)}
 function cycleAv(i){if(setup.players[i].acc)return;const used=setup.players.map(p=>p.av);let k=AVATARS.indexOf(setup.players[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));setup.players[i].av=AVATARS[k];sfx.tick();renderSetup()}
-function addPlayer(){const used=setup.players.map(p=>p.av);setup.players.push({name:'',av:AVATARS.find(a=>!used.includes(a))});renderSetup();setTimeout(()=>{const el=$('#pn'+(setup.players.length-1));el&&el.focus()},50)}
+function addPlayer(){if(setup.players.length>=MAX_PLAYERS)return;const used=setup.players.map(p=>p.av);setup.players.push({name:'',av:AVATARS.find(a=>!used.includes(a))});renderSetup();setTimeout(()=>{const el=$('#pn'+(setup.players.length-1));el&&el.focus()},50)}
 function rmPlayer(i){setup.players.splice(i,1);renderSetup()}
 function migrate(g){if(!g)return g;if(g.cities){const fresh=initCities();CITIES.forEach(d=>{if(!g.cities.some(c=>c.k===d.k))g.cities.push(fresh.find(c=>c.k===d.k))})}if(g.pot==null){g.pot=0;g.highlights=g.highlights||[]}if(!g.cities){g.cities=initCities();const CMAP={paris:'ny','saint-tropez':'miami','morbihan':'miami',chamonix:'la',lyon:'chicago',bordeaux:'la','émilion':'la',montpellier:'miami',marseille:'vegas',lille:'chicago'};
   g.players.forEach(p=>{p.re=p.re||[]});(g.props||[]).forEach(x=>{if(x.owner==null||!g.players[x.owner])return;const lc=(x.c||'').toLowerCase(),key=Object.keys(CMAP).find(k=>lc.includes(k));const ck=key?CMAP[key]:'chicago';
     const t=RTYPES.slice().sort((a,b)=>Math.abs(Math.log(a.base*cdef(ck).lvl/x.p))-Math.abs(Math.log(b.base*cdef(ck).lvl/x.p)))[0].k;g.players[x.owner].re.push({id:Math.random().toString(36).slice(2,7),c:ck,t,paid:x.p})});delete g.props}
-  g.players.forEach(p=>{p.re=p.re||[]});g.assets.forEach(a=>{if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;if(a.rating==null)a.rating=0});(g.offers||[]).forEach(o=>{if(!o.aud)o.aud=[];if(o.team==null){o.team=o.trac=o.tracVis=3;o.q=.5;o.sec=0}});g.players.forEach(p=>{p.pos=p.pos||[]});return g}
+  g.players.forEach(p=>{p.re=p.re||[]});g.assets.forEach(a=>{if(a.reg==null)a.reg=0;if(!a.fair)a.fair=a.price;if(a.rating==null)a.rating=0});(g.offers||[]).forEach(o=>{if(!o.aud)o.aud=[];if(o.team==null){o.team=o.trac=o.tracVis=3;o.q=.5;o.sec=0}});g.players.forEach(p=>{p.pos=p.pos||[]});return suFor(g)}
 function resume(){G=migrate(loadSave());if(!G)return;if(G.screen==='turn'&&!(G.players[G.cur]||{}).bot)G.screen='pass',G.resumeTurn=true;render()}
 
 function buildGame(list,cash,rounds){
-  return dealRoles({screen:'pass',round:1,maxRounds:rounds,cur:0,turnCount:0,reIndex:1,acted:false,ap:AP_MAX,inCasino:false,casinoLeft:3,lawyer:false,feed:[],feedId:0,seq:0,
+  const g=dealRoles({screen:'pass',round:1,maxRounds:rounds,cur:0,turnCount:0,reIndex:1,acted:false,ap:AP_MAX,inCasino:false,casinoLeft:3,lawyer:false,feed:[],feedId:0,seq:0,
     assets:(()=>{const as=initAssets(),pool=as.filter(a=>!adef(a.sym).crypto);for(let i=0;i<2;i++)pool.splice(Math.floor(Math.random()*pool.length),1)[0].earn=true;return as})(),
     cities:initCities(),
-    offers:genOffers(),recap:null,opps:[],sec:HEISTS.map(()=>0),bias:{},laundBoost:1,
+    recap:null,opps:[],sec:HEISTS.map(()=>0),bias:{},laundBoost:1,
     players:list.map((s,i)=>({id:i,uid:s.uid||null,acc:!!s.acc,name:(s.name||'').trim()||'Joueur '+(i+1),avatar:s.av,color:COLORS[i],cash,dirty:0,debt:0,stocks:{},cost:{},biz:[],deals:[],heat:0,jail:0,net:0,inbox:[],
       rep:0,recon:null,shield:0,laund:0,pos:[],
       stats:{casino:0,trading:0,crime:0,jailTurns:0,biz:0,rent:0,scam:0,vc:0,laund:0,heists:0,scams:0},hist:[cash]}))});
-}
+  return suFor(g)}
+/* Le vivier de startups de départ (G est la partie en cours : on la pointe le temps de le créer). */
+function suFor(g){if(g.su)return g;const k=G;G=g;try{suInit()}finally{G=k}return g}
 /* Associés du tour, objectifs secrets, cagnotte, enchère et rumeur : posés une fois la partie construite. */
 function dealRoles(g){const os=OBJS.slice().sort(()=>Math.random()-.5);
   g.players.forEach((p,i)=>{p.obj=os[i%os.length].k});dealPartners(g.players,1);
@@ -1375,10 +1382,10 @@ function scanPublic(){if(APP.scan)return;APP.pubs={};APP.scanT=Date.now();const 
   setTimeout(refreshPubs,4100)}
 function stopScan(){const sc=APP.scan;if(!sc)return;APP.scan=null;clearInterval(sc.iv);sc.conns.forEach(c=>{try{c.end(true)}catch(e){}})}
 function refreshPubs(){const z=document.querySelector('[data-z="pubs"]');if(z&&APP.view==='join'&&!G)z.innerHTML=pubsHTML()}
-function livePubs(){const now=Date.now();return Object.values(APP.pubs||{}).filter(x=>Math.abs(now-x.ts)<PUB_TTL&&x.n<6).sort((a,b)=>b.ts-a.ts)}
+function livePubs(){const now=Date.now();return Object.values(APP.pubs||{}).filter(x=>Math.abs(now-x.ts)<PUB_TTL&&x.n<MAX_PLAYERS).sort((a,b)=>b.ts-a.ts)}
 function pubsHTML(){const L=livePubs(),searching=!L.length&&APP.scan&&Date.now()-APP.scanT<4000;
   return `${label('Parties publiques')}${L.length?`<div class="list">${L.map(x=>`<button class="item pick" onclick="joinPublic('${x.code}')"><div class="av sm" style="--c:var(--neon-cyan)">${esc(x.av)}</div>
-    <span class="bd"><b>Partie de ${esc(x.host)}</b><span class="small muted"><span class="num">${x.n}/6</span> joueur${x.n>1?'s':''}${x.cash?` · <span class="num">${fmt(x.cash)}</span> au départ`:''}${x.rounds?` · <span class="num">${x.rounds}</span> tours`:''}</span></span><span class="rt">${icon('arrow')}</span></button>`).join('')}</div>`
+    <span class="bd"><b>Partie de ${esc(x.host)}</b><span class="small muted"><span class="num">${x.n}/${MAX_PLAYERS}</span> joueur${x.n>1?'s':''}${x.cash?` · <span class="num">${fmt(x.cash)}</span> au départ`:''}${x.rounds?` · <span class="num">${x.rounds}</span> tours`:''}</span></span><span class="rt">${icon('arrow')}</span></button>`).join('')}</div>`
     :searching?`${loadBar()}<p class="muted small center">Recherche des parties publiques…</p>`:note('Aucune partie publique pour l’instant. Crée la tienne et rends-la publique dans le salon.')}`}
 function joinPublic(code){const x=(APP.pubs||{})[code];APP.hint=x?x.broker:null;joinRoom(code)}
 /* Indicateur de chargement : une barre néon à balayage. */
@@ -1410,7 +1417,7 @@ function pubLobby(){ON.lobby.ts=Date.now();ON.lobby.ver=APP_VER;pub('lobby',ON.l
    Retiré dès que la partie démarre, que le salon redevient privé, est plein ou fermé. Rafraîchi toutes les 20 s :
    une annonce plus vieille que 90 s est ignorée (hôte parti sans prévenir). */
 const PUB_TTL=90000;
-function pubPublic(force){if(!ON||!ON.host||!ON.lobby||!ON.client)return;const L=ON.lobby,on=!!(L.settings&&L.settings.pub&&!L.started&&!L.closed&&L.players.length<6);
+function pubPublic(force){if(!ON||!ON.host||!ON.lobby||!ON.client)return;const L=ON.lobby,on=!!(L.settings&&L.settings.pub&&!L.started&&!L.closed&&L.players.length<MAX_PLAYERS);
   if(!on&&!ON.listed&&!force)return;ON.listed=on;ON.pubTs=Date.now();const h=L.players.find(q=>q.uid===L.host)||L.players[0]||{};
   try{ON.client.publish(`${NS}/public/${L.code}`,on?JSON.stringify({host:h.name,av:h.av,n:L.players.length,cash:L.settings.cash,rounds:L.settings.rounds,ts:Date.now()}):'',{qos:1,retain:true})}catch(e){}}
 function isOnline(uid){if(uid===UID)return true;if(!ON||!uid)return false;if(!ON.presence[uid])ON.presence[uid]=Date.now();return Date.now()-ON.presence[uid]<14000}
@@ -1557,7 +1564,7 @@ function onJoin(m){
   if(!ON.host||!ON.lobby||!m.uid)return;const L=ON.lobby;
   const ex=L.players.find(p=>p.uid===m.uid);
   if(ex){ex.name=m.name||ex.name;ex.ver=m.ver||'';pubLobby();render();return}
-  if(L.started||L.players.length>=6)return;
+  if(L.started||L.players.length>=MAX_PLAYERS)return;
   let av=m.av;if(L.players.some(p=>p.av===av))av=AVATARS.find(a=>!L.players.some(p=>p.av===a));
   L.players.push({uid:m.uid,name:(m.name||'Joueur').slice(0,14),av,ver:m.ver||''});ON.presence[m.uid]=Date.now();
   pubLobby();sfx.coin();haptic('action');render();
@@ -1576,7 +1583,7 @@ function renderLobby(){
   paint(`${topBar(iconBtn('back','Quitter le salon','leaveOnline(true)')+(conn?'':'<span class="pill"><span class="dot off"></span>Reconnexion…</span>'))}
   <div class="panel center" data-z="code"><div class="muted small">Code du salon</div><div class="code">${L.code}</div>
     <div class="row wrap mt-2">${B(icon('copy')+'Copier le code',{v:'secondary',on:`copyTxt('${L.code}')`})}${B(icon('share')+'Partager le lien',{v:'secondary',on:'shareRoom()'})}</div></div>
-  <div data-z="players">${label(`Joueurs <span class="num">(${L.players.length}/6)</span>`)}
+  <div data-z="players">${label(`Joueurs <span class="num">(${L.players.length}/${MAX_PLAYERS})</span>`)}
   <div class="list">${L.players.map((p,i)=>{const on=isOnline(p.uid);return `<div class="item"><div class="av sm" style="--c:${COLORS[i]}">${p.av}</div>
     <span class="bd"><b>${esc(p.name)}${p.uid===UID?' <span class="tag">toi</span>':''}</b><span class="small muted">${p.uid===L.host?'Hôte':'Joueur'}${p.ver&&L.ver&&p.ver!==L.ver?' · <span class="neg">version différente : doit recharger la page</span>':''}</span></span>
     <span class="dot ${on?'':'off'}"></span><span class="sr">${on?'en ligne':'hors ligne'}</span>
@@ -2234,51 +2241,11 @@ function upBiz(i){const p=cur(),b=p.biz[i],up=bizCost(p,bizDef(b.k))*.7*b.lvl;if
 function sellBiz(i){const p=cur(),b=p.biz[i],v=bizVal(b)*R(.8,1.2);p.cash+=v;p.biz.splice(i,1);addFeed(`revend ${esc(b.name)} pour ${fmt(v)}`);sfx.coin();toast(`${b.name} revendue ${fmt(v)}`);after()}
 
 /* ================= STARTUPS (VC) ================= */
-/* Chaque startup a une qualité cachée (équipe + vraie traction + part d'aléa). Ce qu'on voit : équipe (fiable), traction annoncée
-   (parfois gonflée), hype (fait monter le prix d'entrée, presque pas les chances). L'audit révèle la vérité. À chaque fin de tour la
-   startup lève, stagne, plonge ou meurt ; le moral de son secteur en Bourse pèse. Le joueur peut suivre les levées ou revendre. */
+/* Six secteurs, chacun lié à une valeur de la Bourse : le moral du secteur pèse sur ses startups. */
 const SECTS=[{n:'Tech & IA',sym:'NEO'},{n:'Santé',sym:'BIO'},{n:'Luxe & conso',sym:'LUX'},{n:'Crypto',sym:'BTC'},{n:'Mobilité',sym:'VLT'},{n:'Énergie',sym:'PDN'}];
 const STAGES=['Amorçage','Série A','Série B','Série C','Pré-IPO'];
-function genOffers(){return Array.from({length:3},()=>{const team=RI(1,5),trac=RI(1,5),hype=RI(1,5);
-  const sec=RI(0,SECTS.length-1);
-  return {id:Math.random().toString(36).slice(2,8),name:pick(SNAMES),pitch:pick(PITCHES[sec]),e:pick(SECT_E[sec]),
-    sec,team,trac,tracVis:clamp(trac+pick([-1,0,0,1]),1,5),hype,q:clamp(.45*(team-1)/4+.35*(trac-1)/4+R(-.1,.3),0,1),
-    min:pick([1000,5000,10000,25000,50000]),aud:[]}})}
-function entryRatio(o){return clamp(1-.07*(o.team+o.tracVis-6)-.08*(o.hype-1),.45,1)}
 function grade(q){return q>.7?'A':q>.5?'B':q>.3?'C':'D'}
-function auditCost(o){return Math.max(500,niceRound(o.min*.15))}
 function stars(n){return '★'.repeat(n)+'☆'.repeat(5-n)}
-function openVC(){openSheet('Startups non cotées',vcHTML(),()=>setBody(vcHTML()))}
-function vcHTML(){const p=viewer(),RO=ro();
-  return `${RO?RO_NOTE:''}${note('Tu prends une part dans une jeune pousse. À chaque fin de tour elle peut <b>lever des fonds</b> (sa valeur grimpe), stagner, traverser une crise ou mourir. Dès la Série C, elle peut être rachetée ou entrer en Bourse.')}
-  ${G.offers.map(o=>{const au=audited(p,o),s=SECTS[o.sec||0],sa=asset(s.sym),er=entryRatio(o),ac=auditCost(o);
-    return `<div class="panel offer"><div class="head"><span class="e">${o.e}</span><div><b>${esc(o.name)}</b><div class="small muted">${esc(o.pitch)}</div></div></div>
-    <div class="kv"><span>Secteur</span><span>${s.n} · <span class="${(sa.rating||0)>0?'pos':(sa.rating||0)<0?'neg':''}">${RATING[(sa.rating||0)+1]}</span></span></div>
-    <div class="kv"><span>Équipe</span><span class="gold" aria-label="${o.team} sur 5">${stars(o.team)}</span></div>
-    <div class="kv"><span>Traction ${au?'vérifiée':'annoncée'}</span><span class="gold" aria-label="${au?o.trac:o.tracVis} sur 5">${stars(au?o.trac:o.tracVis)}</span></div>
-    <div class="kv"><span>Hype</span><span aria-label="${o.hype} sur 5">${'🔥'.repeat(o.hype)}</span></div>
-    <div class="kv"><span>Prix d’entrée</span><b class="${er>=.95?'pos':er<.7?'neg':''}">ta part vaut <span class="num">${Math.round(er*100)} %</span> de ta mise</b></div>
-    ${au?`<div class="kv"><span>Note d’audit</span><b class="${o.q>.5?'pos':'neg'}">${grade(o.q)}</b></div>`:''}
-    <div class="tags mt-2"><span class="tag y">Ticket min <span class="num">&nbsp;${fmt(o.min)}</span></span></div>
-    ${RO?'':`${au?'':`<div class="mt-2">${B('Faire un audit',{v:'text',inline:1,on:`auditVC('${o.id}')`,cost:fmt(ac),why:p.cash<ac?`Il te manque ${fmt(ac-p.cash)}`:''})}</div>`}
-    <div class="mt-3">${amt('vc_'+o.id,p.cash,Math.min(o.min,p.cash))}</div><div class="mt-3">${B('Investir dans '+esc(o.name),{v:'secondary',on:`investVC('${o.id}')`,cost:'1 PA',why:whyNot(1,o.min,p)})}</div>`}</div>`}).join('')}
-  ${vcPortfolio(p,!RO)}`}
-function vcPortfolio(p,mine){const ds=p.deals.filter(d=>d.kind==='vc');if(!ds.length)return '';
-  return `<h3 class="sec">Ton portefeuille de startups</h3><div class="list">${ds.map(d=>{const g=d.value-d.amt,can=d.raise===G.round;
-    return `<div class="item pick"><span class="ic">${d.e}</span><span class="bd"><b>${esc(d.name)}</b><span class="small muted">${STAGES[d.stage]} · ${SECTS[d.sec].n} · ${esc(d.news||'')}</span>
-    <span class="small">Investi <span class="num">${fmt(d.amt)}</span> · ta part vaut <b class="num">${fmt(d.value)}</b> <b class="num ${g>=0?'pos':'neg'}">${fmt(g,true)}</b></span>
-    ${mine?`<div class="btns">${B('Revendre ma part',{v:'secondary',inline:1,on:`sellVC('${d.id}')`,cost:fmt(d.value*.8)})}${can?B('Suivre la levée',{v:'secondary',inline:1,on:`followVC('${d.id}')`,cost:fmt(d.follow)+' · 1 PA',why:whyNot(1,d.follow,p)}):''}</div>`:''}</span></div>`}).join('')}</div>`}
-function audited(p,o){return (o.aud||[]).includes(p.id)||(p.audits||[]).includes(o.id)}
-function auditVC(id){const p=cur(),o=G.offers.find(x=>x.id===id);if(!o)return;if(audited(p,o))return;const c=auditCost(o);if(!canPay(p,c))return;
-  p.cash-=c;p.stats.vc-=c;(p.audits=p.audits||[]).push(o.id);sfx.tick();toast(`Audit de ${o.name} : note ${grade(o.q)}`);after()}
-function investVC(id){const p=cur(),o=G.offers.find(x=>x.id===id),n=getAmt('vc_'+id);if(!o)return;if(n<o.min){toast('Le ticket minimum est de '+fmt(o.min),1);return}
-  if(!canPay(p,n)||!useAP(1))return;p.cash-=n;
-  p.deals.push({kind:'vc',id:rid(5),name:o.name,pitch:o.pitch,e:o.e,sec:o.sec||0,q:o.q,hype:o.hype,amt:n,value:n*entryRatio(o),stage:0,news:'tu viens d’entrer au capital'});
-  addFeed(`investit ${fmt(n)} dans ${o.e} ${esc(o.name)}`);sfx.coin();toast(`Tu entres au capital de ${o.name}`);after()}
-function sellVC(id){const p=cur(),i=p.deals.findIndex(d=>d.id===id);if(i<0)return;const d=p.deals[i],v=d.value*.8;
-  p.cash+=v;p.stats.vc+=v-d.amt;p.deals.splice(i,1);addFeed(`revend sa part dans ${d.e} ${esc(d.name)} (${fmt(v)})`);sfx.coin();toast('Part revendue '+fmt(v));after()}
-function followVC(id){const p=cur(),d=p.deals.find(x=>x.id===id);if(!d||d.raise!==G.round)return;const n=d.follow;if(!canPay(p,n)||!useAP(1))return;
-  p.cash-=n;d.amt+=n;d.value+=n;d.raise=0;addFeed(`remet ${fmt(n)} dans ${d.e} ${esc(d.name)}`);sfx.coin();toast('Tu suis la levée de '+d.name);after()}
 function vcTick(p,d,add){const s=asset(SECTS[d.sec].sym).reg||0,q=d.q;
   const pD=.03+.3*(1-q)+(d.stage===0?.04:0),pU=.05+.5*q+.06*s+.02*((d.hype||3)-3),pDn=.18*(1-q),r=Math.random();
   if(r<pD){p.stats.vc-=d.amt;add(p,`${d.e} ${d.name} fait faillite 💀 (mise ${fmt(d.amt)})`,0);return 'dead'}
@@ -2292,6 +2259,297 @@ function vcTick(p,d,add){const s=asset(SECTS[d.sec].sym).reg||0,q=d.q;
 function vcOutcome(h){const r=Math.random()-(h-3)*.02;
   if(r<.44)return[0,'a fait faillite.'];if(r<.64)return[.6,'est rachetée à la casse.'];if(r<.82)return[2,'réussit sa levée de fonds : x2 !'];
   if(r<.93)return[4,'est rachetée : x4 !'];if(r<.99)return[10,'devient incontournable : x10 !'];return[40,'devient une LICORNE 🦄 x40 !!!']}
+
+/* (vcTick : seulement pour les parts des anciennes sauvegardes.) */
+/* ================= STARTUPS : UN VIVIER COMMUN À TOUS LES JOUEURS =================
+   Toutes les startups sont communes : chacun voit les mêmes, elles vivent plusieurs tours, lèvent des fonds,
+   se font racheter, entrent en Bourse ou ferment quand leur trésorerie est vide. Chaque tour, 1 à 4 nouvelles
+   apparaissent. Ce qui fait leur succès n'est pas un dé unique mais un ensemble d'indicateurs : potentiel caché
+   (révélé par l'audit), équipe, produit, rentabilité, buzz, secteur, trésorerie… et ce que les joueurs font pour
+   elles (mentorat, recrutement, prêt relais, stratégie votée au conseil).
+   En ligne, chaque téléphone ne touche qu'à sa propre fiche : les ordres (souscriptions, prêts, votes, mentorat)
+   y sont rangés, et c'est la fin de manche (sur l'hôte) qui les applique aux startups. */
+const SU_STAGE=[0,5e5,3e6,15e6,6e7];         /* seuils de valorisation de chaque stade */
+const SU_SIG=[.24,.16,.12,.1,.08];           /* incertitude par stade */
+const SU_FUNDS=['Neon Ventures','Palmier Capital','Fonds Atlantique','Ocean Drive Partners','Flamingo Capital','Delmar Invest'];
+const SU_SYL=[['Kai','Nex','Vel','Orb','Lum','Quan','Alt','Fer','Clar','Nuv','Strat','Hel','Opal','Tess','Meri','Ax','Syl','Zen','Ver','Nov','Cyr','Eon','Vor','Pix','Lyn','Zep','Ark','Ión','Sol','Tal'],
+  ['ro','alis','tra','is','ea','tix','amar','via','ion','ola','os','ix','era','dian','on','va','ly','go','ia','ence','ora','ex','um','ari','eo','yx']];
+/* Stratégies votées au conseil d'administration. */
+const SU_STRAT={
+  eq:{e:'⚖️',n:'Équilibrée',d:'Croissance normale, dépenses normales.',mu:0,burn:1,sig:1,cov:0},
+  grow:{e:'🚀',n:'Croissance agressive',d:'Croissance plus forte mais dépenses ×1,6 : il faudra relever plus tôt.',mu:.055,burn:1.6,sig:1.25,cov:-.02},
+  profit:{e:'💰',n:'Rentabilité',d:'Dépenses ×0,55 et chiffre d’affaires privilégié : elle tient plus longtemps, mais grandit moins.',mu:-.045,burn:.55,sig:.8,cov:.05},
+  sell:{e:'🤝',n:'Chercher un acheteur',d:'Beaucoup plus d’offres de rachat (un peu moins chères), croissance un peu freinée.',mu:-.015,burn:1,sig:1,cov:0},
+  pivot:{e:'🔄',n:'Pivoter',d:'Changer de modèle : potentiel retiré au hasard, produit à reconstruire, valorisation −30 %. Le coup de poker d’une startup qui coule.',mu:0,burn:1,sig:1,cov:0}};
+/* Synergies : une de tes entreprises dans le même domaine devient cliente ou partenaire. */
+const SU_SYN=[['ia','usine'],['gym'],['coif','bar','resto','club'],['club'],['truck','air'],['usine']];
+const SU_SEAT=.1,SU_SEAT2=.05,SU_SEC_PREM=1.15,SU_SEC_CAP=.1,SU_SELL=.75,SU_SELL_BAD=.4,SU_BRIDGE_DISC=.7;
+function suStage(V){let s=0;for(let i=1;i<5;i++)if(V>=SU_STAGE[i])s=i;return s}
+function suGet(id){return (G.su||[]).find(s=>s.id===id)}
+function suLive(){return (G.su||[]).filter(s=>s.st==='live')}
+function suTargetN(){return 6+Math.floor(G.players.length/2)}
+function suReg(s){const a=typeof asset==='function'?asset(SECTS[s.sec].sym):null;return a&&a.reg||0}
+function suNetBurn(s){return s.burn*SU_STRAT[s.strat==='pivot'?'eq':s.strat].burn*(1-Math.min(1,s.cover))}
+function suRunway(s){const b=suNetBurn(s);return b<=0?99:s.cash/b}
+function suAvgG(s){const h=(s.gh||[]).slice(-2);return h.length?h.reduce((a,b)=>a+b,0)/h.length:0}
+function suName(){const used=new Set((G.su||[]).map(s=>s.name).concat(G.suNames||[]));
+  for(let k=0;k<40;k++){const n=k<6&&typeof SNAMES!=='undefined'?pick(SNAMES):pick(SU_SYL[0])+pick(SU_SYL[1]);if(!used.has(n))return n}
+  return pick(SU_SYL[0])+pick(SU_SYL[1])+' '+RI(2,9)}
+function suNew(){const sec=RI(0,SECTS.length-1),q=Math.random(),team=clamp(Math.round(1+4*q+gauss()*.9),1,5);
+  const V=niceRound(R(50e3,150e3)*(.7+.15*team)),burn=niceRound(.06*V);
+  const s={id:rid(6),name:suName(),pitch:pick(PITCHES[sec]),e:pick(SECT_E[sec]),sec,born:G.round,q,team,team0:team,prod:Math.round(R(5,35)),cover:R(0,.08),
+    buzz:clamp(RI(1,4)+(suRegSafe(sec)>0?1:0),1,5),V,cash:Math.round(burn*R(1.5,3)),burn,strat:'eq',raise:null,offer:null,st:'live',
+    news:'vient de se lancer',g:0,gh:[],hist:[V],fail:0,ev:[]};
+  (G.suNames=G.suNames||[]).push(s.name);if(G.suNames.length>80)G.suNames.shift();
+  suOpenRaise(s);return s}
+function suRegSafe(sec){try{return asset(SECTS[sec].sym).reg||0}catch(e){return 0}}
+/* Une levée de fonds s'ouvre : elle reste ouverte pendant tout le tour suivant et se clôt à sa fin. */
+function suOpenRaise(s){const down=s.fail>0;
+  const pre=niceRound(s.V*(down?.6:(.8+.08*s.buzz)));
+  s.raise={T:niceRound(Math.max(3.5*s.burn,.12*s.V)),pre,down,r:G.round}}
+function suMinTicket(s){return s.raise?Math.max(500,niceRound(s.raise.T*.02)):Math.max(500,niceRound(s.V*.005))}
+function suInit(){G.su=[];G.suNames=[];const n=suTargetN();
+  for(let i=0;i<n;i++){const s=suNew();
+    /* Le vivier de départ n'est pas fait que de bébés : la plupart ont déjà grandi (et ont survécu jusque-là). */
+    if(i>=3){const f=pick([2,3,5,8,15,30,60]);s.q=R(.3,1);s.team=s.team0=clamp(Math.round(1+4*s.q+gauss()*.9),1,5);s.V=niceRound(s.V*f);s.burn=niceRound(.06*s.V);
+      s.cash=Math.round(s.burn*R(1.6,5));s.raise=null;s.prod=Math.round(clamp(25+14*Math.log2(f)+R(-10,10),10,100));s.cover=clamp(R(0,.12)*Math.log2(f),0,.9);
+      s.born=1-RI(2,10);s.gh=[R(-.05,.15),R(-.05,.2)];s.g=s.gh[1];s.hist=[s.V/Math.exp(s.gh[1]+s.gh[0]),s.V/Math.exp(s.gh[1]),s.V];s.news=s.g>.1?'grandit vite':'grandit';
+      if(suRunway(s)<=2)suOpenRaise(s)}
+    G.su.push(s)}}
+/* Attrait pour les fonds du jeu : ils regardent ce qui se voit (croissance, buzz, équipe, produit, secteur). */
+function suAttract(s){const h=(s.gh||[]).slice(-3),ag=h.length?h.reduce((a,b)=>a+b,0)/h.length:0;
+  return clamp(.5+2*(ag+.05*suStage(s.V))+.12*(s.team-3)+.1*(s.buzz-3)+.08*suReg(s)+(s.prod>=60?.08:0)-.15*s.fail+(s.raise&&s.raise.down?.2:0),0,1.3)}
+/* Un tour de vie : valorisation, produit, rentabilité, buzz, trésorerie. */
+function suTick(s,h){const st=SU_STRAT[s.strat==='pivot'?'eq':s.strat],reg=suReg(s),stage=suStage(s.V),k=h.angel?1.6:1;
+  const mentor=Math.min(2,h.n)*.02*k;
+  let mu=-.08+.2*s.q-.05*stage+.03*(s.team-3)+.07*reg+.02*(s.buzz-3)+.06*(s.prod/100-.5)+mentor+(h.syn?.03:0)+st.mu;
+  const g=mu+SU_SIG[stage]*st.sig*gauss();
+  s.V=Math.max(5000,s.V*Math.exp(g));s.g=g;(s.gh=s.gh||[]).push(g);if(s.gh.length>6)s.gh.shift();
+  s.prod=Math.min(100,s.prod+(4+2.5*s.team)*(.6+.8*s.q)+5*Math.min(2,h.n)*k);
+  if(h.n&&s.team<Math.min(5,(s.team0||s.team)+1))s.team=Math.min(5,(s.team0||s.team)+1,s.team+.1*Math.min(2,h.n)*k);
+  s.cover=clamp(s.cover+.04*(.3+s.q)*(s.prod/100)+st.cov,0,1.2);
+  s.buzz=clamp(s.buzz+.4*reg+(g>.12?.35:g<-.02?-.35:0)+(s.strat==='grow'?.3:0)+(3-s.buzz)*.2+gauss()*.3,1,5);
+  s.cash-=suNetBurn(s);
+  (s.hist=s.hist||[]).push(s.V);if(s.hist.length>14)s.hist.shift()}
+/* Pivot : un nouveau départ. */
+function suPivot(s){s.q=R(.2,.9);s.prod=25;s.V*=.7;s.buzz=3;s.cover=Math.max(0,s.cover-.15);s.strat='eq';s.gh=[];s.pivots=(s.pivots||0)+1}
+/* --- Parts des joueurs, conseil d'administration --- */
+function suHold(p,sid){return (p.deals||[]).find(d=>d.kind==='su'&&d.sid===sid)}
+function suHoldMake(p,s){let d=suHold(p,s.id);if(!d){d={kind:'su',id:rid(5),sid:s.id,name:s.name,e:s.e,sh:0,amt:0,conv:0};p.deals.push(d)}return d}
+function suHolders(s){return G.players.map(p=>({p,d:suHold(p,s.id)})).filter(x=>x.d)}
+/* Siège au conseil : 10 % du capital, ou être le premier actionnaire parmi les joueurs avec au moins 5 %. */
+function suBoard(s){const hs=suHolders(s).filter(x=>x.d.sh>0),top=hs.slice().sort((a,b)=>b.d.sh-a.d.sh)[0];
+  return hs.filter(x=>x.d.sh>=SU_SEAT||(x===top&&x.d.sh>=SU_SEAT2))}
+function suOnBoard(p,s){return suBoard(s).some(x=>x.p===p)}
+function suSyn(p,s){return (p.biz||[]).some(b=>SU_SYN[s.sec].includes(b.k))||(s.sec===3&&Object.keys(p.stocks||{}).some(k=>p.stocks[k]>0&&typeof adef==='function'&&adef(k)&&adef(k).crypto))}
+/* Sans joueur au conseil, les fondateurs pilotent eux-mêmes. */
+function suFounders(s){const ag=suAvgG(s),rw=suRunway(s);
+  if(s.fail>0&&ag<0&&Math.random()<.2){suPivot(s);s.news='pivote vers un nouveau modèle';return}
+  if(s.fail>0)s.strat='profit';
+  else if(s.strat==='profit'&&rw>4)s.strat='eq';
+  else if(s.strat==='grow'&&rw<2.5)s.strat='eq';
+  else if(s.strat==='eq'&&ag>.15&&s.buzz>=3.5&&rw>3&&Math.random()<.4)s.strat='grow'}
+/* Fin de manche : toutes les startups avancent d'un tour, les ordres des joueurs sont appliqués. */
+function suRound(add){if(!G.su)suInit();const r0=G.round,ords=[];
+  G.players.forEach(p=>{(p.suOrd||[]).forEach(o=>ords.push({p,o}));p.suOrd=[]});
+  const done=new Set();
+  suLive().forEach(s=>{const mine=ords.filter(x=>x.o.sid===s.id);mine.forEach(x=>done.add(x.o));
+    const helpers=G.players.filter(p=>p.suHelp&&p.suHelp[s.id]===r0),board=suBoard(s);
+    const h={n:helpers.length,angel:helpers.some(p=>chr(p)==='angel'),syn:helpers.concat(board.map(x=>x.p)).some(p=>suSyn(p,s))};
+    s.ev=[];s.news='';
+    /* Prêts relais : l'argent arrive tout de suite, il sera converti en parts avec 30 % de remise à la prochaine levée. */
+    mine.filter(x=>x.o.k==='bridge').forEach(({p,o})=>{s.cash+=o.amt;const d=suHoldMake(p,s);d.conv=(d.conv||0)+o.amt;d.amt+=o.amt;s.ev.push(`🌉 ${p.name} lui prête ${fmt(o.amt)}`)});
+    /* Recrutement d'un dirigeant chevronné. */
+    mine.filter(x=>x.o.k==='hire').forEach(({p})=>{if(s.team<5){s.team=Math.min(5,Math.floor(s.team)+1);s.burn*=1.12;s.ev.push(`👔 ${p.name} lui recrute un dirigeant`)}});
+    if(h.n)s.ev.push(`🧑‍🏫 ${helpers.map(p=>p.name).join(', ')} ${h.n>1?'la conseillent':'la conseille'}`);
+    /* Stratégie : vote du conseil, au poids des parts. */
+    const w={};let voted=0;board.forEach(({p,d})=>{const v=p.suVote&&p.suVote[s.id];if(v&&SU_STRAT[v]){w[v]=(w[v]||0)+d.sh;voted=1}});
+    if(voted){const best=Object.keys(w).sort((a,b)=>w[b]-w[a])[0];
+      if(best==='pivot'){suPivot(s);board.forEach(({p})=>{if(p.suVote)p.suVote[s.id]='eq'});s.ev.push('🔄 Le conseil vote le pivot');s.news='pivote vers un nouveau modèle'}
+      else if(best&&best!==s.strat){s.strat=best;s.ev.push(`${SU_STRAT[best].e} Le conseil choisit : ${SU_STRAT[best].n.toLowerCase()}`)}}
+    else suFounders(s);
+    /* Offre de rachat reçue au tour d'avant : le conseil accepte ou refuse. */
+    if(s.offer){const o=s.offer;let yes=0,no=0;board.forEach(({p,d})=>{const v=p.suOff&&p.suOff[s.id];if(v==='yes')yes+=d.sh;else if(v==='no')no+=d.sh});
+      G.players.forEach(p=>{if(p.suOff)delete p.suOff[s.id]});
+      const acc=yes+no>0?yes>no:(o.price>=1.6*s.V||Math.random()<.3);
+      if(acc){mine.filter(x=>x.o.k==='raise').forEach(({p,o})=>{p.cash+=o.amt});suExit(s,o.price,'sold',add,o.buyer);return}
+      s.ev.push(`✋ Refuse l’offre de ${o.buyer} (${fmt(o.price)})`);s.offer=null}
+    /* Clôture de la levée : joueurs + fonds du jeu ; trop de demande = tout le monde est servi au prorata. */
+    if(s.raise){const T=s.raise.T,cap=T*1.3,pre=s.raise.pre,subs=mine.filter(x=>x.o.k==='raise');
+      const pl=subs.reduce((a,x)=>a+x.o.amt,0),npc=T*suAttract(s)*R(.75,1.25),tot=pl+npc;
+      if(tot>=.7*T&&tot>0){const sc=Math.min(1,cap/tot),X=tot*sc,post=pre+X;
+        suHolders(s).forEach(({d})=>{d.sh*=pre/post;if(d.conv){d.sh+=d.conv/(SU_BRIDGE_DISC*post);d.conv=0}});
+        subs.forEach(({p,o})=>{const a=o.amt*sc,d=suHoldMake(p,s);d.sh+=a/post;d.amt+=a;if(o.amt-a>.5){p.cash+=o.amt-a;add(p,`${s.e} ${s.name} : levée sursouscrite, ${fmt(o.amt-a)} te sont rendus`,0)}
+          add(p,`${s.e} ${s.name} : tu reçois ${pct(a/post)} du capital pour ${fmt(a)}`,0)});
+        s.cash+=X;s.V=post;s.burn=niceRound(.06*post);s.cover*=.7;s.fail=0;
+        const lead=pl>npc?subs.slice().sort((a,b)=>b.o.amt-a.o.amt)[0].p.name:pick(SU_FUNDS);
+        s.news=`${s.raise.down?'lève en baisse':'lève'} ${fmt(X)} (${STAGES[suStage(post)]}, mené par ${lead})`;s.ev.push('💸 '+s.news);s.lastRaise=r0}
+      else{subs.forEach(({p,o})=>{p.cash+=o.amt;add(p,`${s.e} ${s.name} : levée ratée, ${fmt(o.amt)} te sont rendus`,0)});
+        s.fail++;s.V*=.9;s.news='rate sa levée de fonds';s.ev.push('❌ Levée ratée : pas assez d’investisseurs')}
+      s.raise=null}
+    suTick(s,h);
+    if(s.cash<0){suDie(s,add);return}
+    if(!s.raise&&suRunway(s)<=2&&s.cover<1)suOpenRaise(s);
+    const st=suStage(s.V),reg=suReg(s),ag=suAvgG(s);
+    /* Introduction en Bourse : les plus grosses, dans un secteur qui ne s'effondre pas. */
+    if(st>=3&&reg>=0&&ag>.05&&Math.random()<.3){suExit(s,s.V*R(1.2,1.7),'ipo',add);return}
+    if(st>=1&&!s.offer){const pr=.03+.05*st+(ag>.12?.07:0)+(s.buzz>=4?.05:0)+.03*reg+(s.strat==='sell'?.25:0);
+      if(Math.random()<pr)s.offer={price:niceRound(s.V*R(1.05,1.75)*(s.strat==='sell'?.9:1)*(1+.08*reg)),buyer:pick(BUYERS),r:r0}}
+    if(!s.news){const g=s.g;s.news=s.raise?(s.raise.down?'cherche de l’argent en urgence':'ouvre une levée de fonds'):g>.15?'cartonne':g>.04?'grandit':g>-.04?'stagne':'recule'}});
+  /* Ordres sur une startup qui n'existe plus : remboursés. */
+  ords.forEach(({p,o})=>{if(!done.has(o)&&o.amt>0){p.cash+=o.amt}});
+  G.players.forEach(p=>{p.deals=p.deals.filter(d=>d.kind!=='su'||(suGet(d.sid)&&suGet(d.sid).st==='live'&&(d.sh>0||d.conv>0)))});
+  G.su=G.su.filter(s=>s.st==='live'||s.endR>=r0);
+  const live=suLive().length,n=live>=suTargetN()+5?0:clamp(suTargetN()-live+2,1,4);
+  for(let i=0;i<n;i++)G.su.push(suNew())}
+const BUYERS=['un géant de la tech','un fonds d’investissement','un concurrent américain','un groupe du CAC 40','un milliardaire excentrique','un géant chinois'];
+function pct(x){return (x*100<1?(x*100).toFixed(1):Math.round(x*100)).toString().replace('.',',')+' %'}
+function suExit(s,price,kind,add,buyer){s.st=kind;s.endR=G.round;s.exitP=price;s.offer=null;s.raise=null;
+  const txt=kind==='ipo'?'entre en Bourse 🔔':`est rachetée par ${buyer||pick(BUYERS)} 🤝`;s.news=txt;
+  suHolders(s).forEach(({p,d})=>{const pay=d.sh*price+(d.conv||0)*1.5;p.cash+=pay;p.stats.vc+=pay-d.amt;
+    const x=d.amt>0?pay/d.amt:0;add(p,`${s.e} ${s.name} ${txt} · ta part : x${x.toFixed(1).replace('.',',')}`,pay);
+    if(x>=10&&typeof addFeed==='function')addFeed(`touche le jackpot avec ${s.e} ${esc(s.name)} : x${Math.round(x)} 🦄`,p)});
+  if(typeof addFeed==='function')addFeed(`📰 ${s.e} ${esc(s.name)} ${txt} pour ${fmt(price)}`,null)}
+function suDie(s,add){s.st='dead';s.endR=G.round;s.offer=null;s.raise=null;s.news='ferme ses portes 💀';
+  const hs=suHolders(s);hs.forEach(({p,d})=>{p.stats.vc-=d.amt;add(p,`${s.e} ${s.name} fait faillite 💀 (mise ${fmt(d.amt)})`,0)});
+  if(hs.length&&typeof addFeed==='function')addFeed(`📰 ${s.e} ${esc(s.name)} fait faillite : trésorerie vide`,null)}
+/* --- Ce que voit un joueur : exact s'il a audité ou siège au conseil, approximatif sinon --- */
+function suAudited(p,s){return !!(p&&p.suAud&&p.suAud[s.id]!=null&&p.suAud[s.id]>=(s.pivots||0))}
+function suInsider(p,s){return suAudited(p,s)||suOnBoard(p,s)}
+function suHash(str){let h=7;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))%100003;return h}
+function suSeen(p,s){const ex=suInsider(p,s),h=suHash((p?p.id:0)+s.id+Math.floor(G.round/3));
+  return {ex,team:ex?Math.round(s.team):clamp(Math.round(s.team)+[-1,0,0,1][h%4],1,5),prod:ex?Math.round(s.prod):clamp(Math.round((s.prod+[-15,-5,5,15][(h>>2)%4])/10)*10,10,100),
+    cover:ex?s.cover:null}}
+function suAuditCost(p,s){return chr(p)==='angel'?0:Math.max(300,niceRound(Math.sqrt(s.V)*4))}
+function suHireCost(s){return Math.max(2000,niceRound(s.burn*.8))}
+function suBridgeMin(s){return Math.max(500,niceRound(s.burn*.3))}
+function suBridgeMax(s){return niceRound(s.burn*4)}
+function suSecMax(s){return Math.floor(SU_SEC_CAP*SU_SEC_PREM*s.V)}
+function suDistress(s){return s.fail>0||suRunway(s)<1}
+function suValue(p,d){const s=suGet(d.sid);return (s&&s.st==='live'?d.sh*s.V:0)+(d.conv||0)}
+function suOrdSum(p){return (p.suOrd||[]).reduce((a,o)=>a+(o.amt||0),0)}
+function suOrdOf(p,s,k){return (p.suOrd||[]).filter(o=>o.sid===s.id&&(!k||o.k===k))}
+function suIsNew(s){return s.born===G.round||s.born===G.round-1&&G.round>1}
+function suRunTxt(s){const r=suRunway(s);return s.cover>=1?'rentable':r>=8?'+ de 8 tours':r<1?'moins d’1 tour':`≈ ${Math.floor(r)} tour${r>=2?'s':''}`}
+function suRunCls(s){const r=suRunway(s);return s.cover>=1||r>=4?'pos':r<2?'neg':''}
+function suGrowTxt(s){return s.gh&&s.gh.length?fmtPct(Math.exp(s.g)-1):'—'}
+function fmtPct(x){const v=Math.round(x*100);return (v>0?'+':v<0?'−':'')+Math.abs(v)+' %'}
+function suBar(v){return `<span class="subar" aria-hidden="true"><i style="width:${clamp(v,0,100)}%"></i></span>`}
+
+/* --- Écran --- */
+let suTab='all',suSel=null;
+function openVC(){suSel=null;openSheet('Startups',vcHTML(),()=>setBody(vcHTML()))}
+function suOpen(id){suSel=id;sfx.tick();refreshSheet();const b=$('#shBody');if(b)b.scrollTop=0}
+function suBack(){suSel=null;refreshSheet()}
+function vcHTML(){if(!G.su)suInit();const p=viewer();const s=suSel&&suGet(suSel);if(s)return suDetail(p,s);return suList(p)}
+function suList(p){const RO=ro(),live=suLive(),fav=p&&p.suFav||[];
+  const mine=s=>p&&(suHold(p,s.id)||suOrdOf(p,s).length);
+  const tabs=[['all','Toutes',live.length],['raise','En levée',live.filter(s=>s.raise).length],['mine','Mes parts',live.filter(mine).length],['fav','Favoris',live.filter(s=>fav.includes(s.id)).length],['new','Nouvelles',live.filter(suIsNew).length]];
+  const f={all:()=>true,raise:s=>s.raise,mine,fav:s=>fav.includes(s.id),new:suIsNew}[suTab]||(()=>true);
+  const list=live.filter(f).sort((a,b)=>(mine(b)?1:0)-(mine(a)?1:0)||(b.raise?1:0)-(a.raise?1:0)||b.V-a.V);
+  const tot=p?p.deals.filter(d=>d.kind==='su').reduce((a,d)=>a+suValue(p,d),0)+suOrdSum(p):0;
+  const ended=(G.su||[]).filter(s=>s.st!=='live');
+  return `${RO?RO_NOTE:''}${note('Un vivier <b>commun à tous</b> : chaque startup vit plusieurs tours, lève des fonds, se fait racheter ou ferme quand sa <b>trésorerie</b> est vide. Audite pour voir son vrai potentiel, siège au <b>conseil</b> (10 % du capital) pour choisir sa stratégie.')}
+  ${tot>0?`<div class="kv mt-2"><span>Tes startups</span><b class="num gold">${fmt(tot)}</b></div>`:''}
+  <div class="tabs mt-2" role="tablist">${tabs.map(([k,l,n])=>`<button role="tab" aria-selected="${suTab===k}" class="${suTab===k?'on':''}" onclick="suTab='${k}';refreshSheet()">${l} <span class="num">${n}</span></button>`).join('')}</div>
+  <div class="list mt-2">${list.length?list.map(s=>suRow(p,s)).join(''):`<p class="muted small center">Rien ici pour l’instant.</p>`}</div>
+  ${ended.length?`<h3 class="sec">Fin de route au dernier tour</h3><div class="list">${ended.map(s=>`<div class="item"><span class="ic">${s.e}</span><span class="bd"><b>${esc(s.name)}</b><span class="small ${s.st==='dead'?'neg':'pos'}">${esc(s.news)}${s.exitP?' · '+fmt(s.exitP):''}</span></span></div>`).join('')}</div>`:''}`}
+function suRow(p,s){const d=p&&suHold(p,s.id),seen=suSeen(p,s),au=suAudited(p,s),fav=(p&&p.suFav||[]).includes(s.id),rw=suRunway(s);
+  const tags=[];if(s.raise)tags.push(`<span class="tag ${s.raise.down?'r':'y'}">${s.raise.down?'Levée de survie':'En levée'}</span>`);
+  if(s.offer)tags.push('<span class="tag g">Offre de rachat</span>');if(rw<2&&s.cover<1&&(s.fail>0||!s.raise))tags.push(`<span class="tag r">Tréso : ${suRunTxt(s)}</span>`);
+  if(suIsNew(s))tags.push('<span class="tag">Nouvelle</span>');if(p&&suOnBoard(p,s))tags.push('<span class="tag c">Au conseil</span>');
+  if(au)tags.push(`<span class="tag">Audit ${grade(s.q)}</span>`);if(p&&suOrdOf(p,s,'raise').length)tags.push('<span class="tag y">Ordre placé</span>');
+  return `<button class="item pick" onclick="suOpen('${s.id}')"><span class="ic">${s.e}</span><span class="bd"><b>${esc(s.name)}${fav?' ⭐':''}</b>
+    <span class="small muted">${STAGES[suStage(s.V)]} · ${SECTS[s.sec].n} · ${esc(s.news||'')}</span>
+    <span class="small">Valorisation <span class="num">${fmt(s.V)}</span> <span class="num ${s.g>=0?'pos':'neg'}">${suGrowTxt(s)}</span>${d?` · ta part <b class="num">${fmt(suValue(p,d))}</b>`:''}</span>
+    ${tags.length?`<span class="tags">${tags.join('')}</span>`:''}</span><span class="rt">${spark(s.hist||[s.V],56,24)}</span></button>`}
+function suDetail(p,s){const RO=ro(),d=p&&suHold(p,s.id),seen=suSeen(p,s),au=suAudited(p,s),board=suBoard(s),onB=p&&board.some(x=>x.p===p),reg=suReg(s),sa=asset(SECTS[s.sec].sym);
+  const ins=p&&suInsider(p,s),st=SU_STRAT[s.strat]||SU_STRAT.eq,fav=(p&&p.suFav||[]).includes(s.id),ac=suAuditCost(p,s),mentored=p&&p.suHelp&&p.suHelp[s.id]===G.round;
+  const ords=p?suOrdOf(p,s):[],ordR=ords.filter(o=>o.k==='raise').reduce((a,o)=>a+o.amt,0),ordB=ords.filter(o=>o.k==='bridge').reduce((a,o)=>a+o.amt,0),hired=ords.some(o=>o.k==='hire');
+  const hdr=`<div class="row mb-2">${B('← Toutes les startups',{v:'text',inline:1,on:'suBack()'})}<span class="grow"></span>${p?B(fav?'⭐ Suivie':'☆ Suivre',{v:'text',inline:1,on:`suFav('${s.id}')`}):''}</div>
+  <div class="panel offer"><div class="head"><span class="e">${s.e}</span><div><b>${esc(s.name)}</b><div class="small muted">${esc(s.pitch)}</div></div></div>
+    <div class="row"><div class="grow"><div class="small muted">Valorisation</div><b class="num gold">${fmt(s.V)}</b> <span class="small num ${s.g>=0?'pos':'neg'}">${suGrowTxt(s)} ce tour</span></div>${spark(s.hist||[s.V],110,36)}</div>
+    <div class="kv"><span>Stade</span><span>${STAGES[suStage(s.V)]} · ${s.born<1?'déjà là au début de la partie':`née au tour <span class="num">${s.born}</span>`}</span></div>
+    <div class="kv"><span>Secteur</span><span>${SECTS[s.sec].n} · <span class="${(sa.rating||0)>0?'pos':(sa.rating||0)<0?'neg':''}">${RATING[(sa.rating||0)+1]}</span></span></div>
+    <div class="kv"><span>Potentiel</span>${ins?`<b class="${s.q>.5?'pos':'neg'}">Note d’audit ${grade(s.q)}</b>`:`<span class="muted">inconnu sans audit</span>`}</div>
+    <div class="kv"><span>Équipe ${seen.ex?'':'(estimée)'}</span><span class="gold" aria-label="${seen.team} sur 5">${seen.ex?'':'≈ '}${stars(seen.team)}</span></div>
+    <div class="kv"><span>Produit ${seen.ex?'':'(estimé)'}</span><span>${suBar(seen.prod)} <span class="num">${seen.ex?'':'≈ '}${seen.prod} %</span></span></div>
+    <div class="kv"><span>Ventes / dépenses</span>${seen.ex?`<span class="num">${Math.round(s.cover*100)} %</span>`:'<span class="muted">audit nécessaire</span>'}</div>
+    <div class="kv"><span>Buzz</span><span aria-label="${Math.round(s.buzz)} sur 5">${'🔥'.repeat(Math.max(1,Math.round(s.buzz)))}</span></div>
+    <div class="kv"><span>Trésorerie</span><b class="num ${suRunCls(s)}">${fmt(s.cash)} · ${suRunTxt(s)}</b></div>
+    <div class="kv"><span>Stratégie</span><span>${st.e} ${st.n}</span></div>
+    ${board.length?`<div class="kv"><span>Conseil</span><span>${board.map(x=>`${x.p.avatar} ${esc(x.p.name)} <span class="num">${pct(x.d.sh)}</span>`).join(' · ')}</span></div>`:''}
+    ${(s.ev||[]).length?`<div class="small muted mt-2">${s.ev.map(esc).join('<br>')}</div>`:''}
+    ${!ins&&!RO&&p?`<div class="mt-2">${B('Faire un audit',{v:'text',inline:1,on:`suAudit('${s.id}')`,cost:ac?fmt(ac):'gratuit',why:p.cash<ac?`Il te manque ${fmt(ac-p.cash)}`:''})}</div>`:''}</div>`;
+  /* Ta position */
+  const pos=d||ords.length?`<h3 class="sec">Ta position</h3><div class="panel tight">
+    ${d&&d.sh>0?`<div class="kv"><span>Ta part du capital</span><b class="num">${pct(d.sh)}</b></div><div class="kv"><span>Elle vaut</span><b class="num gold">${fmt(d.sh*s.V)}</b></div>
+      <div class="kv"><span>Investi</span><span class="num">${fmt(d.amt)} <b class="${suValue(p,d)-d.amt>=0?'pos':'neg'}">${fmt(suValue(p,d)-d.amt,true)}</b></span></div>`:''}
+    ${d&&d.conv?`<div class="kv"><span>Prêt relais</span><span class="num">${fmt(d.conv)} · converti en parts −30 % à la prochaine levée</span></div>`:''}
+    ${ordR?`<div class="kv"><span>Ordre dans la levée</span><b class="num y">${fmt(ordR)} · réponse en fin de tour</b></div>`:''}
+    ${ordB?`<div class="kv"><span>Prêt relais demandé</span><b class="num">${fmt(ordB)} · versé en fin de tour</b></div>`:''}
+    ${d&&d.sh>0?`<div class="small muted">${onB?'Tu sièges au conseil : tu vois tout et tu votes la stratégie.':`Pour siéger au conseil : ${pct(SU_SEAT)} du capital, ou ${pct(SU_SEAT2)} si tu es le premier actionnaire parmi les joueurs.`}</div>`:''}
+    ${!RO&&d&&d.sh>0?`<div class="btns mt-2">${B('Revendre ma part',{v:'secondary',inline:1,on:`suSell('${s.id}')`,cost:fmt(d.sh*s.V*suSellRate(p,s))})}</div>`:''}</div>`:'';
+  if(RO||!p)return hdr+pos+suInvestBox(p,s,true);
+  /* Aider la direction */
+  const help=d?`<h3 class="sec">Aider la direction</h3><div class="stack">
+    ${B(mentored?'Mentorat fait ce tour':'Mentorat',{v:'secondary',on:`suMentor('${s.id}')`,cost:'1 PA',why:mentored?'Une fois par tour':whyNot(1,0,p)})}
+    <p class="small muted">Tu passes du temps avec les fondateurs : produit, équipe et croissance progressent un peu. ${chr(p)==='angel'?'Business Angel : effet ×1,6.':''}</p>
+    ${onB&&s.team<5?B(hired?'Recrutement en cours':'Recruter un dirigeant',{v:'secondary',on:`suHire('${s.id}')`,cost:fmt(suHireCost(s))+' · 1 PA',why:hired?'Déjà fait ce tour':whyNot(1,suHireCost(s),p)})+'<p class="small muted">Équipe +1 étoile, mais elle dépense 12 % de plus chaque tour.</p>':''}
+    ${suRunway(s)<=3&&s.cover<1?`${amt('su_br',Math.min(p.cash,suBridgeMax(s)),Math.min(p.cash,suBridgeMin(s)))}${B('Prêt relais',{v:'secondary',on:`suBridge('${s.id}')`,cost:'1 PA',why:whyNot(1,suBridgeMin(s),p)})}
+      <p class="small muted">L’argent rallonge sa trésorerie dès la fin du tour. À la prochaine levée, il devient des parts avec 30 % de remise ; si elle est rachetée avant, tu touches ×1,5. Si elle ferme, il est perdu.</p>`:''}</div>`:'';
+  /* Conseil d'administration */
+  const brd=onB?`<h3 class="sec">Conseil d’administration</h3>
+    ${s.offer?`<div class="panel tight"><b>Offre de rachat : ${fmt(s.offer.price)}</b><div class="small muted">par ${esc(s.offer.buyer)} · soit ${(s.offer.price/s.V).toFixed(1).replace('.',',')} × la valorisation. Le conseil décide en fin de tour (au poids des parts).</div>
+      <div class="row mt-2">${['yes','no'].map(v=>{const on=(p.suOff||{})[s.id]===v;return B((on?'✓ ':'')+(v==='yes'?'Accepter':'Refuser'),{v:on?'primary':'secondary',inline:1,on:`suOfferVote('${s.id}','${v}')`})}).join('')}</div></div>`:''}
+    <div class="small muted mt-2">Ton vote pour la stratégie (appliqué en fin de tour, au poids des parts) :</div>
+    <div class="list mt-1">${Object.keys(SU_STRAT).map(k=>{const x=SU_STRAT[k],on=((p.suVote||{})[s.id]||s.strat)===k;
+      return `<button class="item pick${on?' sel':''}" onclick="suVoteSet('${s.id}','${k}')" aria-pressed="${on}"><span class="ic">${x.e}</span><span class="bd"><b>${x.n}${s.strat===k?' · en cours':''}</b><span class="small muted">${x.d}</span></span></button>`}).join('')}</div>`:'';
+  return hdr+suInvestBox(p,s,false)+pos+help+brd}
+function suSellRate(p,s){const a=chr(p)==='angel'?.8:1;return (suDistress(s)?SU_SELL_BAD:SU_SELL)*a}
+function suInvestBox(p,s,RO){if(!s.raise){const mx=suSecMax(s);
+    return RO?'':`<h3 class="sec">Entrer au capital</h3><div class="panel tight"><div class="small muted">Pas de levée en cours : tu peux racheter des parts à un fonds, avec une prime de 15 % (max ${pct(SU_SEC_CAP)} du capital par tour). L’argent ne va pas à la startup.</div>
+    ${suDistress(s)?`<p class="small neg mt-2">Personne ne vend en pleine crise : attends sa levée de survie.</p>`:`<div class="mt-2">${amt('su_amt',Math.min(p.cash,mx),Math.min(p.cash,mx,Math.max(500,niceRound(s.V*.02))))}</div>
+    <div class="mt-2">${B('Acheter des parts',{v:'secondary',on:`suInvest('${s.id}')`,cost:'1 PA',why:whyNot(1,500,p)})}</div>`}</div>`}
+  const r=s.raise,mn=suMinTicket(s);
+  return `<h3 class="sec">${r.down?'Levée de survie':'Levée de fonds'} en cours</h3><div class="panel tight">
+    <div class="kv"><span>Elle cherche</span><b class="num">${fmt(r.T)}</b></div>
+    <div class="kv"><span>Valorisation avant levée</span><b class="num ${r.down?'neg':''}">${fmt(r.pre)}${r.down?' (en baisse)':''}</b></div>
+    <div class="kv"><span>Exemple</span><span class="small">${fmt(r.T*.3)} ≈ <b class="num">${pct(r.T*.3/(r.pre+r.T))}</b> du capital</span></div>
+    <div class="small muted">Clôture en fin de tour. Les fonds du jeu suivent si elle est attirante ; il faut réunir au moins 70 % de l’objectif, sinon tout le monde est remboursé. Trop de demande : chacun est servi au prorata.</div>
+    ${RO?'':`<div class="mt-2">${amt('su_amt',Math.min(p.cash,r.T*1.3),Math.min(p.cash,Math.max(mn,niceRound(r.T*.3))))}</div>
+    <div class="mt-2">${B('Souscrire',{v:'primary',on:`suInvest('${s.id}')`,cost:`min ${fmt(mn)} · 1 PA`,why:whyNot(1,mn,p)})}</div>`}</div>`}
+
+/* --- Actions (chacune ne touche qu'à la fiche du joueur) --- */
+function suFav(id){const p=cur()||viewer();if(!p)return;p.suFav=p.suFav||[];const i=p.suFav.indexOf(id);if(i<0)p.suFav.push(id);else p.suFav.splice(i,1);sfx.tick();after()}
+function suAudit(id){const p=cur(),s=suGet(id);if(!s||s.st!=='live'||suAudited(p,s))return;const c=suAuditCost(p,s);if(c&&!canPay(p,c))return;
+  p.cash-=c;p.stats.vc-=c;(p.suAud=p.suAud||{})[s.id]=s.pivots||0;sfx.tick();toast(`Audit de ${s.name} : potentiel ${grade(s.q)}`);after()}
+function suInvest(id){const p=cur(),s=suGet(id),n=getAmt('su_amt');if(!s||s.st!=='live')return;
+  if(s.raise){const mn=suMinTicket(s),room=s.raise.T*1.3-suOrdOf(p,s,'raise').reduce((a,o)=>a+o.amt,0);
+    if(n<mn){toast('Le ticket minimum est de '+fmt(mn),1);return}if(n>room+.5){toast('C’est plus que ce que la startup cherche ('+fmt(Math.max(0,room))+' max).',1);return}
+    if(!canPay(p,n)||!useAP(1))return;p.cash-=n;(p.suOrd=p.suOrd||[]).push({sid:s.id,amt:n,k:'raise',r:G.round});
+    addFeed(`place ${fmt(n)} dans la levée de ${s.e} ${esc(s.name)}`);sfx.coin();toast('Ordre placé : réponse en fin de tour');after();return}
+  if(suDistress(s)){toast('Personne ne vend ses parts en pleine crise.',1);return}
+  const mx=suSecMax(s);if(n<500){toast('Minimum 500 €',1);return}if(n>mx+.5){toast('Maximum '+fmt(mx)+' par tour.',1);return}
+  if(!canPay(p,n)||!useAP(1))return;p.cash-=n;const d=suHoldMake(p,s);d.sh+=n/(SU_SEC_PREM*s.V);d.amt+=n;
+  addFeed(`rachète des parts de ${s.e} ${esc(s.name)} à un fonds (${fmt(n)})`);sfx.coin();toast(`Tu détiens ${pct(d.sh)} de ${s.name}`);after()}
+function suSell(id){const p=cur(),s=suGet(id),d=s&&suHold(p,id);if(!d||!(d.sh>0))return;const v=d.sh*s.V*suSellRate(p,s),part=d.amt*(d.sh*s.V/Math.max(1,d.sh*s.V+(d.conv||0)));
+  p.cash+=v;p.stats.vc+=v-part;d.amt-=part;d.sh=0;if(!(d.conv>0))p.deals.splice(p.deals.indexOf(d),1);
+  if(p.suVote)delete p.suVote[id];addFeed(`revend sa part dans ${s.e} ${esc(s.name)} (${fmt(v)})`);sfx.coin();toast('Part revendue '+fmt(v));after()}
+function suMentor(id){const p=cur(),s=suGet(id);if(!s||!suHold(p,id))return;p.suHelp=p.suHelp||{};if(p.suHelp[id]===G.round)return;if(!useAP(1))return;
+  p.suHelp[id]=G.round;addFeed(`conseille les fondateurs de ${s.e} ${esc(s.name)}`);sfx.tick();toast('Mentorat : effet en fin de tour');after()}
+function suHire(id){const p=cur(),s=suGet(id);if(!s||!suOnBoard(p,s)||s.team>=5||suOrdOf(p,s,'hire').length)return;const c=suHireCost(s);if(!canPay(p,c)||!useAP(1))return;
+  p.cash-=c;p.stats.vc-=c;(p.suOrd=p.suOrd||[]).push({sid:s.id,amt:0,k:'hire',r:G.round});addFeed(`recrute un dirigeant pour ${s.e} ${esc(s.name)}`);sfx.coin();toast('Le nouveau dirigeant arrive en fin de tour');after()}
+function suBridge(id){const p=cur(),s=suGet(id),n=getAmt('su_br');if(!s||!suHold(p,id))return;if(n<suBridgeMin(s)){toast('Minimum '+fmt(suBridgeMin(s)),1);return}if(n>suBridgeMax(s)+.5){toast('Maximum '+fmt(suBridgeMax(s)),1);return}
+  if(!canPay(p,n)||!useAP(1))return;p.cash-=n;(p.suOrd=p.suOrd||[]).push({sid:s.id,amt:n,k:'bridge',r:G.round});addFeed(`prête ${fmt(n)} à ${s.e} ${esc(s.name)}`);sfx.coin();toast('Prêt relais versé en fin de tour');after()}
+function suVoteSet(id,k){const p=cur(),s=suGet(id);if(!s||!suOnBoard(p,s)||!SU_STRAT[k])return;(p.suVote=p.suVote||{})[id]=k;sfx.tick();after()}
+function suOfferVote(id,v){const p=cur(),s=suGet(id);if(!s||!s.offer||!suOnBoard(p,s))return;(p.suOff=p.suOff||{})[id]=v;sfx.tick();after()}
+/* Patrimoine : les parts de startups et les ordres en attente. */
+function suPortfolio(p,mine){const ds=p.deals.filter(d=>d.kind==='su'),od=(p.suOrd||[]).filter(o=>o.amt>0);if(!ds.length&&!od.length)return '';
+  return `<h3 class="sec">Startups</h3><div class="list">${ds.map(d=>{const s=suGet(d.sid);if(!s)return '';const v=suValue(p,d),tg=mine?'button':'div';
+    return `<${tg} class="item" ${mine?`onclick="openVC();suOpen('${s.id}')"`:''}><span class="ic">${s.e}</span><span class="bd"><b>${esc(s.name)}</b><span class="small muted"><span class="num">${pct(d.sh)}</span> · ${STAGES[suStage(s.V)]} · ${esc(s.news||'')}</span></span>
+    <span class="rt"><b class="num">${fmt(v)}</b><div class="small num ${v-d.amt>=0?'pos':'neg'}">${fmt(v-d.amt,true)}</div></span></${tg}>`}).join('')}
+  ${od.map(o=>{const s=suGet(o.sid);return s?`<div class="item"><span class="ic">${s.e}</span><span class="bd"><b>${esc(s.name)}</b><span class="small muted">${o.k==='bridge'?'prêt relais':'ordre dans la levée'} · réponse en fin de tour</span></span><span class="rt num">${fmt(o.amt)}</span></div>`:''}).join('')}</div>`}
 
 /* ================= JOB ================= */
 /* Bandeau des petits boulots qui défilent (la liste est doublée pour boucler sans à-coup). */
@@ -2542,8 +2800,8 @@ function assetsHTML(id){const p=G.players[id],mine=G.screen==='turn'&&id===cur()
   ${myProps(p).length?`<h3 class="sec">Immobilier</h3><div class="list">${myProps(p).map(x=>reItem(x,mine)).join('')}</div>`:''}
   ${p.biz.length?`<h3 class="sec">Entreprises</h3><div class="list">${p.biz.map((b,i)=>`<div class="item"><span class="ic">${bizDef(b.k).e}</span><span class="bd"><b>${esc(b.name)}</b><span class="small muted">niveau <span class="num">${b.lvl}</span></span>${mine?`<div class="btns">${B('Revendre',{v:'text',inline:1,on:`sellBiz(${i})`})}</div>`:''}</span><span class="rt num">${fmt(bizVal(b))}</span></div>`).join('')}</div>`:''}
   ${(p.pos||[]).length?`<h3 class="sec">Positions de trading</h3><div class="list">${p.pos.map(o=>posHTML(o,mine)).join('')}</div>`:''}
-  ${vcPortfolio(p,mine)}
-  ${p.deals.some(d=>d.kind!=='vc')?`<h3 class="sec">Coups en cours</h3><div class="list">${p.deals.filter(d=>d.kind!=='vc').map(d=>`<div class="item"><span class="ic">${d.e}</span><span class="bd"><b>${esc(d.name)}</b><span class="small muted">verdict au tour <span class="num">${d.mature}</span></span></span><span class="rt num">${fmt(d.amt)}</span></div>`).join('')}</div>`:''}
+  ${suPortfolio(p,mine)}
+  ${p.deals.some(d=>d.mature)?`<h3 class="sec">Coups en cours</h3><div class="list">${p.deals.filter(d=>d.mature).map(d=>`<div class="item"><span class="ic">${d.e}</span><span class="bd"><b>${esc(d.name)}</b><span class="small muted">verdict au tour <span class="num">${d.mature}</span></span></span><span class="rt num">${fmt(d.amt)}</span></div>`).join('')}</div>`:''}
   ${p.net||p.rep||p.shield>=G.round?`<h3 class="sec">Activités parallèles</h3><div class="list">
     ${p.rep?`<div class="item"><span class="ic">⭐</span><span class="bd"><b>Réputation <span class="num">${p.rep}</span></b><span class="small muted"><span class="num">${p.stats.heists||0}</span> braquage(s) réussi(s)</span></span></div>`:''}
     ${p.net?`<div class="item"><span class="ic">💊</span><span class="bd"><b>${NET[p.net].n}</b><span class="small muted">Le réseau lui-même ne compte pas dans le patrimoine</span></span></div>`:''}
@@ -2601,6 +2859,7 @@ function endRound(){
   setEarnings();
   G.cities.forEach(c=>{stepCity(c,Math.log(Math.max(.4,1+m.re+(m.city[c.k]||0))));if(m.cityYld[c.k])c.yld*=m.cityYld[c.k]});
   G.reIndex=G.cities.reduce((s,c)=>s+c.idx/c.idx0,0)/G.cities.length;
+  suRound(add);
   const lead=leader();
   G.players.forEach(p=>{
     let rent=0,empty=0;myProps(p).forEach(x=>{if(Math.random()<VACANCY){empty++;return}rent+=rrent(x.c,x.t)});rent*=m.rentMult;
@@ -2629,7 +2888,7 @@ function endRound(){
   });
   const movers=G.assets.map(a=>({d:ASSETS.find(x=>x.sym===a.sym),chg:a.chg})).sort((a,b)=>b.chg-a.chg);
   G.recap={round:G.round,ev,lines,movers,re:G.reIndex,cities:G.cities.map(c=>({e:cdef(c.k).e,n:cdef(c.k).n,chg:c.chg})).sort((a,b)=>b.chg-a.chg),earn:G.assets.filter(a=>a.earn).map(a=>adef(a.sym).e+' '+adef(a.sym).name)};
-  G.offers=genOffers();G.auction=genAuction();planEvent();
+  G.auction=genAuction();planEvent();
   G.recap.rumor=rumorWas!=null&&EVENTS[rumorWas]?{t:EVENTS[rumorWas].t,ok:rumorTrue}:null;G.recap.nextRumor=G.rumor;
   G.sec=(G.sec||HEISTS.map(()=>0)).map(s=>Math.max(0,s-1));
   addFeed(`📰 Fin du tour ${G.round}${ev?' : '+ev.t.toLowerCase():''}`,null);
@@ -2982,7 +3241,7 @@ function botRaise(p,need){if(p.cash>=need)return true;const lv=blv(p);if(lv<2)re
 const botAvail=p=>Math.max(0,p.cash)+(blv(p)>=2?stockVal(p):0);
 
 /* ---------- Actions gratuites ---------- */
-function botFree(p,fin){const lv=blv(p),W=Math.max(10000,netWorth(p));
+function botFree(p,fin){const lv=blv(p),W=Math.max(10000,netWorth(p));botSuFree(p);
   if(p.cash<0){const n=Math.min(-p.cash+500,maxBorrow(p));if(n>0){botDo('🏦',{borAmt:n},borrow)}}
   /* blanchiment : par les commerces (10 %), puis le blanchisseur (30 %, police +5) */
   if(p.dirty>0&&(lv>=2||Math.random()<.5)){const cap=Math.max(0,launderCap(p)-(p.laund||0));
@@ -3113,18 +3372,32 @@ function botBiz(p,avail,left,W){const lv=blv(p),out=[],h=Math.min(left,8);
     let v=.6*avg*h*(1-d.fail*h/2)+1.8*avg-up;if(lv===1)v*=R(.3,1.6);
     out.push({k:'up:'+i,ap:1,v:v*bpe(p).biz,go:()=>{if(!botRaise(p,up))return;botDo(d.e,{},()=>upBiz(i))}})});
   out.sort((a,b)=>b.v/b.ap-a.v/a.ap);return out.slice(0,2)}
-/* Startups : qualité estimée (ou connue après audit, que le Difficile paie). */
-function botVC(p,avail,left){const lv=blv(p),out=[],h=Math.min(left,4);
-  G.offers.forEach(o=>{if(o.min>avail*.5)return;
-    const n0=Math.floor(Math.max(o.min,Math.min(avail*.18,p.cash-botReserve(p))));
-    if(lv>=3&&!audited(p,o)&&n0>=o.min&&auditCost(o)<n0*.08&&entryRatio(o)>.7&&o.team+o.tracVis>=6)botDo('🦄',{},()=>auditVC(o.id));
-    const q=audited(p,o)?o.q:lv===1?R(.1,.9):clamp(.45*(o.team-1)/4+.35*(o.tracVis-1)/4+.1,0,1);
-    const n=Math.floor(Math.max(o.min,Math.min(avail*(lv>=3?.18:.12),p.cash-botReserve(p))));if(n<o.min||n>p.cash)return;
-    let v=n*(entryRatio(o)*Math.pow(.6+.86*q,h)-1);if(lv===1)v=v*R(.2,1.5)+R(0,1500);
-    out.push({k:'vc:'+o.id,ap:1,v,go:()=>botDo(o.e,{['vc_'+o.id]:n},()=>investVC(o.id))})});
-  p.deals.filter(d=>d.kind==='vc'&&d.raise===G.round&&d.follow<=p.cash).forEach(d=>{const q=.55;
-    out.push({k:'follow:'+d.id,ap:1,v:d.follow*(Math.pow(.6+.86*q,h)-1),go:()=>botDo(d.e,{},()=>followVC(d.id))})});
+/* Startups : potentiel estimé d'après ce qui se voit (connu exactement après audit, que le Moyen et le Difficile paient). */
+function botSuQ(p,s){if(suAudited(p,s)||suOnBoard(p,s))return s.q;const lv=blv(p),seen=suSeen(p,s);if(lv===1)return R(.1,.9);
+  return clamp(.15+.12*(seen.team-1)+.002*seen.prod+1.5*suAvgG(s)+.03*(s.buzz-3),0,1)}
+function botSuMu(s,q){return -.11+.2*q-.045*suStage(s.V)+.03*(Math.round(s.team)-3)+.07*suReg(s)}
+function botVC(p,avail,left){const lv=blv(p),out=[],h=Math.min(left,8),room=p.cash-botReserve(p);if(!G.su||room<500)return out;
+  suLive().forEach(s=>{
+    if(lv>=2&&!suAudited(p,s)&&s.raise&&!s.raise.down&&suStage(s.V)<=1&&suAuditCost(p,s)<=room*(lv>=3?.06:.03))botDo('🔍',{},()=>suAudit(s.id));
+    const q=botSuQ(p,s),d=suHold(p,s.id),mu=botSuMu(s,q);
+    if(s.raise&&!suOrdOf(p,s,'raise').length){const n=Math.floor(Math.min(s.raise.T*(lv>=3?.6:.3),avail*(lv>=3?.15:.1),room));
+      if(n>=suMinTicket(s)){const pd=clamp(.55-.8*q+(s.raise.down?.2:0),.02,.9);
+        let v=n*((1-pd)*Math.exp(mu*h)*(s.V/s.raise.pre)*1.1-1);if(lv===1)v=v*R(.2,1.5)+R(0,1500);
+        out.push({k:'su:'+s.id,ap:1,v,go:()=>botDo(s.e,{su_amt:n},()=>suInvest(s.id))})}}
+    if(d&&d.sh>0&&!(p.suHelp&&p.suHelp[s.id]===G.round)&&lv>=2){const v=d.sh*s.V*(Math.exp(.02*Math.min(h,5))-1)*(chr(p)==='angel'?1.6:1);
+      out.push({k:'mentor:'+s.id,ap:1,v,go:()=>botDo('🧑‍🏫',{},()=>suMentor(s.id))})}
+    if(d&&suOnBoard(p,s)&&suRunway(s)<=2&&s.cover<1&&q>.5&&lv>=2&&!suOrdOf(p,s,'bridge').length){const n=Math.floor(Math.min(suBridgeMax(s),Math.max(suBridgeMin(s),s.burn*1.5),room));
+      if(n>=suBridgeMin(s))out.push({k:'bridge:'+s.id,ap:1,v:d.sh*s.V*.3+n*.2,go:()=>botDo('🌉',{su_br:n},()=>suBridge(s.id))})}
+    if(d&&suOnBoard(p,s)&&s.team<4&&lv>=3&&!suOrdOf(p,s,'hire').length&&suHireCost(s)<room*.2){const v=d.sh*s.V*(Math.exp(.03*Math.min(h,6))-1)-suHireCost(s)*.5;
+      out.push({k:'hire:'+s.id,ap:1,v,go:()=>botDo('👔',{},()=>suHire(s.id))})}});
   return out}
+/* Décisions gratuites : votes au conseil, offres de rachat, ventes des startups qui coulent. */
+function botSuFree(p){if(!G.su)return;const lv=blv(p),last=G.round>=G.maxRounds-1;
+  suLive().forEach(s=>{const d=suHold(p,s.id);if(!d||!(d.sh>0))return;const q=botSuQ(p,s);
+    if(suOnBoard(p,s)){const rw=suRunway(s),ag=suAvgG(s);p.suVote=p.suVote||{};
+      p.suVote[s.id]=lv===1?pick(['eq','grow','eq','profit']):q<.4&&ag<0&&s.fail?'pivot':rw>3.5&&ag>.08?'grow':s.fail||rw<2?'profit':last?'sell':'eq';
+      if(s.offer){p.suOff=p.suOff||{};p.suOff[s.id]=s.offer.price>=1.4*s.V||last||q<.5?'yes':'no'}}
+    else if(lv>=2&&q<.3&&!suDistress(s)&&d.sh*s.V>500)botDo('🦄',{},()=>suSell(s.id))})}
 /* Braquages : chances réelles (repérage, équipe, approche, police, sécurité), butin, et le prix d'un échec. */
 function botHeists(p,hp,left,W){const lv=blv(p),out=[],save={...hs};
   const jailCost=t=>t*Math.max(2500,W*.035);
@@ -3218,19 +3491,19 @@ function botDone(){if(busy||botPk||!botLogNow())return;clearTimeout(botTimer);bo
 let solo={bots:[{name:'',av:'🐍',lv:2},{name:'',av:'🐯',lv:2}]};
 function soloFixAv(){const used=[profile.av];solo.bots.forEach(b=>{if(used.includes(b.av))b.av=AVATARS.find(a=>!used.includes(a)&&!solo.bots.some(x=>x!==b&&x.av===a));used.push(b.av)})}
 function soloAv(i){const used=[profile.av,...solo.bots.map(b=>b.av)];let k=AVATARS.indexOf(solo.bots[i].av);do{k=(k+1)%AVATARS.length}while(used.includes(AVATARS[k]));solo.bots[i].av=AVATARS[k];sfx.tick();renderSolo()}
-function soloAdd(){if(solo.bots.length>=5)return;const used=[profile.av,...solo.bots.map(b=>b.av)];solo.bots.push({name:'',av:AVATARS.find(a=>!used.includes(a)),lv:solo.bots.length?solo.bots[solo.bots.length-1].lv:2});renderSolo()}
+function soloAdd(){if(solo.bots.length>=MAX_PLAYERS-1)return;const used=[profile.av,...solo.bots.map(b=>b.av)];solo.bots.push({name:'',av:AVATARS.find(a=>!used.includes(a)),lv:solo.bots.length?solo.bots[solo.bots.length-1].lv:2});renderSolo()}
 function soloRm(i){if(solo.bots.length>1){solo.bots.splice(i,1);renderSolo()}}
 function renderSolo(){soloFixAv();const sv=loadSave();
   paint(`${topBar(iconBtn('back','Retour à l’accueil',"APP.view='home';render()"))}
   ${sv&&sv.solo&&sv.screen!=='end'?`<div class="panel mt-4" data-z="resume"><b>Partie en cours</b><div class="muted small">Tour ${sv.round}/${sv.maxRounds} · ${sv.players.map(p=>esc(p.name)).join(', ')}</div>
     <div class="row mt-3">${B('Reprendre la partie',{v:'secondary',on:'resume()'})}${B('Effacer',{v:'text',inline:1,on:'clearSave();renderSolo()'})}</div></div>`:''}
-  <div data-z="bots">${label(`Tes adversaires <span class="num">(${solo.bots.length}/5)</span>`)}
+  <div data-z="bots">${label(`Tes adversaires <span class="num">(${solo.bots.length}/${MAX_PLAYERS-1})</span>`)}
   ${solo.bots.map((b,i)=>`<div class="botrow"><div class="prow">
      <button class="av" style="--c:${COLORS[i+1]}" onclick="soloAv(${i})" aria-label="Changer l’avatar de l’adversaire ${i+1}">${b.av}</button>
      <input id="bn${i}" maxlength="14" placeholder="${BOT_NAMES[i]}" aria-label="Nom de l’adversaire ${i+1}" value="${esc(b.name)}" oninput="solo.bots[${i}].name=this.value">
      ${solo.bots.length>1?iconBtn('close','Retirer l’adversaire '+(i+1),`soloRm(${i})`):''}</div>
      <div class="seg" role="group" aria-label="Niveau de l’adversaire ${i+1}">${[1,2,3].map(l=>`<button class="${b.lv===l?'on':''}" aria-pressed="${b.lv===l}" onclick="solo.bots[${i}].lv=${l};renderSolo()">${BOT_LV[l].n}<small>${BOT_LV[l].t}</small></button>`).join('')}</div></div>`).join('')}
-  ${solo.bots.length<5?B('Ajouter un adversaire',{v:'secondary',on:'soloAdd()'}):''}</div>
+  ${solo.bots.length<MAX_PLAYERS-1?B('Ajouter un adversaire',{v:'secondary',on:'soloAdd()'}):''}</div>
   <div data-z="cash">${label('Cash de départ')}
   <div class="seg">${[[5000,'5 000 €','Galère'],[10000,'10 000 €','Classique'],[50000,'50 000 €','Fils à papa']].map(([v,l,s])=>`<button class="${setup.cash===v?'on':''}" aria-pressed="${setup.cash===v}" onclick="setup.cash=${v};renderSolo()">${l}<small>${s}</small></button>`).join('')}</div></div>
   <div data-z="rounds">${label('Durée de la partie')}

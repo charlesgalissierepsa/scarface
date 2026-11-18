@@ -11,7 +11,7 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
 - **Parties publiques ou privées** : dans le salon, l'hôte choisit. Une partie publique apparaît dans « Rejoindre une
   partie » (« Partie de … »), il suffit de la toucher ; une partie privée ne se rejoint qu'avec le code.
 - **Sur un seul téléphone** : on se passe le téléphone à tour de rôle.
-- **Seul contre l’ordinateur** : sans connexion, contre 1 à 5 adversaires. Chacun a un niveau (Facile, Moyen, Difficile) et un caractère tiré au sort (prudent, flambeur, mafieux, trader). Les ordinateurs jouent avec les mêmes règles que les humains, sans connaître l’avenir, et racontent leur tour à l’écran. Les parties en solo ne comptent pas dans la ligue.
+- **Seul contre l’ordinateur** : sans connexion, contre 1 à 7 adversaires (jusqu'à 8 joueurs, en ligne et sur un téléphone aussi). Chacun a un niveau (Facile, Moyen, Difficile) et un caractère tiré au sort (prudent, flambeur, mafieux, trader). Les ordinateurs jouent avec les mêmes règles que les humains, sans connaître l’avenir, et racontent leur tour à l’écran. Les parties en solo ne comptent pas dans la ligue.
 
 ## Comptes joueurs
 
@@ -28,7 +28,7 @@ Les comptes et les statistiques sont gérés par Supabase (projet « scarface »
 - **3 opportunités par tour**, tirées au hasard : yacht saisi, tuyau d'initié, commissaire corrompu, usurier…
 - **Gratuit** : Bourse, banque, blanchiment, vente de ses biens.
 - **Associé** : tous les 4 tours, chacun fait équipe avec un nouvel associé (Banquier, Parrain, Escroc, Flambeur,
-  Trader, Promoteur) qui apporte un talent et un défaut pendant ces 4 tours.
+  Trader, Promoteur, Business Angel) qui apporte un talent et un défaut pendant ces 4 tours.
   Il est affiché en permanence sous ta fortune, et une carte l'annonce à chaque changement.
 - **Durée** : en ligne, 15, 25 ou 40 tours (tout le monde joue en même temps) ; sur un seul téléphone, 8, 12 ou 20 tours.
 - **Objectif secret** : un par joueur pour toute la partie, +15 % de patrimoine à la fin s'il est réussi.
@@ -43,9 +43,21 @@ Les comptes et les statistiques sont gérés par Supabase (projet « scarface »
 - **Trading** : positions à la hausse ou à la baisse, levier x1 à x10, stop-loss et objectif de gain, qui restent
   ouvertes d'un tour à l'autre. Chaque actif traverse des phases cachées ; tendance, valorisation, avis des analystes
   et résultats trimestriels donnent des indices (bruités). Frais d'ouverture et de financement, exposition plafonnée.
-- **Startups** : équipe, traction (parfois gonflée) et hype déterminent le prix d'entrée et la qualité cachée.
-  Un audit révèle la vérité. À chaque tour la startup lève, stagne, plonge ou meurt ; on peut suivre ses levées
-  ou revendre sa part (−20 %). Le moral de son secteur en Bourse compte.
+- **Startups : un vivier commun** à tous les joueurs (6 à 10 startups, 1 à 4 nouvelles par tour). Chacune vit
+  plusieurs tours : elle lève des fonds (Amorçage → Série A/B/C → Pré-IPO), se fait racheter, entre en Bourse ou
+  ferme quand sa **trésorerie** est vide (on le voit venir : « ≈ 2 tours »). Son sort dépend d'indicateurs, pas d'un
+  seul dé : potentiel caché (révélé par l'**audit**), équipe, produit, ventes/dépenses, buzz, moral du secteur,
+  stratégie, et de ce que font les joueurs.
+  - **Entrer** : souscrire à une levée (ordre clos en fin de tour ; les fonds du jeu suivent si elle est attirante ;
+    il faut 70 % de l'objectif, sinon remboursement ; trop de demande = prorata), ou racheter des parts à un fonds
+    (+15 %, 10 % max par tour). Levée « de survie » en baisse = bonnes affaires risquées.
+  - **Conseil d'administration** (10 % du capital, ou 1er actionnaire joueur avec 5 %) : vote de la stratégie au
+    poids des parts (équilibrée, croissance agressive, rentabilité, chercher un acheteur, pivoter), vote des offres
+    de rachat, recrutement d'un dirigeant (équipe +1, dépenses +12 %).
+  - **Aider** : mentorat (1 PA, produit/équipe/croissance), prêt relais (converti en parts −30 % à la levée suivante,
+    ×1,5 si rachat, perdu si faillite), synergie avec tes entreprises du même domaine.
+  - **Sortir** : rachat, introduction en Bourse, ou revente à 75 % de la valeur (40 % en pleine crise).
+  - En ligne, chaque joueur ne modifie que sa fiche (ordres, votes, mentorat) ; l'hôte applique tout en fin de manche.
 - **Casinos à paliers** : six casinos, du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). On débloque le
   suivant en cumulant, dans le casino actuel, des gains égaux à sa mise max. Les pertes ne comptent pas.
 - **Après la partie** : revanche en un clic, ligue entre potes (classement cumulé sur le téléphone) et carte de fin
