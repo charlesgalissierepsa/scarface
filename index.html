@@ -2339,7 +2339,12 @@ function startDuel(){const p=cur(),t=G.players[dt.target],n=Math.floor(getAmt('d
     if(!r)addFeed(`fait match nul au poker contre ${esc(t.name)} (${ha} partout)`,p);
     else addFeed(`remporte ${fmt(n)} au poker contre ${esc((r>0?t:p).name)} (${r>0?ha:hb} contre ${r>0?hb:ha})`,r>0?p:t);
     save();render()})}
-function doScam(){const p=cur(),t=G.players[dt.target];if(busy||!cbUse(p)||!useAP(1))return;p.cbR=G.round;let html;
+/* Arnaque racontée pas à pas (comme un braquage), puis le verdict. */
+async function _doScam(){const p=cur(),t=G.players[dt.target];if(busy||!cbUse(p)||!useAP(1))return;p.cbR=G.round;busy=true;save();render();let html;
+  const nm=esc(t.name),steps=[['🕶️','Costume trois pièces, montre empruntée : tu as l’air d’un banquier.'],['📱',`Tu appelles ${nm} : « Un placement en or, garanti 30 % par an. »`],
+    ['🧾','Tu sors un faux contrat, tampon officiel compris.'],['🤝',`${nm} hésite… Tu lui tends le stylo avec ton plus beau sourire.`]];
+  $('#shTitle').textContent='Arnaque';$('#shBody').innerHTML=`<div class="steps" id="ssteps" aria-live="polite"></div><div id="sres"></div>`;
+  for(const [e,x] of steps){const d=document.createElement('div');d.innerHTML=e+'  '+x;const box=$('#ssteps');if(box)box.appendChild(d);tone(260,.12,'triangle',.05);haptic('step');await sleep(950)}
   if(Math.random()<Math.min(.85,(isMark(t)?.65:.5)+(chr(p)==='crook'?.2:0))){const x=Math.round(liquid(t)*R(.08,.2));p.cash+=x;p.stats.scam+=x;p.stats.scams=(p.stats.scams||0)+1;
     hitPlayer(t,{take:x,card:{k:'Mauvaise nouvelle',e:'🃏',t:'Tu t’es fait arnaquer',bad:1,d:`Un faux placement en or « garanti » : ${esc(p.name)} t’a eu en beauté.`,fx:fmt(-x)}});
     addFeed(`arnaque ${esc(t.name)} et lui soutire ${fmt(x)}`);
@@ -2348,7 +2353,8 @@ function doScam(){const p=cur(),t=G.players[dt.target];if(busy||!cbUse(p)||!useA
     hitPlayer(t,{cash:x,card:{k:'Bonne nouvelle',e:'🕵️',t:'Tentative d’arnaque déjouée',d:`${esc(p.name)} a essayé de t’arnaquer. Raté : il te verse un dédommagement.`,fx:fmt(x,true)}});
     addFeed(`tente d’arnaquer ${esc(t.name)}, raté : il doit le dédommager`);
     html=resBox(-1,`${esc(t.name)} a flairé l’arnaque. Tu lui dois <span class="num">${fmt(x)}</span>.`);sfx.lose();shake()}
-  $('#shBody').innerHTML=html+B('Fermer',{v:'secondary',on:'closeSheet()'});save();render()}
+  const r=$('#sres');if(r)r.innerHTML=html+`<div class="mt-3">${B('Fermer',{v:'secondary',on:'closeSheet()'})}</div>`;busy=false;save();render()}
+const doScam=guarded(_doScam);
 /* Balancer : 2 % du patrimoine de la victime (3 000 € minimum), moitié prix contre la cible du moment. Une fois par tour et par victime. */
 function snitchCost(t){return niceRound(Math.max(3000,netWorth(t)*.02)*(isMark(t)?.5:1))}
 function snitched(t){const p=cur();return t.snR===G.round||!!(p&&p.snd&&p.snd[t.id]===G.round)}
