@@ -87,7 +87,7 @@
 
   /* ---- Tailles propres à un composant ---- */
   --slant:8px; --slant-sm:4px; --stripes:8px; --pip-w:24px; --pip-h:10px; --choice-h:72px; --pill-h:28px; --free-h:64px;
-  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --switch-w:128px; --switch-ico:24px; --card-w:44px; --card-h:62px; --card-r:4px; --dur-flip:420ms; --pin:10px;
+  --narrow:320px; --dock-w:448px; --sheet-w:520px; --card-max:360px; --dock-space:112px; --pass-offset:160px; --city-max:760px; --switch-w:128px; --dur-reel:16s; --reel-item:72px; --reel-ico:48px; --switch-ico:24px; --card-w:44px; --card-h:62px; --card-r:4px; --dur-flip:420ms; --pin:10px;
   --wheel:144px; --card-w:50px; --card-h:72px; --reel-w:76px; --reel-h:86px; --ticket-h:150px; --chart-h:180px;
   --pod-w:120px; --pod-1st:128px; --pod-2nd:88px; --pod-3rd:64px; --pct-w:7ch; --ls-codein:.25em;
   --paper-tilt:-.8deg; --tilt:-3deg; --grain-a:4px; --grain-b:7px;
@@ -456,6 +456,12 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .ticket{position:relative;height:var(--ticket-h);overflow:hidden;background:linear-gradient(135deg,var(--neon-cyan),var(--seg-b) 50%,var(--neon-pink));color:var(--on-neon);display:grid;place-items:center;text-align:center;font:var(--fw-regular) var(--fs-xl)/1.2 var(--font-display);margin:var(--sp-2) 0 var(--sp-3)}
 .ticket .cover{position:absolute;inset:0;background:repeating-linear-gradient(-45deg,var(--cover-a) 0 5px,var(--cover-b) 5px 10px);display:grid;place-items:center;font:var(--fw-bold) var(--fs-md) var(--font-body);color:var(--cover-ink);transition:opacity var(--dur-slow) var(--ease-out),transform var(--dur-slow) var(--ease-out);cursor:pointer}
 .ticket .cover.gone{opacity:0;transform:scale(1.15);pointer-events:none}
+.jreel{overflow:hidden;margin:0 0 var(--sp-4);padding:var(--sp-3) 0;border-top:var(--border);border-bottom:var(--border);
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.jr-track{display:flex;width:max-content;animation:jr-slide var(--dur-reel) linear infinite}
+@keyframes jr-slide{to{transform:translateX(-50%)}}
+.jr-i{display:flex;flex-direction:column;align-items:center;gap:var(--sp-1);width:var(--reel-item);margin-right:var(--sp-3);font-size:var(--fs-xs);font-weight:var(--fw-semibold);color:var(--ink-muted)}
+.jr-i .i3d{width:var(--reel-ico);height:var(--reel-ico)}
 .steps{display:flex;flex-direction:column;gap:var(--sp-2);margin:var(--sp-3) 0}
 .steps div{padding:var(--sp-3);background:var(--surface-1);border-left:var(--bar-w) solid var(--neon-pink);animation:deal var(--dur-slow) var(--ease-in);font-weight:var(--fw-semibold)}
 /* ===== Poker (duel) : table néon, cartes qui se retournent. Les cartes gardent de petits coins arrondis : objet de jeu. ===== */
@@ -2203,8 +2209,12 @@ function vcOutcome(h){const r=Math.random()-(h-3)*.02;
   if(r<.93)return[4,'est rachetée : x4 !'];if(r<.99)return[10,'devient incontournable : x10 !'];return[40,'devient une LICORNE 🦄 x40 !!!']}
 
 /* ================= JOB ================= */
+/* Bandeau des petits boulots qui défilent (la liste est doublée pour boucler sans à-coup). */
+function jobReel(){const items=JOBS.map(([e,t])=>{const w=t.split(' '),n=w[0]==='Père'?'Père Noël':w[0];
+    return `<div class="jr-i">${emoIcon(e,'tile')}<span>${n}</span></div>`}).join('');
+  return `<div class="jreel" aria-hidden="true"><div class="jr-track">${items}${items}</div></div>`}
 function openJob(){if(!hasAP(1))return;
-  openSheet('Boulot honnête',`<p class="muted">De l’argent propre : 800 à 3 000 €. Ta jauge de police baisse de 4, la police aime les gens qui travaillent. Mais 1 fois sur 9, ton patron te payait au black : police +8.</p>
+  openSheet('Boulot honnête',`${jobReel()}<p class="muted">De l’argent propre : 800 à 3 000 €. Ta jauge de police baisse de 4, la police aime les gens qui travaillent. Attention quand même à être déclaré…</p>
   <div class="sheet-foot">${B('Aller bosser',{v:'primary',on:'doJob()',cost:'1 PA'})}</div>`)}
 /* Petit boulot : police −4 ; 1 fois sur 9, payé au black : police +8 (le salaire reste acquis). */
 const JOB_HEAT=4,BLACK_HEAT=8,BLACK_P=1/9;
