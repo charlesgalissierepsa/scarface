@@ -999,8 +999,8 @@ const objDef=p=>OBJS.find(o=>o.k===p.obj);
 const OPPS=[
  {k:'yacht',e:'🛥️',t:'Yacht saisi aux enchères',d:'Les douanes bradent un yacht. Revente dans 2 tours : perte, x1,5 ou x2,5.',c:u=>u*1.5,
    go:(p,o)=>{p.deals.push({name:'Yacht saisi',pitch:'Revente aux enchères',e:'🛥️',amt:o.cost,mature:G.round+2,out:[[.25,.6,'se revend mal…'],[.5,1.5,'trouve preneur : x1,5'],[.25,2.5,'part chez une star du disco : x2,5 !']]});return 'Revente prévue au tour '+(G.round+2)}},
- {k:'tip',e:'📞',t:'Tuyau d’initié',roll:()=>({sym:pick(ASSETS).sym}),d:o=>`Un trader bavard jure que ${ASSETS.find(a=>a.sym===o.sym).name} va s’envoler au prochain tour. Achète en Bourse ensuite ! 🚨 +8`,c:u=>u*.25,
-   go:(p,o)=>{G.bias=G.bias||{};shared({t:'bias',sym:o.sym,v:Math.random()<.7?R(.08,.25):-.12});p.heat=clamp(p.heat+8,0,100);return 'Info notée. À toi de jouer en Bourse.'}},
+ {k:'tip',e:'📞',t:'Tuyau d’initié',roll:()=>({sym:pick(ASSETS).sym}),d:'Un trader bavard connaît une valeur de la Bourse qui va s’envoler au prochain tour. Il ne lâche son nom qu’une fois payé. 🚨 +8',c:u=>u*.25,
+   go:(p,o)=>{G.bias=G.bias||{};shared({t:'bias',sym:o.sym,v:Math.random()<.7?R(.08,.25):-.12});p.heat=clamp(p.heat+8,0,100);p.tip={sym:o.sym,r:G.round};const a=ASSETS.find(x=>x.sym===o.sym);return `${a.e} ${a.name} va s’envoler au prochain tour. Achète en Bourse !`}},
  {k:'cop',e:'👮',t:'Commissaire corrompu',need:p=>p.heat>=15,d:'Une enveloppe et ton dossier s’allège de 35. Sauf si c’est un piège (15 %).',c:u=>u*.6,
    go:p=>{if(Math.random()<.85){p.heat=clamp(p.heat-35,0,100);return '😇 Recherche −35'}p.heat=clamp(p.heat+20,0,100);return '🚨 C’était un piège ! Recherche +20'}},
  {k:'truck',e:'📼',t:'Cargaison tombée du camion',d:'Des magnétoscopes « sans facture ». Tu paies en propre, tu revends en liquide sale (x1,5 à x2,4). 🚨 +10',c:u=>u*.8,
@@ -1082,6 +1082,7 @@ function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span c
 function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
   return `${label('Infos du tour')}<div class="list">${rumorHTML()}
   ${a?`<${mine?'button':'div'} class="item${mine?'':' ro'}" ${mine?'onclick="openAuction()"':''}><span class="ic">💸</span><span class="bd"><b>Enchère : ${noEmo(a.title)}</b><span class="small muted">Offre secrète, 0 PA · ${mb?'ton offre : <b class="gold num">'+fmt(mb)+'</b>':'minimum '+fmt(a.min)}</span></span>${mine?`<span class="rt muted">${icon('arrow')}</span>`:''}</${mine?'button':'div'}>`:''}
+  ${mine&&p.tip&&p.tip.r===G.round&&ASSETS.find(x=>x.sym===p.tip.sym)?`<button class="item" onclick="openMarket('${p.tip.sym}')"><span class="ic">📞</span><span class="bd"><b>Ton tuyau : ${ASSETS.find(x=>x.sym===p.tip.sym).name}</b><span class="small muted">Devrait s’envoler au prochain tour (le trader se trompe parfois). Achète en Bourse, c’est gratuit en PA.</span></span><span class="rt muted">${icon('arrow')}</span></button>`:''}
   ${od&&mine?`<div class="item"><span class="ic">🎯</span><span class="bd"><b>Objectif secret</b><span class="small muted">${od.t} Réussi : +15 % de patrimoine à la fin.${od.ok(p)?' <b class="pos">Atteint pour l’instant.</b>':''}</span></span></div>`:''}</div>`}
 
 /* ================= STATE ================= */
