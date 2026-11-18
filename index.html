@@ -2813,24 +2813,21 @@ function renderAuth(){const t=AUTH.tab,up=!!(ACC&&ACC.guest&&!ACC.local);
   else if(t==='login')body=`<h2 class="mt-6 mb-3">Se connecter</h2><div class="authform">
     ${f('authId','text','Pseudo ou email','id')}${f('authPw','password','Mot de passe','pw')}
     <div class="mt-2">${B(AUTH.busy?'Connexion…':'Se connecter',{v:'primary',on:'doLogin()',quiet:1,why:AUTH.busy?'…':''})}</div>
-    <div class="row between">${back}${B('Mot de passe oublié ?',{v:'text',inline:1,on:'doForgot()'})}</div></div>`;
+    <div class="row between">${back}${B('Mot de passe oublié',{v:'text',inline:1,on:'doForgot()'})}</div></div>`;
   else if(t==='signup')body=`<h2 class="mt-6 mb-3">${up?'Crée ton compte':'S’inscrire'}</h2>
     ${up?note(`Tu gardes tes statistiques d’invité (<b>${esc(ACC.username)}</b>) et tu choisis ton vrai pseudo.`,'mb-3'):''}<div class="authform">
     ${f('authName','text','Pseudo (4 caractères minimum)','name',';checkName()')}<div class="fhint ${AUTH.nameSt==='ok'?'pos':AUTH.nameSt?'neg':''}" id="nameSt" role="status">${nameStTxt()}</div>
-    ${f('authEmail','email','Adresse email','email')}${f('authPw','password','Mot de passe (6 caractères minimum)','pw',';checkPw()')}${pwHint()}
+    ${f('authEmail','email','Adresse email','email')}${f('authPw','password','Mot de passe (6 caractères minimum)','pw')}
     <div class="mt-2">${B(AUTH.busy?'Création…':'Créer mon compte',{v:'primary',on:'doSignup()',quiet:1,why:AUTH.busy?'…':''})}</div>
     <div class="row">${back}</div></div>`;
   else if(t==='reset')body=`<h2 class="mt-6 mb-3">Nouveau mot de passe</h2><div class="authform">
-    ${f('authPw','password','Nouveau mot de passe (6 caractères minimum)','pw',';checkPw()')}${pwHint()}
+    ${f('authPw','password','Nouveau mot de passe (6 caractères minimum)','pw')}
     <div class="mt-2">${B('Enregistrer',{v:'primary',on:'doReset()'})}</div></div>`;
   paint(`<div data-z="logo"><h1 class="logo">SCARFACE</h1><span class="tagline">The world is yours</span></div>
   <div data-z="auth">${body}</div>
   <div data-z="msg">${AUTH.err?`<div class="err" role="alert">${AUTH.err}</div>`:''}${AUTH.ok?`<div class="panel mt-3" role="status">${AUTH.ok}</div>`:''}</div>
   <div data-z="rules">${t?'':FOOT_BTNS}</div>`,'auth'+(t||''));
   flickLogo()}
-/* Mot de passe : au moins 6 caractères, indiqué en direct sous le champ. */
-function pwHint(){const n=AUTH.pw.length;return `<div class="fhint ${n>=6?'pos':n?'neg':''}" id="pwSt" role="status">${n>=6?'Mot de passe valide':'Au moins 6 caractères'+(n?` (encore ${6-n})`:'')}</div>`}
-function checkPw(){const el=$('#pwSt');if(el)el.outerHTML=pwHint()}
 function nameStTxt(){return {ok:'Pseudo disponible',taken:'Ce pseudo est déjà pris',short:'4 caractères minimum',bad:'Lettres, chiffres, tiret, point et souligné uniquement',guest:'Ce format est réservé aux invités',long:'14 caractères maximum','':''}[AUTH.nameSt]||''}
 /* Vérifie le pseudo pendant la saisie (format tout de suite, disponibilité après une courte pause). */
 let nameT=0;
@@ -2871,7 +2868,7 @@ async function doSignup(){if(AUTH.busy)return;const name=AUTH.name.trim(),email=
       await accLoad(data.user)}
     AUTH={...AUTH,busy:false,pw:'',tab:null,name:'',nameSt:''};toast('Bienvenue, '+ACC.username+' !');APP.view='home';render()}
   catch(e){authSet({busy:false,err:authMsg(e)})}}
-async function doForgot(){const id=AUTH.id.trim();if(!/@/.test(id)){authSet({err:'Entre ton adresse email dans le premier champ, puis touche « Mot de passe oublié ? ».'});return}
+async function doForgot(){const id=AUTH.id.trim();if(!/@/.test(id)){authSet({err:'Entre ton adresse email dans le premier champ, puis touche « Mot de passe oublié ».'});return}
   if(!SB){authSet({err:'Pas de connexion internet.'});return}
   try{await SB.auth.resetPasswordForEmail(id,{redirectTo:location.origin+location.pathname})}catch(e){}
   authSet({err:'',ok:'Si un compte existe avec cette adresse, un email vient de partir avec un lien pour changer ton mot de passe.'})}
@@ -2888,7 +2885,7 @@ function accAvatar(){if(!ACC)return;ACC.avatar=profile.av;accSave();if(!SB||!ACC
 const MODE_N={solo:'Solo',local:'Un téléphone',online:'En ligne'};
 function openAccount(){if(!ACC)return;const g=ACC.guest;
   openModal('account','Mon profil',`<div class="item"><div class="av" style="--c:var(--cash)">${profile.av}</div><span class="bd"><b>${esc(ACC.username)}</b>
-    <span class="small muted">${ACC.local?'Invité hors ligne · statistiques non enregistrées':g?'Invité · pseudo attribué automatiquement':'Compte inscrit'}</span></span></div>
+    <span class="small muted">${ACC.local?'Invité hors ligne · statistiques non enregistrées':g?'Invité':'Compte inscrit'}</span></span></div>
   <div id="accStats" class="mt-3">${ACC.local||!SB?note('Connecte-toi à internet et crée un compte pour garder tes statistiques.'):`<p class="muted small center">Chargement des statistiques ${waitDots()}</p>`}</div>
   <div class="stack mt-4">${g?B('Créer mon compte',{v:'primary',on:"closeOv();AUTH.tab='signup';AUTH.err='';AUTH.ok='';APP.view='auth';render()"}):''}
     ${B(g?'Quitter le mode invité':'Se déconnecter',{v:'secondary',on:'confirmLogout()'})}</div>`,true);
