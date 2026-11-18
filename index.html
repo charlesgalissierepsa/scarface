@@ -349,7 +349,7 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .item .bd{flex:1;min-width:0}
 .item .bd>b{display:block;font-size:var(--fs-md);font-weight:var(--fw-semibold)}
 .item .bd>.small{display:block}
-.item .pro>span{display:block;color:var(--ink)}
+.item .pro>span{display:block;color:var(--ink)}.item .pro>span.muted{color:var(--ink-muted)}
 .item .rt{flex:none;text-align:right}
 .item .rank{flex:none;width:var(--sp-6);font-weight:var(--fw-bold);color:var(--cash)}
 .item.lock{opacity:.5}
@@ -922,13 +922,15 @@ const LEGENDS=[
  ['Un vrai Basquiat au fond d’un vide-grenier, vendu comme une croûte.','déniche un vrai Basquiat au vide-grenier'],
  ['Un ticket de loterie gagnant oublié dans une veste de seconde main.','tombe sur un ticket gagnant oublié'],
  ['Les plans d’un trésor de pirate, authentifiés par un expert.','met la main sur un trésor de pirate']];
-/* Associés du tour : un talent et un défaut. Chaque joueur en reçoit un nouveau à chaque tour (tous différents, jamais le même deux tours de suite si possible). */
+/* Associés : un talent et un défaut. Chaque joueur en reçoit un nouveau tous les PARTNER_SPAN tours (tous différents, jamais le même deux fois de suite si possible). */
+const PARTNER_SPAN=4;
+const partnerUntil=()=>Math.min(G.maxRounds,Math.ceil(G.round/PARTNER_SPAN)*PARTNER_SPAN);
 const CHARS=[
- {k:'banker',e:'🏦',n:'Le Banquier',t:'Intérêts de tes emprunts : 1 % par tour au lieu de 4 %.',f:'Braquages interdits ce tour.'},
+ {k:'banker',e:'🏦',n:'Le Banquier',t:'Intérêts de tes emprunts : 1 % par tour au lieu de 4 %.',f:'Braquages interdits.'},
  {k:'godfather',e:'👑',n:'Le Parrain',t:'Réseau de trafic offert si tu n’en as pas (1 000 à 3 000 € d’argent sale par tour).',f:'+3 de police en fin de tour.'},
  {k:'crook',e:'🃏',n:'L’Escroc',t:'Arnaques réussies à 70 % au lieu de 50 % (85 % contre la cible du moment).',f:'Arnaque ratée : +20 de police au lieu de +10.'},
  {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Intérêts de tes emprunts : 6 % par tour au lieu de 4 %.'},
- {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2, 5 positions ouvertes au lieu de 4.',f:'Pas d’achat immobilier à crédit ce tour.'},
+ {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2, 5 positions ouvertes au lieu de 4.',f:'Pas d’achat immobilier à crédit.'},
  {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier : 2 % au lieu de 7 %.',f:'Créer ou développer une entreprise coûte 20 % plus cher.'},
 ];
 const chr=p=>p&&p.chr||'';
@@ -1036,7 +1038,7 @@ function rumorHTML(){const e=EVENTS[G.rumor];return e?`<div class="item"><span c
 function intelHTML(p,mine){const a=G.auction,mb=a?myBid(p):0,cd=chrDef(p),od=objDef(p);
   return `${label('Infos du tour')}<div class="list">${rumorHTML()}
   ${a?`<${mine?'button':'div'} class="item${mine?'':' ro'}" ${mine?'onclick="openAuction()"':''}><span class="ic">💸</span><span class="bd"><b>Enchère : ${noEmo(a.title)}</b><span class="small muted">Offre secrète, 0 PA · ${mb?'ton offre : <b class="gold num">'+fmt(mb)+'</b>':'minimum '+fmt(a.min)}</span></span>${mine?`<span class="rt muted">${icon('arrow')}</span>`:''}</${mine?'button':'div'}>`:''}
-  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>Associé : ${cd.n}</b><span class="small pro"><span>+ ${cd.t}</span><span>− ${cd.f}</span></span></span></div>`:''}
+  ${cd?`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>Associé : ${cd.n}</b><span class="small pro"><span>+ ${cd.t}</span><span>− ${cd.f}</span><span class="muted">Avec toi jusqu’au tour ${partnerUntil()}.</span></span></span></div>`:''}
   ${od&&mine?`<div class="item"><span class="ic">🎯</span><span class="bd"><b>Objectif secret</b><span class="small muted">${od.t} Réussi : +15 % de patrimoine à la fin.${od.ok(p)?' <b class="pos">Atteint pour l’instant.</b>':''}</span></span></div>`:''}</div>`}
 
 /* ================= STATE ================= */
@@ -1239,7 +1241,7 @@ function renderSetup(){
 }
 const RULES_BODY=`    <p><b>Le but</b> : finir avec le plus gros <b>patrimoine net</b>. Tout le monde part avec la même somme.</p>
     <p><b>Ton tour</b> : <b>3 points d’action (PA)</b>. Casino, trading, immobilier, startup, boulot, coup bas : 1 PA. Entreprise, trafic, braquage : 2 PA. Bourse, banque, blanchiment et ventes sont gratuits. L’interrupteur en bas à gauche passe de l’écran <b>Manche</b> à l’écran <b>Actions</b>.</p>
-    <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un nouvel <b>associé</b> te donne un talent (+) et un défaut (−) pour ce tour, et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
+    <p><b>Chaque manche</b> : une <b>rumeur</b> annonce l’événement de fin de manche et son effet (elle peut être fausse), un lot est mis aux <b>enchères</b> (offre secrète, 0 PA, la plus haute gagne, les autres sont remboursés), un <b>associé</b>, qui change tous les 4 tours, te donne un talent (+) et un défaut (−), et <b>3 opportunités</b> s’offrent à toi. Ton <b>objectif secret</b> vaut toute la partie : réussi, +15 % de patrimoine à la fin.</p>
     <p><b>En ligne</b>, tout le monde joue son tour en même temps. Touche « Finir mon tour » quand tu as fini : la manche se ferme quand tout le monde a fini. Une partie publique apparaît dans « Rejoindre une partie », une privée se rejoint avec le code. Sur un seul téléphone, chacun son tour.</p>
     <p><b>Placements</b> : en <b>trading</b>, tes positions (hausse ou baisse, levier, stop-loss) restent ouvertes d’un tour à l’autre. En <b>immobilier</b>, 7 villes sur la carte, chacune avec ses prix, ses loyers et sa tendance : Detroit est bon marché et rentable, New York cher et solide. Les <b>startups</b> lèvent des fonds ou meurent ; un audit révèle leur vraie qualité. Au <b>casino</b>, on débloque le suivant en cumulant des gains égaux à sa mise max.</p>
     <p><b>Coups bas</b> (un seul par tour) : duel au <b>poker</b> (Texas Hold’em à mise égale, en direct sur les deux écrans), arnaque, ou balancer quelqu’un à la police. En ligne, la victime le voit tout de suite.</p>
@@ -2597,7 +2599,7 @@ function scoreObjectives(){if(G.objScored)return;G.objScored=true;G.players.forE
 function canAdvance(){return !ON||ON.host||!isOnline(ON.lobby&&ON.lobby.host)}
 function nextRound(){if(!G||G.screen!=='recap'||!canAdvance())return;sfx.coin();if(G.round>=G.maxRounds){scoreObjectives();G.screen='end';save();render();haptic('jackpot');setTimeout(()=>sfx.big(),300);return}
   haptic('round');
-  G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';dealPartners(G.players);
+  G.round++;G.turnCount=0;G.cur=(G.round-1)%G.players.length;G.screen='pass';if((G.round-1)%PARTNER_SPAN===0)dealPartners(G.players);
   if(G.mode==='sim'){G.screen='free';G.opsSeen={};G.coupsQ=[]}save();render();window.scrollTo(0,0)}
 
 /* ================= END ================= */
