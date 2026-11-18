@@ -280,7 +280,14 @@ details.rules p{color:var(--ink-muted);font-size:var(--fs-sm)}
 .assoc .bd{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
 .assoc .k{font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;color:var(--neon-cyan)}
 .assoc .pro{display:flex;flex-direction:column;font-size:var(--fs-sm)}
-.assoc .pos{color:var(--gain)}.assoc .neg{color:var(--loss)}
+.trait{display:flex;align-items:flex-start;gap:var(--sp-2);color:var(--ink);text-align:left}
+.trait .tag{flex:none;min-width:58px;justify-content:center;text-transform:uppercase;letter-spacing:var(--ls-caps);margin-top:1px}
+.pro .trait+.trait,.traits .trait+.trait{margin-top:var(--sp-1)}
+.traits{display:flex;flex-direction:column}
+/* Dans le bandeau et les listes : l'étiquette ouvre la ligne, le texte passe dessous sur toute la largeur. */
+.assoc .trait,.item .trait{display:block}
+.assoc .trait>.tag,.item .trait>.tag{display:inline-flex;margin-right:var(--sp-2);vertical-align:1px}
+.assoc .trait>span:last-child,.item .trait>span:last-child{display:inline}
 .cash{font:var(--fw-regular) var(--fs-2xl)/1 var(--font-display);margin-top:var(--sp-4);color:var(--cash)}
 .cash.lit{text-shadow:0 0 var(--glow-sm) var(--halo-cash)}
 .cash.neg{color:var(--loss)}
@@ -963,7 +970,7 @@ const CHARS=[
  {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Intérêts de tes emprunts : 6 % par tour au lieu de 4 %.'},
  {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2, 5 positions ouvertes au lieu de 4.',f:'Pas d’achat immobilier à crédit.'},
  {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier : 2 % au lieu de 7 %.',f:'Créer ou développer une entreprise coûte 20 % plus cher.'},
- {k:'angel',e:'👼',n:'Le Business Angel',t:'Audits de startups gratuits, mentorat 1,6 fois plus efficace.',f:'Revente de parts de startups à 60 % de leur valeur au lieu de 75 %.'},
+ {k:'angel',e:'😇',n:'Le Business Angel',t:'Audits de startups gratuits, mentorat 1,6 fois plus efficace.',f:'Revente de parts de startups à 60 % de leur valeur au lieu de 75 %.'},
 ];
 const chr=p=>p&&p.chr||'';
 /* Taux d'intérêt des emprunts par tour, selon l'associé du tour. */
@@ -971,18 +978,20 @@ const debtRate=p=>chr(p)==='banker'?.01:chr(p)==='gambler'?.06:.04;
 function dealPartners(ps,round){let cs;for(let k=0;k<12;k++){cs=CHARS.slice().sort(()=>Math.random()-.5);if(ps.every((p,i)=>p.chr!==cs[i%cs.length].k))break}
   ps.forEach((p,i)=>{p.chr=cs[i%cs.length].k;p.chrFrom=round||1;if(p.chr==='godfather'&&!(p.net>0))p.net=1})}
 const chrDef=p=>CHARS.find(c=>c.k===chr(p));
+/* Talent / défaut d'un associé : texte blanc, précédé d'une étiquette néon (cyan pour le talent, rose pour le défaut). */
+const trait=(good,t)=>`<span class="trait"><span class="tag ${good?'c':'p'}">${good?'Talent':'Défaut'}</span><span>${t}</span></span>`;
 /* Carte « Nouvel associé », montrée une fois au début du tour où l'associé arrive. */
 function partnerCard(p){const cd=chrDef(p);if(!cd||p.chrShown===p.chrFrom)return null;p.chrShown=p.chrFrom;
-  return {k:p.chrFrom>1?'NOUVEL ASSOCIÉ':'TON ASSOCIÉ',e:cd.e,t:cd.n,d:`<span class="pos">+ ${cd.t}</span><br><span class="neg">− ${cd.f}</span>`,fx:`Avec toi jusqu’au tour ${partnerUntil()}`}}
+  return {k:p.chrFrom>1?'NOUVEL ASSOCIÉ':'TON ASSOCIÉ',e:cd.e,t:cd.n,d:`<span class="traits">${trait(1,cd.t)}${trait(0,cd.f)}</span>`,fx:`Avec toi jusqu’au tour ${partnerUntil()}`}}
 /* Bandeau de l'associé, en haut de l'écran de tour (visible sur « Manche » comme sur « Actions »). */
 function partnerChip(p){const cd=chrDef(p);if(!cd)return '';const left=partnerUntil()-G.round;
   return `<button class="assoc" onclick="openPartner()" aria-label="Ton associé : ${cd.n}. Voir son talent et son défaut"><span class="e" aria-hidden="true">${cd.e}</span>
     <span class="bd"><span class="k">Ton associé${left<=0?' · dernier tour avec toi':left===1?' · encore 1 tour':` · encore ${left} tours`}</span><b>${cd.n}</b>
-    <span class="pro"><span class="pos">+ ${cd.t}</span><span class="neg">− ${cd.f}</span></span></span>${icon('arrow')}</button>`}
+    <span class="pro">${trait(1,cd.t)}${trait(0,cd.f)}</span></span>${icon('arrow')}</button>`}
 /* Fiche des associés : le mien en détail, et ceux des autres (ils sont publics). */
 function openPartner(){const p=ON&&G.screen==='free'?me():cur(),cd=chrDef(p);if(!cd)return;
-  openModal('partner','Les associés',`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>${cd.n} · ton associé</b><span class="small pro"><span class="pos">+ ${cd.t}</span><span class="neg">− ${cd.f}</span><span class="muted">Avec toi jusqu’au tour ${partnerUntil()}, puis un nouvel associé est tiré au sort. Tous les ${PARTNER_SPAN} tours, chacun change d’associé.</span></span></span></div>
-  <h3 class="sec">Les associés des autres</h3><div class="list">${G.players.filter(q=>q!==p).map(q=>{const c=chrDef(q);return c?`<div class="item"><div class="av sm" style="--c:${q.color}">${q.avatar}</div><span class="bd"><b>${esc(q.name)} · ${c.e} ${c.n}</b><span class="small pro"><span class="pos">+ ${c.t}</span><span class="neg">− ${c.f}</span></span></span></div>`:''}).join('')}</div>`)}
+  openModal('partner','Les associés',`<div class="item"><span class="ic">${cd.e}</span><span class="bd"><b>${cd.n} · ton associé</b><span class="small pro">${trait(1,cd.t)}${trait(0,cd.f)}<span class="muted">Avec toi jusqu’au tour ${partnerUntil()}, puis un nouvel associé est tiré au sort. Tous les ${PARTNER_SPAN} tours, chacun change d’associé.</span></span></span></div>
+  <h3 class="sec">Les associés des autres</h3><div class="list">${G.players.filter(q=>q!==p).map(q=>{const c=chrDef(q);return c?`<div class="item"><div class="av sm" style="--c:${q.color}">${q.avatar}</div><span class="bd"><b>${esc(q.name)} · ${c.e} ${c.n}</b><span class="small pro">${trait(1,c.t)}${trait(0,c.f)}</span></span></div>`:''}).join('')}</div>`)}
 /* Objectifs secrets : un par joueur, révélé à la fin. Réussi = +15 % de patrimoine. */
 const OBJS=[
  {k:'immo4',t:'Posséder au moins 4 biens immobiliers à la fin.',ok:p=>myProps(p).length>=4},
