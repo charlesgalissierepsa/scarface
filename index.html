@@ -926,12 +926,21 @@ const LEGENDS=[
 const PARTNER_SPAN=4;
 const partnerUntil=()=>Math.min(G.maxRounds,Math.ceil(G.round/PARTNER_SPAN)*PARTNER_SPAN);
 const CHARS=[
+<<<<<<< Updated upstream
  {k:'banker',e:'🏦',n:'Le Banquier',t:'Intérêts de tes emprunts : 1 % par tour au lieu de 4 %.',f:'Braquages interdits.'},
  {k:'godfather',e:'👑',n:'Le Parrain',t:'Réseau de trafic offert si tu n’en as pas (1 000 à 3 000 € d’argent sale par tour).',f:'+3 de police en fin de tour.'},
  {k:'crook',e:'🃏',n:'L’Escroc',t:'Arnaques réussies à 70 % au lieu de 50 % (85 % contre la cible du moment).',f:'Arnaque ratée : +20 de police au lieu de +10.'},
  {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Intérêts de tes emprunts : 6 % par tour au lieu de 4 %.'},
  {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2, 5 positions ouvertes au lieu de 4.',f:'Pas d’achat immobilier à crédit.'},
  {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier : 2 % au lieu de 7 %.',f:'Créer ou développer une entreprise coûte 20 % plus cher.'},
+=======
+ {k:'banker',e:'🏦',n:'Le Banquier',t:'Ses emprunts ne coûtent que 2 % par tour au lieu de 4 % : bouton Banque (gratuit) ou achat immobilier à crédit.',f:'Trop propre sur lui pour braquer quoi que ce soit.'},
+ {k:'godfather',e:'🎩',n:'Le Parrain',t:'Démarre avec un petit réseau de trafic.',f:'Toujours surveillé : +3 de police à chaque fin de tour.'},
+ {k:'crook',e:'🃏',n:'L’Escroc',t:'Ses arnaques réussissent 20 points plus souvent.',f:'Quand une arnaque rate, la police prend +20 au lieu de +10.'},
+ {k:'gambler',e:'🎰',n:'Le Flambeur',t:'4 parties de casino par point d’action au lieu de 3.',f:'Les banques se méfient : ses emprunts (Banque, immobilier à crédit) coûtent 6 % par tour.'},
+ {k:'trader',e:'📈',n:'Le Trader',t:'Frais de trading divisés par 2 et 5 positions ouvertes au lieu de 4.',f:'Aucune banque ne lui prête pour l’immobilier : pas d’achat à crédit.'},
+ {k:'builder',e:'🏗️',n:'Le Promoteur',t:'Frais d’achat immobilier de 2 % au lieu de 7 %.',f:'Ses entreprises lui coûtent 20 % plus cher à créer et développer.'},
+>>>>>>> Stashed changes
 ];
 const chr=p=>p&&p.chr||'';
 /* Taux d'intérêt des emprunts par tour, selon l'associé du tour. */
@@ -2121,6 +2130,7 @@ function openImmo(){openSheet('Immobilier',immoHTML(),()=>setBody(immoHTML()))}
 function reItem(x,mine){const rt=rdef(x.t),cd=cdef(x.c),v=rprice(x.c,x.t),g=v-x.paid;
   return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n} · ${cd.n}</b><span class="small muted">Valeur <b class="num">${fmt(v)}</b> · <span class="num ${g>=0?'pos':'neg'}">${fmt(g,true)}</span> · loyer ≈ <span class="num">${fmt(rrent(x.c,x.t))}</span> par tour</span>
     ${mine?`<div class="btns">${B('Vendre',{v:'secondary',inline:1,on:`sellRE('${x.id}')`,cost:fmt(v*.95)})}</div>`:''}</span></div>`}
+<<<<<<< Updated upstream
 /* Position des villes sur la carte (en % de la carte) et côté de leur étiquette. */
 const MAP_POS={detroit:[72.3,37.1,'t'],nola:[62.5,76,'r'],miami:[83.2,85.3,'b'],ny:[87.9,38.3,'b'],la:[10.3,57.7,'bl'],vegas:[16.8,53.1,'r'],chicago:[65,39.5,'l']};
 const US_PATH='M33.5 36.6 44.8 34.4 208.8 57.2 211.2 53.6 242.9 64.8 273.5 75.4 289.8 84.1 292.1 104.8 289.4 114.3 315.0 102.9 312.8 97.8 329.8 87.1 337.0 78.2 358.0 73.0 363.1 55.8 366.1 48.4 375.1 48.6 386.0 66.8 369.4 83.1 369.2 92.5 375.2 99.3 366.9 104.3 352.4 115.5 354.0 125.4 348.7 133.1 345.3 150.6 352.1 164.9 342.7 173.4 330.4 184.1 318.8 200.7 316.3 214.0 325.7 233.4 333.0 247.6 331.9 261.4 326.4 263.2 318.7 250.8 309.7 239.5 306.0 230.0 294.9 223.3 286.7 227.0 277.5 221.6 265.9 222.7 253.7 225.4 255.9 234.3 247.3 235.7 235.3 231.8 221.2 231.4 213.5 235.1 200.1 244.2 194.4 250.4 194.2 265.6 178.9 259.9 176.0 250.8 164.9 233.3 154.1 229.0 148.2 235.8 137.6 229.5 124.3 208.2 111.4 206.7 110.8 211.2 88.8 208.0 63.1 192.3 46.1 188.7 39.3 175.1 25.3 164.0 21.0 144.0 19.9 132.4 16.3 112.4 14.0 106.0 19.5 92.5 27.6 70.4 32.4 56.8 33.3 49.6Z';
@@ -2145,6 +2155,19 @@ function immoHTML(){const p=viewer(),RO=ro(),d=imSel&&cdef(imSel),mine=(p.re||[]
   return `${RO?RO_NOTE:''}${note(`Chaque ville a son niveau de prix, son rendement locatif et sa tendance, qui changent à chaque tour. Le loyer tombe en fin de tour, mais un logement peut rester vide. Frais d’acquisition ${Math.round(reFee(p)*100)} %. À crédit, tu avances 25 % plus les frais et la banque prête le reste à 4 % par tour.`)}
   <h3 class="sec">La carte</h3>${usMapHTML(p)}
   ${d?`<h3 class="sec">Acheter à ${d.n}</h3><div class="list">${RTYPES.map(rt=>{const v=rprice(imSel,rt.k),cash=v*(1+reFee(p)),down=v*(.25+reFee(p));
+=======
+function immoHTML(){const p=viewer(),RO=ro(),c=city(imSel),d=cdef(imSel),t=trendCity(c),mine=(p.re||[]);
+  return `${RO?RO_NOTE:''}${note('Choisis ta ville : chacune a son niveau de prix, son rendement locatif et sa tendance, qui changent à chaque tour. Le loyer tombe en fin de tour, mais un logement peut rester vide. Frais d’acquisition ${Math.round(reFee(p)*100)} %. À crédit, tu avances 25 % plus les frais et la banque prête le reste à ${pctRate(p)} par tour.')}
+  <h3 class="sec">Les villes</h3><div class="list">${G.cities.map(x=>{const dd=cdef(x.k);
+    return `<button class="item pick ${x.k===imSel?'sel':''}" aria-pressed="${x.k===imSel}" onclick="imSel='${x.k}';refreshSheet()"><span class="ic">${dd.e}</span><span class="bd"><b>${dd.n}</b><span class="small muted">Rendement <b class="num">${pctY(x.yld)}</b> par tour · prix <span class="num ${x.chg>=0?'pos':'neg'}">${pct(x.chg)}</span></span></span>${spark(x.hist)}</button>`}).join('')}</div>
+  <h3 class="sec">${d.n}</h3><div class="panel tight"><p class="small muted">${d.d}</p>
+    <div class="kv"><span>Prix depuis le début</span><b class="num ${c.idx>=c.idx0?'pos':'neg'}">${pct(c.idx/c.idx0-1)}</b></div>
+    <div class="kv"><span>Rendement locatif</span><b class="num">${pctY(c.yld)} par tour</b></div>
+    <div class="kv"><span>Tendance (3 tours)</span><b class="${t>0?'pos':t<0?'neg':''}">${['↘ Baissière','→ Stable','↗ Haussière'][t+1]}</b></div>
+    <div class="kv"><span>Demande selon les agents</span><b class="${c.rating>0?'pos':c.rating<0?'neg':''}">${['Faible','Normale','Forte'][c.rating+1]}</b></div>
+    <div class="kv"><span>Volatilité des prix</span><span>${d.vol>.055?'élevée':d.vol>.04?'moyenne':'faible'}</span></div></div>
+  <h3 class="sec">Acheter à ${d.n}</h3><div class="list">${RTYPES.map(rt=>{const v=rprice(imSel,rt.k),cash=v*(1+reFee(p)),down=v*(.25+reFee(p));
+>>>>>>> Stashed changes
     return `<div class="item"><span class="ic">${rt.e}</span><span class="bd"><b>${rt.n}</b><span class="small muted"><b class="num">${fmt(v)}</b> · loyer ≈ <span class="num">${fmt(rrent(imSel,rt.k))}</span> par tour</span>
       ${RO?'':`<div class="btns duo">${B('Acheter cash',{v:'secondary',quiet:1,on:`buyRE('${rt.k}',0)`,cost:fmt(cash)+' · 1 PA',why:whyNot(1,cash,p)})}${B('À crédit',{v:'secondary',quiet:1,on:`buyRE('${rt.k}',1)`,cost:'apport '+fmt(down)+' · 1 PA',why:chr(p)==='trader'?'Pas de crédit pour le Trader':whyNot(1,down,p)})}</div>`}</span></div>`}).join('')}</div>`:note('Touche une ville sur la carte pour voir son marché et y acheter.','mt-3')}
   ${mine.length?`<h3 class="sec">Tes biens <span class="num">(${mine.length})</span></h3><div class="list">${mine.map(x=>reItem(x,!RO)).join('')}</div>`:''}`}
@@ -2457,10 +2480,17 @@ async function pokerShow(o,side){const run=++pkRun;ovOpener=document.activeEleme
   setTimeout(()=>{const b=$('#pkF .btn');b&&b.focus({preventScroll:true})},60)}
 /* ================= BANK ================= */
 function maxBorrow(p){return Math.max(0,Math.floor(grossAssets(p)*.6+5000-p.debt))}
+/* Taux d'intérêt par tour, selon le personnage (Banquier 2 %, Flambeur 6 %, les autres 4 %). */
+function debtRate(p){return chr(p)==='banker'?.02:chr(p)==='gambler'?.06:.04}
+const pctRate=p=>Math.round(debtRate(p)*100)+' %';
 function lawyerCost(p){return Math.round(Math.max(2000,netWorth(p)*.04))}
 function openBank(){openSheet('Banque',bankHTML(),()=>setBody(bankHTML()))}
 function bankHTML(){const p=cur(),mb=maxBorrow(p),lc=lawyerCost(p),rp=Math.min(Math.max(p.cash,0),p.debt);
+<<<<<<< Updated upstream
   return `<div class="panel tight"><div class="kv"><span>Dette actuelle</span><b class="num">${fmt(p.debt)}</b></div><div class="kv"><span>Intérêts</span><span class="num">${Math.round(debtRate(p)*100)} % par tour</span></div><div class="kv"><span>Capacité d’emprunt</span><b class="num">${fmt(mb)}</b></div></div>
+=======
+  return `<div class="panel tight"><div class="kv"><span>Dette actuelle</span><b class="num">${fmt(p.debt)}</b></div><div class="kv"><span>Intérêts</span><span class="num">${pctRate(p)} par tour${chr(p)==='banker'?' (talent du Banquier)':chr(p)==='gambler'?' (défaut du Flambeur)':''}</span></div><div class="kv"><span>Capacité d’emprunt</span><b class="num">${fmt(mb)}</b></div></div>
+>>>>>>> Stashed changes
   <h3 class="sec">Emprunter</h3>${amt('borAmt',mb,Math.min(10000,mb))}<div class="mt-3">${B('Emprunter',{v:'secondary',on:'borrow()',why:mb<=0?'Plus de capacité d’emprunt':''})}</div>
   ${p.debt>0?`<h3 class="sec">Rembourser</h3>${amt('repAmt',rp,rp)}<div class="mt-3">${B('Rembourser',{v:'secondary',on:'repay()',why:rp<=0?'Plus de cash':''})}</div>`:''}
   <h3 class="sec">Services spéciaux</h3>
