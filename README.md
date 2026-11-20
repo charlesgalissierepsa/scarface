@@ -13,6 +13,12 @@ de devenir le plus riche (casino, bourse, crypto, immobilier, entreprises, start
 - **Sur un seul téléphone** : on se passe le téléphone à tour de rôle.
 - **Seul contre l’ordinateur** : sans connexion, contre 1 à 7 adversaires (jusqu'à 8 joueurs, en ligne et sur un téléphone aussi). Chacun a un niveau (Facile, Moyen, Difficile) et un caractère tiré au sort (prudent, flambeur, mafieux, trader). Les ordinateurs jouent avec les mêmes règles que les humains, sans connaître l’avenir, et racontent leur tour à l’écran.
 
+## Langues
+
+Le jeu existe en **français** et en **anglais** ; la langue se choisit dans les **Réglages** (au premier lancement, celle du téléphone). Les montants sont en dollars dans les deux langues (« 12 000 $ » en français, « $12,000 » en anglais).
+
+Le code reste écrit en français : la traduction se fait à l’affichage, grâce au dictionnaire `lang/en.js` (paires `[français, anglais]`, avec `{0}`, `{1}`… pour les montants, noms et nombres). En ligne, chaque téléphone affiche dans sa propre langue ce que les autres lui envoient. **Pour un nouveau texte**, il suffit d’ajouter sa paire dans `lang/en.js` ; s’il manque, il s’affiche en français dans la version anglaise, sans rien casser.
+
 ## Comptes joueurs
 
 La première page propose trois entrées :
@@ -60,7 +66,7 @@ Les comptes et les statistiques sont gérés par Supabase (projet « scarface »
     ×1,5 si rachat, perdu si faillite), synergie avec tes entreprises du même domaine.
   - **Sortir** : rachat, introduction en Bourse, ou revente à 75 % de la valeur (40 % en pleine crise).
   - En ligne, chaque joueur ne modifie que sa fiche (ordres, votes, mentorat) ; l'hôte applique tout en fin de manche.
-- **Casinos à paliers** : six casinos, du Tripot (mise max 500 €) au Club des Milliardaires (1 M€). On débloque le
+- **Casinos à paliers** : six casinos, du Tripot (mise max 500 $) au Club des Milliardaires (1 M$). On débloque le
   suivant en cumulant, dans le casino actuel, des gains égaux à sa mise max. Les pertes ne comptent pas.
 - **Après la partie** : revanche en un clic et carte de fin
   à partager dans le groupe.
